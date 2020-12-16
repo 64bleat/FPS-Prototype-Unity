@@ -8,12 +8,12 @@ the acrobatics of action games with the interactivity of immersive sims
 and RPGs, that can serve as a base for a wide variety of genres such as arena shooters, open-world action RPGs, and walking simulators.
 
 ### Reproduction
-* This repository is a Unity 2020.1 Project
+* This repository is a Unity 2020.1 Project. The cloned repository is ready to add in Unity Hub.
 * Clone recursively. This repository uses submodules.
 
 ### Table of [Important] Contents
  * Assets
-   * [Main](/Assets/Main/README.MD) - Assets necessary to the core funcionality of the underlying prototype
+   * [Main](/Assets/Main) - Assets necessary to the core funcionality of the underlying prototype
      * Actors - Assets associated with the objects that act as game pieces
      * Core - Assets associated with low-level functionality and generic systems
      * GUI - Assets used only in GUI
@@ -21,6 +21,6 @@ and RPGs, that can serve as a base for a wide variety of genres such as arena sh
    * MPGame - Assets that are not relevant to the underlying prototype
 
 ### Submodules
- * [TetraGen - Isosurface generator](https://github.com/64bleat/FPS-Prototype-Unity.git)
+ * [TetraGen - Isosurface generator](https://github.com/64bleat/TetraGen-Unity.git)
  * [AstronomicSkybox - Astronomic formulas, reak skybox and time simulator](https://github.com/64bleat/AstronomicSkybox-Unity.git)
  * [XMLSerialization - Load and save system](https://github.com/64bleat/XMLSerialization-Unity.git)
