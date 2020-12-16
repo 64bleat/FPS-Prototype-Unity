@@ -1,0 +1,12 @@
+[submodule "TetraGen"]
+	path = Assets/Main/World/TetraGen
+	url = https://github.com/64bleat/TetraGen-Unity.git
+	branch = master
+[submodule "Astronomy"]
+	path = Assets/Main/World/Astronomy
+	url = https://github.com/64bleat/AstronomicSkybox-Unity.git
+	branch = master
+[submodule "XMLSerialization"]
+	path = Assets/Main/Core/XMLSerialization
+	url = https://github.com/64bleat/XMLSerialization-Unity.git
+	branch = master

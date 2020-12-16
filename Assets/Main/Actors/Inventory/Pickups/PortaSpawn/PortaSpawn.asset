@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d3a3cfd4b37128458d3db68fdcbd121, type: 3}
+  m_Name: PortaSpawn
+  m_EditorClassIdentifier: 
+  sceneObjectPrefab: {fileID: 4735146288060837445, guid: 8609a892208dcdb418afce6e1b39739d,
+    type: 3}
+  displayName: Porta-Spawn
+  noMultiples: 0
+  pickupOnTouch: 0
+  pickupOnInteractStart: 1
+  destroyOnPickup: 0
+  destroyOnDrop: 0
+  droppedLifeTime: 30
+  pickupSound: {fileID: 0}

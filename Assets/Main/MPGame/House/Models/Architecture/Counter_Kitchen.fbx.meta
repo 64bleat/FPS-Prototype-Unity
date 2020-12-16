@@ -1,0 +1,329 @@
+fileFormatVersion: 2
+guid: de69b5d49e1956c47869ce235e935c0c
+ModelImporter:
+  serializedVersion: 23
+  fileIDToRecycleName:
+    100000: Cube
+    100002: //RootNode
+    100004: Light
+    100006: Cube.001
+    100008: Cube.002
+    100010: Cube.003
+    100012: Cube.004
+    100014: Cube.005
+    100016: Cube.006
+    100018: Cube.007
+    100020: Cube.008
+    100022: Cube.009
+    100024: Cube.010
+    100026: Cube.011
+    100028: Cube.012
+    100030: Cube.013
+    100032: Cube.014
+    100034: Cube.015
+    100036: Counter
+    100038: door1
+    100040: Door2
+    100042: Door3
+    100044: Door4
+    100046: Door5
+    100048: Drawer1
+    100050: Drawer2
+    100052: Drawer3
+    100054: Drawer4
+    100056: Drawer5
+    100058: drawer6
+    100060: drawer7
+    100062: Vent
+    100064: Faucet
+    100066: Faucet.001
+    100068: Faucet.000
+    100070: CuttingBoard
+    100072: CuttingBoard.001
+    400000: Cube
+    400002: //RootNode
+    400004: Light
+    400006: Cube.001
+    400008: Cube.002
+    400010: Cube.003
+    400012: Cube.004
+    400014: Cube.005
+    400016: Cube.006
+    400018: Cube.007
+    400020: Cube.008
+    400022: Cube.009
+    400024: Cube.010
+    400026: Cube.011
+    400028: Cube.012
+    400030: Cube.013
+    400032: Cube.014
+    400034: Cube.015
+    400036: Counter
+    400038: door1
+    400040: Door2
+    400042: Door3
+    400044: Door4
+    400046: Door5
+    400048: Drawer1
+    400050: Drawer2
+    400052: Drawer3
+    400054: Drawer4
+    400056: Drawer5
+    400058: drawer6
+    400060: drawer7
+    400062: Vent
+    400064: Faucet
+    400066: Faucet.001
+    400068: Faucet.000
+    400070: CuttingBoard
+    400072: CuttingBoard.001
+    2100000: Default_Prototype
+    2100002: Tile_Black_Flat
+    2100004: Paint_Red
+    2100006: Tile_Black_Round
+    2100008: Tile_Yellow_Square
+    2100010: Tile_Yellow_Hex
+    2100012: Paint_White
+    2100014: Paint_Yellow
+    2100016: Sink
+    2100018: Chrome
+    2100020: No Name
+    2100022: Grate
+    2300000: Cube
+    2300002: Cube.001
+    2300004: Cube.002
+    2300006: Cube.003
+    2300008: Cube.004
+    2300010: Cube.005
+    2300012: Cube.006
+    2300014: Cube.007
+    2300016: Cube.008
+    2300018: Cube.009
+    2300020: Cube.010
+    2300022: Cube.011
+    2300024: Cube.012
+    2300026: Cube.013
+    2300028: Cube.014
+    2300030: Cube.015
+    2300032: Counter
+    2300034: door1
+    2300036: Door2
+    2300038: Door3
+    2300040: Door4
+    2300042: Door5
+    2300044: Drawer1
+    2300046: Drawer2
+    2300048: Drawer3
+    2300050: Drawer4
+    2300052: Drawer5
+    2300054: drawer6
+    2300056: drawer7
+    2300058: Vent
+    2300060: Faucet
+    2300062: Faucet.001
+    2300064: Faucet.000
+    2300066: CuttingBoard
+    2300068: CuttingBoard.001
+    3300000: Cube
+    3300002: Cube.001
+    3300004: Cube.002
+    3300006: Cube.003
+    3300008: Cube.004
+    3300010: Cube.005
+    3300012: Cube.006
+    3300014: Cube.007
+    3300016: Cube.008
+    3300018: Cube.009
+    3300020: Cube.010
+    3300022: Cube.011
+    3300024: Cube.012
+    3300026: Cube.013
+    3300028: Cube.014
+    3300030: Cube.015
+    3300032: Counter
+    3300034: door1
+    3300036: Door2
+    3300038: Door3
+    3300040: Door4
+    3300042: Door5
+    3300044: Drawer1
+    3300046: Drawer2
+    3300048: Drawer3
+    3300050: Drawer4
+    3300052: Drawer5
+    3300054: drawer6
+    3300056: drawer7
+    3300058: Vent
+    3300060: Faucet
+    3300062: Faucet.001
+    3300064: Faucet.000
+    3300066: CuttingBoard
+    3300068: CuttingBoard.001
+    4300000: Cube
+    4300002: Cube.001
+    4300004: Cube.002
+    4300006: Cube.003
+    4300008: Cube.004
+    4300010: Cube.006
+    4300012: Cube.005
+    4300014: Cube.007
+    4300016: Cube.008
+    4300018: Cube.009
+    4300020: Cube.010
+    4300022: Cube.011
+    4300024: Cube.012
+    4300026: Cube.013
+    4300028: Cube.015
+    4300030: Cube.014
+    4300032: Counter
+    4300034: Drawer2
+    4300036: Drawer1
+    4300038: Vent
+    4300040: Drawer4
+    4300042: Drawer3
+    4300044: Drawer5
+    4300046: drawer6
+    4300048: drawer7
+    4300050: Door2
+    4300052: door1
+    4300054: Door5
+    4300056: Door4
+    4300058: Door3
+    4300060: Faucet
+    4300062: Faucet.001
+    4300064: Faucet.000
+    4300066: CuttingBoard
+    4300068: CuttingBoard.001
+    10800000: Light
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Chrome
+    second: {fileID: 2100000, guid: 82383a6118a32af4fb3e5be0b77de8a4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Grate
+    second: {fileID: 2100000, guid: 555132c395a40ae4f8ee2620cb2a4fb2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Paint_Red
+    second: {fileID: 2100000, guid: 8c758522b3cb7804caa85daadd4c7733, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Paint_White
+    second: {fileID: 2100000, guid: 52c0d8376bffe0349aeee46ab9e41992, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Paint_Yellow
+    second: {fileID: 2100000, guid: 5694cdec52db6044b914a9ee16f5b429, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Sink
+    second: {fileID: 2100000, guid: e600a79198c8ec24cb3b1247ed4c2f24, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tile_Black_Flat
+    second: {fileID: 2100000, guid: f7ea80436ae1fd946a14c0c2bd76773c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tile_Black_Round
+    second: {fileID: 2100000, guid: 9b2808dc889077e408d07d083c980ba7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tile_Yellow_Hex
+    second: {fileID: 2100000, guid: 0615dae57019e1749941f919735cdadf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tile_Yellow_Square
+    second: {fileID: 2100000, guid: ab9f779ca9eef114eb0b940eabfe66cc, type: 2}
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importVisibility: 0
+    importBlendShapes: 0
+    importCameras: 0
+    importLights: 0
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    previousCalculatedGlobalScale: 1
+    hasPreviousCalculatedGlobalScale: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+  importAnimation: 0
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 0
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
