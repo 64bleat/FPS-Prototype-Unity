@@ -18,7 +18,6 @@ namespace MPCore
 
         public void OnDestroy()
         {
-            Navigator.Clear();
             Resources.UnloadUnusedAssets();
         }
     }

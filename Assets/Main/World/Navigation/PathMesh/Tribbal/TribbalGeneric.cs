@@ -1,4 +1,5 @@
 ﻿using MPCore;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Junk
@@ -15,7 +16,7 @@ namespace Junk
         private readonly GOAP goap = new GOAP();
         private LineRenderer lineInstance;
         private GameObject target;
-        private Vector3[] path;
+        private readonly List<Vector3> path = new List<Vector3>();
         private int pathIndex;
 
         private void Awake()
@@ -71,21 +72,21 @@ namespace Junk
                     DestroyImmediate(lineInstance.gameObject);
 
                 lineInstance = Instantiate(line);
-                lineInstance.positionCount = path.Length;
-                lineInstance.SetPositions(path);
+                lineInstance.positionCount = path.Count;
+                lineInstance.SetPositions(path.ToArray());
             }
         }
 
         private GOAPStatus PFFollowingPathUpdate()
         {
-            if (target && path != null && path.Length > 0) // && Vector3.Distance(path[path.Length - 1], target.transform.position) < 5)
+            if (target && path != null && path.Count > 0) // && Vector3.Distance(path[path.Length - 1], target.transform.position) < 5)
             {
                 //while (pathIndex < path.Length - 3 && (Vector3.Distance(path[pathIndex], transform.position)) < 1.5f)
                 //pathIndex++;
                 //pathIndex = Navigator.GetBestDestinationIndex(path, sphere.radius, transform.position, path[path.Length - 1], out float distance, out float tDistance);
-                pathIndex = Mathf.CeilToInt(Navigator.GetPathIndex(path, transform.position, pathIndex, out float distance));
+                pathIndex = Mathf.CeilToInt(Navigator.GetCoordinatesOnPath(path, transform.position, pathIndex, out float distance));
 
-                if (distance > 5f || Vector3.Distance(transform.position, path[path.Length - 1]) < sphere.radius) //|| tDistance > 5f)
+                if (distance > 5f || Vector3.Distance(transform.position, path[path.Count - 1]) < sphere.radius) //|| tDistance > 5f)
                     return GOAPStatus.Fail;
 
                 //while (pathIndex < path.Length - 1 && Vector3.Distance(path[pathIndex], transform.position) < sphere.radius)
@@ -154,7 +155,7 @@ namespace Junk
         {
             Vector3 offset = (transform.position - target.transform.position).normalized;
 
-            Navigator.RequestPath(transform.position, Navigator.RandomPoint(sphere.radius)/*target.transform.position + offset * 3f*/, p => path = p, sphere.radius);
+            Navigator.RequestPath(transform.position, Navigator.RandomPoint(sphere.radius)/*target.transform.position + offset * 3f*/, path, sphere.radius);
         }
         #endregion
 

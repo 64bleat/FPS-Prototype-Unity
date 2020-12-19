@@ -40,72 +40,72 @@ namespace MPCore
 
         public override GOAPStatus Update()
         {
-            if (ai && ai.target)
-            {
-                //pursure path
-                if (ai.targetPath != null && ai.targetPath.Length > 0)
-                    while (ai.targetPathIndex < ai.targetPath.Length - 1
-                        && Vector3.ProjectOnPlane(ai.targetPath[ai.targetPathIndex] - gameObject.transform.position, gameObject.transform.up).magnitude < 1f)
-                        ai.destination = ai.targetPath[++ai.targetPathIndex];
-                else if (ai.target && ai.targetPath == null && pathJob.IsCompleted == true)
-                    pathJob = Navigator.RequestPath(gameObject.transform.position, ai.target.transform.position, p =>
-                    {
-                        ai.targetPath = p;
-                        ai.targetPathIndex = 0;
-                    });
+            //if (ai && ai.target)
+            //{
+            //    //pursure path
+            //    if (ai.targetPath != null && ai.targetPath.Length > 0)
+            //        while (ai.targetPathIndex < ai.targetPath.Length - 1
+            //            && Vector3.ProjectOnPlane(ai.targetPath[ai.targetPathIndex] - gameObject.transform.position, gameObject.transform.up).magnitude < 1f)
+            //            ai.destination = ai.targetPath[++ai.targetPathIndex];
+            //    else if (ai.target && ai.targetPath == null && pathJob.IsCompleted == true)
+            //        pathJob = Navigator.RequestPath(gameObject.transform.position, ai.target.transform.position, p =>
+            //        {
+            //            ai.targetPath = p;
+            //            ai.targetPathIndex = 0;
+            //        });
 
-                //move begins here
-                if (ai.targetPath != null)
-                {
-                    CharacterBody cb;
-                    float distance = Vector3.Distance(ai.targetPath[ai.targetPathIndex], gameObject.transform.position);
+            //    //move begins here
+            //    if (ai.targetPath != null)
+            //    {
+            //        CharacterBody cb;
+            //        float distance = Vector3.Distance(ai.targetPath[ai.targetPathIndex], gameObject.transform.position);
 
-                    for (int i = ai.targetPathIndex; i < ai.targetPath.Length - 1; i++)
-                        distance += Vector3.Distance(ai.targetPath[i], ai.targetPath[i + 1]);
+            //        for (int i = ai.targetPathIndex; i < ai.targetPath.Length - 1; i++)
+            //            distance += Vector3.Distance(ai.targetPath[i], ai.targetPath[i + 1]);
 
-                    if (ai.destination != null && (distance > satisfiedDistance || distance < backupDistance))
-                    {
-                        Vector3 direction = (Vector3)ai.destination - gameObject.transform.position * Mathf.Sign(distance - backupDistance);
-                        Vector3 offsetH = Vector3.ProjectOnPlane(direction, gameObject.transform.up);
-                        float fAngle = Vector3.Angle(gameObject.transform.forward, offsetH);
-                        float rAngle = Vector3.Angle(gameObject.transform.right, offsetH);
+            //        if (ai.destination != null && (distance > satisfiedDistance || distance < backupDistance))
+            //        {
+            //            Vector3 direction = (Vector3)ai.destination - gameObject.transform.position * Mathf.Sign(distance - backupDistance);
+            //            Vector3 offsetH = Vector3.ProjectOnPlane(direction, gameObject.transform.up);
+            //            float fAngle = Vector3.Angle(gameObject.transform.forward, offsetH);
+            //            float rAngle = Vector3.Angle(gameObject.transform.right, offsetH);
 
-                        if (fAngle < 67.5f)
-                            input.Press("Forward");
-                        else if (fAngle > 157.5f)
-                            input.Press("Reverse");
+            //            if (fAngle < 67.5f)
+            //                input.Press("Forward");
+            //            else if (fAngle > 157.5f)
+            //                input.Press("Reverse");
 
-                        if (rAngle < 67.5f)
-                            input.Press("Right");
-                        else if (rAngle > 157.5f)
-                            input.Press("Left");
+            //            if (rAngle < 67.5f)
+            //                input.Press("Right");
+            //            else if (rAngle > 157.5f)
+            //                input.Press("Left");
 
-                        if (distance < walkDistance)
-                            input.Press("Walk");
-                        else if (distance > sprintDistance)
-                            input.Press("Sprint");
+            //            if (distance < walkDistance)
+            //                input.Press("Walk");
+            //            else if (distance > sprintDistance)
+            //                input.Press("Sprint");
 
-                        if (body && body.currentState == CharacterBody.MoveState.Grounded)
-                        {
-                            Vector3 jumpTest = body.cameraSlot.position + body.transform.forward * body.cap.radius * 1.5f;
+            //            if (body && body.currentState == CharacterBody.MoveState.Grounded)
+            //            {
+            //                Vector3 jumpTest = body.cameraSlot.position + body.transform.forward * body.cap.radius * 1.5f;
 
-                            if (Physics.Raycast(jumpTest, -body.transform.up, out RaycastHit hit, body.cap.height, eyeMask, QueryTriggerInteraction.Ignore)
-                                && Mathf.Abs(hit.distance - body.cap.height) > body.stepOffset)
-                            {
-                                input.Press("Jump", 0.125f);
-                                input.Press("Forward", 0.25f);
-                            }
-                        }
-                    }
+            //                if (Physics.Raycast(jumpTest, -body.transform.up, out RaycastHit hit, body.cap.height, eyeMask, QueryTriggerInteraction.Ignore)
+            //                    && Mathf.Abs(hit.distance - body.cap.height) > body.stepOffset)
+            //                {
+            //                    input.Press("Jump", 0.125f);
+            //                    input.Press("Forward", 0.25f);
+            //                }
+            //            }
+            //        }
 
-                    if (distance < 5 && (cb = ai.target.GetComponent<CharacterBody>()))
-                        ai.lookDestination = cb.cameraSlot.position;  
-                    else
-                        ai.lookDestination = (Vector3)ai.destination + body.transform.up * body.cap.height / 2;
+            //        if (distance < 5 && (cb = ai.target.GetComponent<CharacterBody>()))
+            //            ai.lookDestination = cb.cameraSlot.position;  
+            //        else
+            //            ai.lookDestination = (Vector3)ai.destination + body.transform.up * body.cap.height / 2;
 
-                    input.Move(Look);
-                }
-            }
+            //        input.Move(Look);
+            //    }
+            //}
 
             return GOAPStatus.Running;
         }

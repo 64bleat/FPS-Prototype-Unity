@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Unity.Jobs;
 using UnityEngine;
@@ -27,7 +28,8 @@ namespace MPCore
 
         // Path
         private JobHandle pathJob = default;
-        private Vector3[] path = null;
+        //private Vector3[] path = null;
+        private readonly List<Vector3> path = new List<Vector3>();
         private float pathPosition = 0;
         private float pathValid = 0;
         // Targeting
@@ -43,6 +45,8 @@ namespace MPCore
         private const float slowAngle = 45f;
         //Combat
         public bool hostile = true;
+
+        private LineRenderer line;
 
         private void Awake()
         {
@@ -70,32 +74,30 @@ namespace MPCore
             {
                 moveTarget = GetTarget();
                 tTarget = Time.time + 10f;
-                path = null;
+                path.Clear();
                 pathPosition = 0;
 
-                pathJob = Navigator.RequestPath(transform.position, GetMoveDestination(), SetPath, body.cap.height / 2f);
-
-                //if (line)
-                //    Destroy(line.gameObject);
+                pathJob = Navigator.RequestPath(transform.position, GetMoveDestination(), path, body.cap.height / 2f);
             }
 
-            if ((path != null && pathPosition >= path.Length - 2)
+            if ((path.Count > 0 && pathPosition >= path.Count - 2)
                 || (lookTarget && lookTarget is Character))
                 tTarget -= 10 * Time.deltaTime;
 
-            if (path != null && path.Length != 0 && Vector3.Distance(transform.position, path[path.Length - 1]) < 2f)
+            if (path.Count > 0 && path.Count != 0 && Vector3.Distance(transform.position, path[path.Count - 1]) < 2f)
                 tTarget = 0;
 
-            if (path != null)
+            if (path.Count > 0)
             {
                 lookTarget = GetTarget(typeof(Character));
                 input.Move(MouseLook);
                 Move();
+
                 //if (!line && debugLineTemplate)
                 //{
                 //    line = Instantiate(debugLineTemplate.gameObject).GetComponent<LineRenderer>();
-                //    line.positionCount = path.Length;
-                //    line.SetPositions(path);
+                //    line.positionCount = path.Count;
+                //    line.SetPositions(path.ToArray());
                 //}
             }
         }
@@ -144,10 +146,10 @@ namespace MPCore
             return bestTarget;
         }
 
-        private void SetPath(Vector3[] p)
-        {
-            path = p;
-        }
+        //private void SetPath(Vector3[] p)
+        //{
+        //    path = new;
+        //}
 
         private bool IsVisible(Component target, float viewAngle, out RaycastHit hit)
         {
@@ -186,7 +188,7 @@ namespace MPCore
                     input.Press("Fire", 0.5f);
                 }
             }
-            else if (path != null)
+            else if (path.Count > 0)
                 lookDir = Navigator.GetPositionOnPath(path, pathPosition, 2f) - transform.position;
             else
                 lookDir = transform.forward;
@@ -207,7 +209,7 @@ namespace MPCore
 
         private void Move()
         {
-            pathPosition = Navigator.GetPathIndex(path, transform.position, pathPosition, out float off);
+            pathPosition = Navigator.GetCoordinatesOnPath(path, transform.position, pathPosition, out float off);
             moveDest = Navigator.GetPositionOnPath(path, pathPosition, Mathf.Max(1.5f, 2f - off));
             if (GetComponentInChildren<SphereCollider>() is var col && col)
                 col.transform.position = moveDest;

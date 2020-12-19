@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 
@@ -10,60 +9,82 @@ namespace MPCore
     public class PathMesh : MonoBehaviour
     {
         public ThreadedSplayedMesh threadMesh;
-        private static readonly Dictionary<GetPathJob, JobHandle> openJobs = new Dictionary<GetPathJob, JobHandle>();
+
+        public static readonly List<PathMesh> activeMeshes = new List<PathMesh>();
+
+        private readonly Dictionary<Guid, (JobHandle handle, List<Vector3> path)> openJobs = new Dictionary<Guid, (JobHandle handle, List<Vector3> path)>();
+        private readonly Stack<PathRequest> availableJobs = new Stack<PathRequest>();
 
         private void Awake()
         {
             threadMesh = new ThreadedSplayedMesh(GetComponent<MeshFilter>().mesh, transform);
+        }
 
-            Navigator.AddPathMesh(this);
+        private void OnEnable()
+        {
+            activeMeshes.Add(this);
+        }
+
+        private void OnDisable()
+        {
+            activeMeshes.Remove(this);
         }
 
         private void OnDestroy()
         {
-
             foreach (var kvp in openJobs)
-                kvp.Value.Complete();
+                kvp.Value.handle.Complete();
 
             threadMesh.vertices.Dispose();
             threadMesh.triangles.Dispose();
             threadMesh.normals.Dispose();
             threadMesh.neighbors.Dispose();
             threadMesh.centers.Dispose();
+
+            foreach (PathRequest job in availableJobs)
+                job.Dispose();
         }
 
-        public JobHandle RequestPath(Vector3 origin, Vector3 destination, Action<Vector3[]> getPathCallback, float height = 0)
+        public JobHandle RequestPath(Vector3 startPosition, Vector3 endPosition, List<Vector3> fillPath, float height = 0)
         {
-            GetPathJob startJob = new GetPathJob()
-            {
-                start = origin,
-                end = destination,
-                height = height,
-                mesh = threadMesh,
-                nPath = new NativeArray<Vector3>(50, Allocator.Persistent, NativeArrayOptions.UninitializedMemory),
-                nLength = new NativeArray<int>(1, Allocator.Persistent, NativeArrayOptions.UninitializedMemory)
-            };
+            PathRequest startJob;
 
-            void Callback(IJob job)
+            if (availableJobs.Count != 0)
             {
-                GetPathJob gpj = (GetPathJob)job;
-
-                getPathCallback(gpj.nPath.GetSubArray(0, gpj.nLength[0]).ToArray());
-                gpj.nPath.Dispose();
-                gpj.nLength.Dispose();
-                openJobs.Remove(gpj);
+                startJob = availableJobs.Pop();
+            }
+            else
+            {
+                startJob = new PathRequest();
+                startJob.mesh = threadMesh;
+                startJob.Allocate();
             }
 
-            if (openJobs.TryGetValue(startJob, out JobHandle handle))
-            {
-                handle.Complete();
-                openJobs.Remove(startJob);
-            }
+            startJob.guid = Guid.NewGuid();
+            startJob.startPosition = startPosition;
+            startJob.endPosition = endPosition;
+            startJob.height = height;
 
-            handle = JobManager.Schedule(startJob, Callback);
-            openJobs.Add(startJob, handle);
+            JobHandle handle = JobManager.Schedule(startJob, PathRequestCallback);
+            openJobs.Add(startJob.guid, (handle, fillPath));
 
             return handle;
+        }
+
+        private void PathRequestCallback(IJob ijob)
+        {
+            PathRequest job = (PathRequest)ijob;
+
+            if (job.path.IsCreated && openJobs.TryGetValue(job.guid, out var jobInfo))
+            {
+                jobInfo.path.Clear();
+
+                for (int i = 0; i < job.path.Length; i++)
+                    jobInfo.path.Add(job.path[i]);
+            }
+
+            openJobs.Remove(job.guid);
+            availableJobs.Push(job);
         }
     }
 }

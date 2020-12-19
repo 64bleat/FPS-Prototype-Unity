@@ -5,6 +5,9 @@ using UnityEngine;
 
 namespace MPCore
 {
+    /// <summary>
+    /// Handles callbacks of job requests
+    /// </summary>
     public class JobManager : MonoBehaviour
     {
         private static readonly List<JobInfo> activeJobs = new List<JobInfo>();
@@ -48,9 +51,18 @@ namespace MPCore
                     i++;
         }
 
+        /// <summary>
+        /// Scedule an async job with an attached callback that will be called on the first LateUpdate
+        /// the job is complete.
+        /// </summary>
         public static JobHandle Schedule<T>(T job, Action<IJob> callback = null, JobHandle require = default) where T : struct, IJob
         {
-            JobInfo jobData = availableJobs.Count > 0 ? availableJobs.Pop() : new JobInfo();
+            JobInfo jobData;
+
+            if (availableJobs.Count > 0)
+                jobData = availableJobs.Pop();
+            else
+                jobData = new JobInfo();
 
             jobData.handle = job.Schedule(require);
             jobData.job = job;
