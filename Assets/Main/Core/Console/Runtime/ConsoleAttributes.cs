@@ -5,7 +5,7 @@ namespace MPConsole
     /// <summary> Flags a class as contianing more console related attributes</summary>
     /// <remarks> non-static classes require instances to be registered to the console. 
     /// Commands will run on every registered instance. </remarks>
-    [AttributeUsage(AttributeTargets.Class)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
     public class ContainsConsoleCommandsAttribute : Attribute
     {
 

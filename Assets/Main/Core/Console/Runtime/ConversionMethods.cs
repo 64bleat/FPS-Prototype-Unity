@@ -2,7 +2,7 @@
 
 namespace MPConsole
 {
-
+    [ContainsConsoleCommands]
     public static class ConversionMethods
     {
         [Conversion]
