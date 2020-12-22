@@ -53,10 +53,9 @@
 					float3 rgb;
 
 					i.uv += _SinTime[0];
-					rgb.r = rand3dTo1d(i.uv.xyy, _Seed);
-					rgb.g = rand3dTo1d(i.uv.xyy, _Seed + 1);
-					rgb.b = rand3dTo1d(i.uv.xyy, _Seed + 2);
-					rgb -= 0.5f;
+					rgb.r = -rand3dTo1d(i.uv.xyy, _Seed);
+					rgb.g = -rand3dTo1d(i.uv.xyy, _Seed + 1);
+					rgb.b = -rand3dTo1d(i.uv.xyy, _Seed + 2);
 					rgb *= _Grain;
 
 					return float4(rgb, 1);

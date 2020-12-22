@@ -1,4 +1,4 @@
-﻿Shader "ScreenShaders/BloomShader"
+﻿Shader "Hidden/BloomShader"
 {
     Properties
     {

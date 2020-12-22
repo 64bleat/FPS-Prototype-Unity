@@ -3,7 +3,9 @@ using UnityEngine;
 using UnityEngine.Events;
 namespace MPWorld
 {
-
+    /// <summary>
+    /// An interactive lever representing a boolean value.
+    /// </summary>
     public class BoolLever : MonoBehaviour, IBoolValue, IInteractable
     {
         public enum ButtonValueType { Manual, Toggle, Hold }
@@ -27,23 +29,10 @@ namespace MPWorld
         private bool commit = false;
         private float transition = 1f;
 
-        public bool BoolValue
-        {
-            get => boolValue;
-
-            set
-            {
-                boolValue = value;
-
-                if (meshRenderer)
-                    meshRenderer.materials = boolValue ? OnMaterials : offMaterials;
-            }
-        }
-
         public void Awake()
         {
             meshRenderer = lever.GetComponent<MeshRenderer>();
-            BoolValue = defaultPosition;
+            SetValue(defaultPosition);
         }
 
         public void Update()
@@ -69,12 +58,20 @@ namespace MPWorld
                 debounce = true;
 
                 if (buttonType == ButtonValueType.Toggle)
-                    BoolValue = !BoolValue;
+                    SetValue(!boolValue);
 
                 downEvents.Invoke();
             }
 
             lever.transform.position = Vector3.Lerp(DownPosition.position, upPosition.position, transition);
+        }
+
+        public void SetValue(bool value)
+        {
+            if (boolValue != value)
+                meshRenderer.materials = value ? OnMaterials : offMaterials;
+
+            boolValue = value;
         }
 
         public void OnInteractStart(GameObject other, RaycastHit hit)
@@ -89,6 +86,20 @@ namespace MPWorld
         public void OnInteractEnd(GameObject other, RaycastHit hit)
         {
             isPressed = false;
+        }
+
+        [System.Obsolete("Use SetValue instead")]
+        public bool BoolValue
+        {
+            get => boolValue;
+
+            set
+            {
+                boolValue = value;
+
+                if (meshRenderer)
+                    meshRenderer.materials = boolValue ? OnMaterials : offMaterials;
+            }
         }
     }
 }
