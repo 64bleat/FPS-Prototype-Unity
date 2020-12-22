@@ -204,3 +204,13 @@ The following packages were updated:
 The following packages were removed:
   com.unity.probuilder@4.4.0
   com.unity.progrids@3.0.3-preview.6
+
+=== Tue Dec 22 14:15:45 2020
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.ide.rider from version 1.2.1 to 2.0.7
+  com.unity.ide.vscode from version 1.2.1 to 1.2.3
+  com.unity.test-framework from version 1.1.16 to 1.1.19
