@@ -13,7 +13,7 @@ public class Respawner : MonoBehaviour
         if(spawnOnAwake)
             Instantiate(itemToSpawn, transform, false);
 
-        if (GetComponent<MeshRenderer>() is var mr && mr)
+        if(TryGetComponent(out MeshRenderer mr))
             mr.enabled = false;
     }
 
