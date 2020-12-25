@@ -10,12 +10,14 @@ namespace MPCore
         public List<Inventory> inventory = new List<Inventory>();
         public ResourceType hurtResource;
         public bool isPlayer = false;
-        public StringBroadcaster onDisplayHealth;
-        public DeathBroadcaster onDeath;
-        public ObjectBroadcaster characterSpawnChannel;
-        public (GameObject instigator, float time) lastCharacterInstigator;
+        public StringEvent onDisplayHealth;
+        public DeathEvent onDeath;
+        public ObjectEvent onCharacterSpawn;
+
         [HideInInspector] public CharacterInfo characterInfo;
         public int Health => health?.value ?? 0;
+
+        private (GameObject instigator, float time) lastAttacker;
         private ResourceItem health;
 
         private void OnEnable()
@@ -32,34 +34,35 @@ namespace MPCore
             AiInterestPoints.interestPoints.Remove(this);
         }
 
-        public void SetPlayer(bool isPlayer)
+
+        public void SetAsCurrentPlayer(bool becomePlayer)
         {
-            this.isPlayer = isPlayer;
+            isPlayer = becomePlayer;
 
             if(TryGetComponent(out CharacterBody body))
             {
-                if(isPlayer)
+                if(becomePlayer)
                     CameraManager.target = body.cameraSlot ? body.cameraSlot.gameObject : gameObject;
                 if(body.thirdPersonBody)
-                    body.thirdPersonBody.SetActive(!isPlayer);
+                    body.thirdPersonBody.SetActive(!becomePlayer);
                 if(body.cameraAnchor && body.cameraAnchor.TryGetComponent(out MeshRenderer mr))
-                    mr.enabled = !isPlayer;
+                    mr.enabled = !becomePlayer;
             }
 
             if(TryGetComponent(out CharacterAI2 ai))
-                ai.enabled = !isPlayer;
+                ai.enabled = !becomePlayer;
 
             if (TryGetComponent(out InputManager im))
-                im.isPlayer = isPlayer;
+                im.isPlayer = becomePlayer;
 
             if (TryGetComponent(out CharacterInput ci))
                 ci.Restart();
 
-            if (characterSpawnChannel)
-                characterSpawnChannel.Broadcast(this);
+            if (onCharacterSpawn)
+                onCharacterSpawn.Invoke(this);
 
-            if (isPlayer && onDisplayHealth)
-                onDisplayHealth.Broadcast(health.value.ToString());
+            if (becomePlayer && onDisplayHealth)
+                onDisplayHealth.Invoke(health.value.ToString());
 
         }
 
@@ -68,14 +71,14 @@ namespace MPCore
             if (health != null)
             {
                 if (instigator && instigator.TryGetComponent(out Character c) && c != this)
-                    lastCharacterInstigator = (instigator, Time.time);
+                    lastAttacker = (instigator, Time.time);
 
                 int initialValue = health.value;
 
                 health.value = Mathf.Min(health.maxValue, health.value - damage);
 
                 if (isPlayer && health.value != initialValue && onDisplayHealth)
-                    onDisplayHealth.Broadcast(health.value.ToString());
+                    onDisplayHealth.Invoke(health.value.ToString());
 
                 if (initialValue > 0 && health.value <= 0)
                     Kill(instigator, method, type);
@@ -95,7 +98,7 @@ namespace MPCore
                 health.value = Mathf.Min(health.maxValue, health.value + heal);
 
                 if (isPlayer && health.value != initialValue && onDisplayHealth)
-                    onDisplayHealth.Broadcast(health.value.ToString());
+                    onDisplayHealth.Invoke(health.value.ToString());
 
                 if (initialValue > 0 && health.value <= 0)
                     Kill(instigator, method, null);
@@ -133,18 +136,18 @@ namespace MPCore
                         i.TryDrop(gameObject, transform.position, transform.rotation, default, out _);
 
                 // Finished off by
-                if (lastCharacterInstigator.instigator && Time.time - lastCharacterInstigator.time < 3f)
-                    instigator = lastCharacterInstigator.instigator;
+                if (lastAttacker.instigator && Time.time - lastAttacker.time < 3f)
+                    instigator = lastAttacker.instigator;
 
                 //Create Death Ticket
-                DeathEventInfo ticket;
+                DeathEventParameters ticket;
                 ticket.target = gameObject;
                 ticket.instigator = instigator;
                 ticket.method = method;
                 ticket.damageType = type;
 
                 if (onDeath)
-                    onDeath.Broadcast(ticket);
+                    onDeath.Invoke(ticket);
             }
 
             Destroy(gameObject);

@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class SpawnWindowEvent : MonoBehaviour
 {
-    public ObjectBroadcaster windowChannel;
+    public ObjectEvent windowChannel;
     public string title;
     [TextArea]
     public string message;
@@ -16,6 +16,6 @@ public class SpawnWindowEvent : MonoBehaviour
     public void SpawnWindow()
     {
         if (windowChannel)
-            windowChannel.Broadcast(this);
+            windowChannel.Invoke(this);
     }
 }

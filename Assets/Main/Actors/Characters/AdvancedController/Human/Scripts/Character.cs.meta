@@ -4,11 +4,10 @@ MonoImporter:
   externalObjects: {}
   serializedVersion: 2
   defaultReferences:
-  - hurtResource: {instanceID: 0}
-  - HUDHealth: {instanceID: 0}
+  - hurtResource: {fileID: 11400000, guid: c80f22a2a5c3ff14986fbb55fbcf6e77, type: 2}
   - onDisplayHealth: {fileID: 11400000, guid: a717ffc8718e6174a872e4daceb7889a, type: 2}
-  - characterSpawnChannel: {instanceID: 0}
   - onDeath: {fileID: 11400000, guid: aeb08a04bd3064646bd8985ff1335a48, type: 2}
+  - onCharacterSpawn: {fileID: 11400000, guid: 8d88fa050417a8543874177f3a0076b9, type: 2}
   - characterInfo: {instanceID: 0}
   executionOrder: 0
   icon: {instanceID: 0}

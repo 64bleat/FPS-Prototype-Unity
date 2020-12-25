@@ -11,7 +11,7 @@ namespace MPCore
         public Transform firePoint;
         public AudioClip fireSound;
         public LineRenderer ropePrefab;
-        public HudBroadcaster hudBroadcaster;
+        public HudEvents hudBroadcaster;
 
         [HideInInspector] public GameObject owner;
 
@@ -62,13 +62,13 @@ namespace MPCore
         private void OnEnable()
         {
             if (character && character.isPlayer && hudBroadcaster)
-                hudBroadcaster.OnSetCrosshair.Broadcast(weapon.crosshair);
+                hudBroadcaster.OnSetCrosshair.Invoke(weapon.crosshair);
         }
 
         private void OnDisable()
         {
             if (character && character.isPlayer && hudBroadcaster)
-                hudBroadcaster.OnSetCrosshair.Broadcast(null);
+                hudBroadcaster.OnSetCrosshair.Invoke(null);
         }
 
         private void Update()

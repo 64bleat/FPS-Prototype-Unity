@@ -36,7 +36,7 @@ namespace Serialization
         {
             if(o is Character c && c)
             {
-                c.SetPlayer(isPlayer);
+                c.SetAsCurrentPlayer(isPlayer);
 
                 // Inventory
                 c.inventory.Clear();

@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections;
+﻿using MPCore;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,7 +9,7 @@ namespace MPGUI
     public class QualitySettingsGUI : ScriptableObject
     {
         public DropdownSpawn spawner;
-        public ObjectBroadcaster qualityChannel;
+        public ObjectEvent qualityChannel;
 
         private struct Dimension
         {
@@ -24,7 +24,7 @@ namespace MPGUI
             QualitySettings.SetQualityLevel(level);
 
             if (qualityChannel)
-                qualityChannel.Broadcast(level);
+                qualityChannel.Invoke(level);
         }
 
         /// <summary> Maybe one day this will work on more than just mobile devices... :( </summary>

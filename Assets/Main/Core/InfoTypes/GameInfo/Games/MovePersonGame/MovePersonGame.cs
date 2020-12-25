@@ -11,9 +11,9 @@ namespace MPCore
         public List<Inventory> spawnInventory;
         public CharacterInfo playerInfo;
         public BotmatchGameInfo botmatchInfo;
-        public ObjectBroadcaster characterSpawnChannel;
-        public MessageBroadcaster onShortMessage;
-        public DeathBroadcaster onDeath;
+        public ObjectEvent characterSpawnChannel;
+        public MessageEvent onShortMessage;
+        public DeathEvent onDeath;
 
         private InputManager input;
         [HideInInspector] public GameObject player;
@@ -38,9 +38,9 @@ namespace MPCore
             input = GetComponentInParent<InputManager>();
 
             if (characterSpawnChannel)
-                characterSpawnChannel.Subscribe(SetCharacterSpawn, false);
+                characterSpawnChannel.Add(SetCharacterSpawn, false);
             if (onDeath)
-                onDeath.Subscribe(OnCharacterDied);
+                onDeath.Add(OnCharacterDied);
 
             Console.RegisterInstance(this);
         }
@@ -48,9 +48,9 @@ namespace MPCore
         private void OnDestroy()
         {
             if (characterSpawnChannel)
-                characterSpawnChannel.Unsubscribe(SetCharacterSpawn);
+                characterSpawnChannel.Remove(SetCharacterSpawn);
             if (onDeath)
-                onDeath.Unsubscribe(OnCharacterDied);
+                onDeath.Remove(OnCharacterDied);
 
             Console.RemoveInstance(this);
         }
@@ -79,7 +79,7 @@ namespace MPCore
 
         private void SetCharacterDied(object o)
         {
-            OnCharacterDied((DeathEventInfo)o);
+            OnCharacterDied((DeathEventParameters)o);
         }
 
         private void CharacterSpawn(Character c)
@@ -91,7 +91,7 @@ namespace MPCore
             }
         }
 
-        private void OnCharacterDied(DeathEventInfo death)
+        private void OnCharacterDied(DeathEventParameters death)
         {
             Character target = null;
             Character instigator = null;
@@ -109,13 +109,13 @@ namespace MPCore
                 {
                     if (death.instigator)
                         if (death.target.Equals(death.instigator))
-                            onShortMessage.Broadcast("F");
+                            onShortMessage.Invoke("F");
                         else if (death.instigator && death.method && death.method.TryGetComponent(out Projectile _))
-                            onShortMessage.Broadcast("You were shot to death by " + instigator.characterInfo.displayName);
+                            onShortMessage.Invoke("You were shot to death by " + instigator.characterInfo.displayName);
                         else if (death.instigator && death.method && death.method.TryGetComponent(out Collider _))
-                            onShortMessage.Broadcast("You were smashed into a wall by " + instigator.characterInfo.displayName);
+                            onShortMessage.Invoke("You were smashed into a wall by " + instigator.characterInfo.displayName);
                         else
-                            onShortMessage.Broadcast("You are dead. Not big surprise.");
+                            onShortMessage.Invoke("You are dead. Not big surprise.");
 
                     state.SwitchTo("PlayerDead", true);
                 }
@@ -123,11 +123,11 @@ namespace MPCore
                 {
                     if (target)
                         if (death.method && death.method.TryGetComponent(out Projectile _))
-                            onShortMessage.Broadcast("You killed " + target.characterInfo.displayName);
+                            onShortMessage.Invoke("You killed " + target.characterInfo.displayName);
                         else if (death.method && death.method.TryGetComponent(out Collider _))
-                            onShortMessage.Broadcast("You smashed " + target.characterInfo.displayName + " into a wall!");
+                            onShortMessage.Invoke("You smashed " + target.characterInfo.displayName + " into a wall!");
                         else
-                            onShortMessage.Broadcast("You killed " + target.characterInfo.displayName + " somehow...");
+                            onShortMessage.Invoke("You killed " + target.characterInfo.displayName + " somehow...");
                 }
             }
 
@@ -186,7 +186,7 @@ namespace MPCore
                     if (character)
                     {
                         character.characterInfo = characterInfo;
-                        character.SetPlayer(isPlayer);
+                        character.SetAsCurrentPlayer(isPlayer);
 
                         //foreach (Inventory i in spawnInventory)
                         //i.TryPickup(character);

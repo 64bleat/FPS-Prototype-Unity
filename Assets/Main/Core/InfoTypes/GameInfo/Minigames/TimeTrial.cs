@@ -9,8 +9,8 @@ namespace MPCore
 {
     public class TimeTrial : MonoBehaviour
     {
-        public MessageBroadcaster messageChannel;
-        public StringBroadcaster timerChannel;
+        public MessageEvent messageChannel;
+        public StringEvent timerChannel;
         public Transform goals;
         public RewardEvent[] rewards;
 
@@ -58,7 +58,7 @@ namespace MPCore
                 timer += Time.deltaTime;
 
                 if (timerChannel)
-                    timerChannel.Broadcast("" + timer);
+                    timerChannel.Invoke("" + timer);
             }
         }
 
@@ -89,7 +89,7 @@ namespace MPCore
             timer = 0;
 
             if (messageChannel)
-                messageChannel.Broadcast("Time Trial Start!");
+                messageChannel.Invoke("Time Trial Start!");
 
             // Reset Goals
             foreach (Transform goal in goals)
@@ -107,8 +107,8 @@ namespace MPCore
                 // Messages
                 if (messageChannel)
                 {
-                    messageChannel.Broadcast("Time Trial End! " + timer);
-                    messageChannel.Broadcast("BestTime: " + bestTime);
+                    messageChannel.Invoke("Time Trial End! " + timer);
+                    messageChannel.Invoke("BestTime: " + bestTime);
                 }
 
                 // Goals
@@ -126,9 +126,9 @@ namespace MPCore
             else
             {
                 if (messageChannel)
-                    messageChannel.Broadcast("Time Trial Cancelled");
+                    messageChannel.Invoke("Time Trial Cancelled");
                 if (timerChannel)
-                    timerChannel.Broadcast("");
+                    timerChannel.Invoke("");
             }
         }
     }

@@ -1,9 +1,7 @@
 ﻿using MPCore;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public struct DeathEventInfo
+public struct DeathEventParameters
 {
     public GameObject target;
     public GameObject instigator;

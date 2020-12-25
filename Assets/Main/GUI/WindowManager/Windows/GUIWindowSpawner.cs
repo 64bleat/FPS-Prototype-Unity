@@ -1,46 +1,49 @@
-﻿using MPGUI;
-using UnityEngine;
+﻿using MPCore;
 using TMPro;
+using UnityEngine;
 
-public class GUIWindowSpawner : MonoBehaviour
+namespace MPGUI
 {
-    public ObjectBroadcaster promptWindowChannel;
-
-    private void Awake()
+    public class GUIWindowSpawner : MonoBehaviour
     {
-        if (promptWindowChannel)
-            promptWindowChannel.Subscribe(SpawnWindow);
-    }
+        public ObjectEvent promptWindowChannel;
 
-    private void OnDestroy()
-    {
-        if (promptWindowChannel)
-            promptWindowChannel.Unsubscribe(SpawnWindow);
-    }
-
-    private void SpawnWindow(object obj)
-    {
-        if(obj is SpawnWindowEvent spawn && spawn
-            && spawn.windowTemplate)
+        private void Awake()
         {
-            GameObject go = Instantiate(spawn.windowTemplate, transform);
+            if (promptWindowChannel)
+                promptWindowChannel.Add(SpawnWindow);
+        }
 
-            if(go.GetComponent<GUIWindow>() is var window && window )
+        private void OnDestroy()
+        {
+            if (promptWindowChannel)
+                promptWindowChannel.Remove(SpawnWindow);
+        }
+
+        private void SpawnWindow(object obj)
+        {
+            if (obj is SpawnWindowEvent spawn && spawn
+                && spawn.windowTemplate)
             {
-                if (window.panel && window.panel.GetComponentInChildren<TextMeshProUGUI>() is var ptext && ptext)
-                    ptext.text = spawn.message;
+                GameObject go = Instantiate(spawn.windowTemplate, transform);
 
-                if (window.title && window.title.GetComponentInChildren<TextMeshProUGUI>() is var ttext && ttext)
-                    ttext.text = spawn.title;
+                if (go.GetComponent<GUIWindow>() is var window && window)
+                {
+                    if (window.panel && window.panel.GetComponentInChildren<TextMeshProUGUI>() is var ptext && ptext)
+                        ptext.text = spawn.message;
+
+                    if (window.title && window.title.GetComponentInChildren<TextMeshProUGUI>() is var ttext && ttext)
+                        ttext.text = spawn.title;
+                }
+
+                if (go.transform is RectTransform rect && rect)
+                {
+                    rect.offsetMax = new Vector2(rect.offsetMax.x, spawn.windowHeight / 2);
+                    rect.offsetMin = new Vector2(rect.offsetMin.x, -spawn.windowHeight / 2);
+                }
+
+                go.SetActive(true);
             }
-
-            if (go.transform is RectTransform rect && rect)
-            {
-                rect.offsetMax = new Vector2(rect.offsetMax.x, spawn.windowHeight / 2);
-                rect.offsetMin = new Vector2(rect.offsetMin.x, -spawn.windowHeight / 2);
-            }
-
-            go.SetActive(true);
         }
     }
 }

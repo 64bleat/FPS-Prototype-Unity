@@ -1,8 +1,8 @@
 ﻿using MPCore;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+#pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
 namespace MPWorld
 {
     [RequireComponent(typeof(Rigidbody))]
@@ -51,7 +51,7 @@ namespace MPWorld
                 rb.AddForce(-transform.forward * acceleration * (reverseButton.BoolValue ? -0.5f : 1f) * (1f-speedFactor), ForceMode.Acceleration);
 
             //focus Acceleration
-            if(antiGravityButton.BoolValue && !panLever.BoolValue)
+            if (antiGravityButton.BoolValue && !panLever.BoolValue)
                 rb.AddForce(-sideVelocity * 10, ForceMode.Acceleration);
 
             if (!panLever.BoolValue)

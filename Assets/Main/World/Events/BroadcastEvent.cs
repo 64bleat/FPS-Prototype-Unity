@@ -1,26 +1,29 @@
 ﻿using UnityEngine;
 
-public class BroadcastEvent : MonoBehaviour
+namespace MPCore
 {
-    public ObjectBroadcaster channel;
-   
-    public void BroadcastGameObject(GameObject v)
+    public class BroadcastEvent : MonoBehaviour
     {
-        channel.Broadcast(v);
-    }
+        public ObjectEvent channel;
 
-    public void BroadcastString(string v)
-    {
-        channel.Broadcast(v);
-    }
+        public void BroadcastGameObject(GameObject v)
+        {
+            channel.Invoke(v);
+        }
 
-    public void BroadcastInt(int v)
-    {
-        channel.Broadcast(v);
-    }
+        public void BroadcastString(string v)
+        {
+            channel.Invoke(v);
+        }
 
-    public void BroadcastFloat(float v)
-    {
-        channel.Broadcast(v);
+        public void BroadcastInt(int v)
+        {
+            channel.Invoke(v);
+        }
+
+        public void BroadcastFloat(float v)
+        {
+            channel.Invoke(v);
+        }
     }
 }

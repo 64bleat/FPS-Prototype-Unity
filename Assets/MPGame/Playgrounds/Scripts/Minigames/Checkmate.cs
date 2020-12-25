@@ -5,7 +5,7 @@ namespace MPCore.MPCore.Checkmate
     public class Checkmate : MiniGame
     {
         public TriggerResetPosition[] resetObjects = new TriggerResetPosition[0];
-        public MessageBroadcaster onShortMessageSend;
+        public MessageEvent onShortMessageSend;
 
         private float timer;
         private float bestTime;
@@ -68,7 +68,7 @@ namespace MPCore.MPCore.Checkmate
             timeCheck = 0;
 
             if (onShortMessageSend)
-                onShortMessageSend.Broadcast("Game start!");
+                onShortMessageSend.Invoke("Game start!");
         }
 
         private void GameOnFixedUpdate()
@@ -81,7 +81,7 @@ namespace MPCore.MPCore.Checkmate
                     timeCheck = Mathf.Round(timer);
 
                     if (onShortMessageSend)
-                        onShortMessageSend.Broadcast("" + timeCheck + " seconds!");
+                        onShortMessageSend.Invoke("" + timeCheck + " seconds!");
 
                     //BroadcastSystem.Broadcast("HUD", "ShortMessage", "" + timeCheck + " seconds!");
                 }
@@ -97,12 +97,12 @@ namespace MPCore.MPCore.Checkmate
 
             if (onShortMessageSend)
             {
-                onShortMessageSend.Broadcast("You lasted " + timer + "s.");
+                onShortMessageSend.Invoke("You lasted " + timer + "s.");
 
                 if (timer < bestTime)
-                    onShortMessageSend.Broadcast("You lasted " + timer + "s.");
+                    onShortMessageSend.Invoke("You lasted " + timer + "s.");
                 else
-                    onShortMessageSend.Broadcast("!!NEW PERSONAL BEST!!");
+                    onShortMessageSend.Invoke("!!NEW PERSONAL BEST!!");
 
                 //BroadcastSystem.Broadcast("HUD", "ShortMessage", "You lasted " + timer + "s.");
 

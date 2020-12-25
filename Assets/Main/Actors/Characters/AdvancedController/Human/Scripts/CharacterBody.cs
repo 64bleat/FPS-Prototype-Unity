@@ -63,7 +63,7 @@ namespace MPCore
         [SerializeField] public GameObject deadBody;
         [Header("References")]
         public DamageType impactDamageType;
-        public StringBroadcaster onSpeedSet;
+        public StringEvent onSpeedSet;
         [Header("Effects")]
         public Particle shotEffect;
 
@@ -199,13 +199,13 @@ namespace MPCore
         private void OnEnable()
         {
             if (character.isPlayer)
-                onSpeedSet.Broadcast("0");
+                onSpeedSet.Invoke("0");
         }
 
         private void OnDisable()
         {
             if (character.isPlayer)
-                onSpeedSet.Broadcast("");
+                onSpeedSet.Invoke("");
         }
 
         private void Update()
@@ -458,7 +458,7 @@ namespace MPCore
             else
                 speed = (int)Mathf.Round(Vector3.ProjectOnPlane(Velocity, transform.up).magnitude * 10);
 
-            onSpeedSet.Broadcast(speed.ToString());
+            onSpeedSet.Invoke(speed.ToString());
         }
 
         private void GroundDetection()
