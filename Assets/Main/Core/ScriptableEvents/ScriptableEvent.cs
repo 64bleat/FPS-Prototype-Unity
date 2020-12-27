@@ -7,38 +7,42 @@
     public class ScriptableEvent<T>
     {
         public delegate void SetValue(T o);
-        private event SetValue OnValueChange;
-        private T value = default;
+        private event SetValue OnStateSet;
+        private T state = default;
 
         public void Clear()
         {
-            OnValueChange = null;
-            value = default;
+            OnStateSet = null;
+            state = default;
         }
 
         public void Invoke(T parameter)
         {
-            value = parameter;
-            OnValueChange?.Invoke(parameter);
+            state = parameter;
+            OnStateSet?.Invoke(parameter);
         }
 
-        /// <summary> Add a listener to this channel. </summary>
-        /// <param name="owner">when the owner is null, the actions are invalid and not called. </param>
-        /// <param name="OnValueChange"></param>
+        /// <summary> Add a listener callback to invoke when this ScriptableEvent is invoked. </summary>
+        /// <param name="OnStateSet"></param>
         /// <param name="invokeOnAdd">call action immediately upon subscription?</param>
-        public void Add(SetValue OnValueChange, bool invokeOnAdd = false)
+        public void Add(SetValue OnStateSet, bool invokeOnAdd = false)
         {
-            this.OnValueChange += OnValueChange;
+            this.OnStateSet += OnStateSet;
 
             if (invokeOnAdd)
-                OnValueChange.Invoke(value);
+                OnStateSet.Invoke(state);
         }
 
         /// <summary> Removes all acctions associated with owner. </summary>
-        /// <param name="OnValueChange"></param>
-        public void Remove(SetValue OnValueChange)
+        /// <param name="OnStateSet"></param>
+        public void Remove(SetValue OnStateSet)
         {
-            this.OnValueChange -= OnValueChange;
+            this.OnStateSet -= OnStateSet;
+        }
+
+        public T Peek()
+        {
+            return state;
         }
     }
 }

@@ -43,6 +43,24 @@ namespace MPCore
                 onDeath.Add(OnCharacterDied);
 
             Console.RegisterInstance(this);
+            PauseManager.Add(OnPauseUnPause);
+        }
+
+        private void Start()
+        {
+            state.Add(new State("PlayerAlive", PlayerAliveStart));
+            state.Add(new State("PlayerDead", PlayerDeadStart, end: PlayerDeadEnd));
+            state.Initialize("PlayerAlive");
+
+            if (!player)
+                Spawn(playerInfo);
+
+            if (botmatchInfo)
+                while (botCount < botmatchInfo.botCount)
+                {
+                    Spawn(playerInfo, false);
+                    botCount++;
+                }
         }
 
         private void OnDestroy()
@@ -53,23 +71,12 @@ namespace MPCore
                 onDeath.Remove(OnCharacterDied);
 
             Console.RemoveInstance(this);
+            PauseManager.Remove(OnPauseUnPause);
         }
 
-        private void Start()
+        private void OnPauseUnPause(bool paused)
         {
-            state.Add(new State("PlayerAlive", PlayerAliveStart));
-            state.Add(new State("PlayerDead", PlayerDeadStart, end: PlayerDeadEnd));
-            state.Initialize("PlayerAlive");
-
-            if(!player)
-             Spawn(playerInfo);
-
-            if(botmatchInfo)
-                while(botCount < botmatchInfo.botCount)
-                {
-                    Spawn(playerInfo, false);
-                    botCount++;
-                }
+            enabled = !paused;
         }
 
         private void SetCharacterSpawn(object o)
@@ -77,10 +84,10 @@ namespace MPCore
             CharacterSpawn(o as Character);
         }
 
-        private void SetCharacterDied(object o)
-        {
-            OnCharacterDied((DeathEventParameters)o);
-        }
+        //private void SetCharacterDied(object o)
+        //{
+        //    OnCharacterDied((DeathEventParameters)o);
+        //}
 
         private void CharacterSpawn(Character c)
         {

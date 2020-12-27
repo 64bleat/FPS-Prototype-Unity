@@ -5,20 +5,22 @@ using MPConsole;
 namespace MPCore
 {
     /// <summary> 
-    ///     Master GameObject
-    ///     
-    ///     Handles various static classes that need some 
+    /// Handles a few static classes
     /// </summary>
     public class Root : MonoBehaviour
     {
         public void Awake()
         {
             Console.Reset();
+            PauseManager.Add(GameTime.OnPauseUnPause);
+            GameTime.InitTime();
         }
 
         public void OnDestroy()
         {
             Resources.UnloadUnusedAssets();
+            PauseManager.Remove(GameTime.OnPauseUnPause);
+            PauseManager.Reset();
         }
     }
 }

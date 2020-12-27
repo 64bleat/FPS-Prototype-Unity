@@ -1,14 +1,22 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using Unity.Jobs;
 using UnityEngine;
 
 namespace MPCore
 {
+    /// <summary>
+    /// A collection of methods related to path navigation
+    /// </summary>
     public static class Navigator
     {
-        //private static readonly List<PathMesh> pathMeshes = new List<PathMesh>();
-
+        /// <summary>
+        /// Asynchronously requests a path from one point to another.
+        /// </summary>
+        /// <param name="startPosition">world coordinates start</param>
+        /// <param name="endPosition">world coordinates destination</param>
+        /// <param name="fillPath">path to be cleared and re-filled on job completion</param>
+        /// <param name="height">how high off the ground the path will be</param>
+        /// <returns>a handle to the request job</returns>
         public static JobHandle RequestPath(Vector3 startPosition, Vector3 endPosition, List<Vector3> fillPath, float height = 0)
         {
             PathMesh originPath = null;
@@ -21,6 +29,14 @@ namespace MPCore
             return originPath ? originPath.RequestPath(startPosition, endPosition, fillPath, height) : default;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="position"></param>
+        /// <param name="currentIndex"></param>
+        /// <param name="offDistance"></param>
+        /// <returns></returns>
         public static float GetCoordinatesOnPath(List<Vector3> path, Vector3 position, float currentIndex, out float offDistance)
         {
             float bestDistance = float.MaxValue;
@@ -44,31 +60,31 @@ namespace MPCore
             return bestIndex;
         }
 
-        public static Vector3 GetPositionOnPath(List<Vector3> path, float pathIndex, float offDist = 0)
+        public static Vector3 GetPositionOnPath(List<Vector3> path, float pathPosition, float offDist = 0)
         {
-            while (offDist > 0 && pathIndex < path.Count - 1f)
+            while (offDist > 0 && pathPosition < path.Count - 1f)
             {
-                float segLength = Vector3.Distance(path[Mathf.FloorToInt(pathIndex)], path[Mathf.FloorToInt(pathIndex) + 1]);
+                float segLength = Vector3.Distance(path[Mathf.FloorToInt(pathPosition)], path[Mathf.FloorToInt(pathPosition) + 1]);
 
                 if (segLength != 0)
                 {
-                    float available = segLength * (1f - Mathf.Repeat(pathIndex, 1.0f));
+                    float available = segLength * (1f - Mathf.Repeat(pathPosition, 1.0f));
                     float taking = Mathf.Min(available, offDist);
-                    pathIndex += taking / segLength;
+                    pathPosition += taking / segLength;
                     offDist -= taking;
                 }
                 else
-                    pathIndex += 1f;
+                    pathPosition += 1f;
             }
 
-            int floor = (int)pathIndex;
+            int floor = (int)pathPosition;
 
             if (floor < 0)
                 return path[0];
             else if (floor >= path.Count - 1)
                 return path[path.Count - 1];
             else
-                return Vector3.Lerp(path[floor], path[floor + 1], pathIndex - floor);
+                return Vector3.Lerp(path[floor], path[floor + 1], pathPosition - floor);
         }
 
         private static float PointInterp(Vector3 position, Vector3 pointA, Vector3 pointB)

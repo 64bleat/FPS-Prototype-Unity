@@ -1,22 +1,4 @@
-﻿/******************************************************************************      
- * author: David Martinez Copyright 2020 all rights reserved
- * description: A simpler alternative to Input with some new features. 
- *      Able to bind listeners to keys to reduce input update polling. 
- *      Inputs can be ignored through masking.
- * procedure: 
- *  1.  Things that require input will grab the closest parent InputManager.
- *  2.  Bind Actions to keys so they are called when they are pressed.
- *      Actions can be bound to key press events Down, Up, and Hold.
- *      set owner to a GameObject that will be null when the action
- *      is no longer valid. Events will not call when GameObject owner is inactive.
- *  notes:
- *  -   Listeners with a null owner are automatically removed when
- *      found in LateUpdate.
- *  -   Listeners are only invoked when their listeners are active.
- *  -   If an lambda expression is used for an Action, the only way
- *      to unbind it is to destroy the owner.
- *****************************************************************************/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -29,6 +11,7 @@ namespace MPCore
     public class InputManager : MonoBehaviour
     {
         public bool isPlayer = false;
+        public bool disableOnPause = true;
         public KeyBindList loadKeyBindList = null;
         public string excludeLayer = "";
 
@@ -80,11 +63,18 @@ namespace MPCore
             canvasScale = GetComponentInChildren<CanvasScaler>();
             lastMousePosition = Input.mousePosition;
             LoadKeyBindList(loadKeyBindList);
+            PauseManager.Add(OnPauseUnPause);
         }
 
         private void OnDestroy()
         {
             keyMasks.Clear();
+            PauseManager.Remove(OnPauseUnPause);
+        }
+
+        private void OnPauseUnPause(bool paused)
+        {
+                enabled = !disableOnPause || !paused;
         }
 
         private void LateUpdate()

@@ -3,19 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Jobs;
 using UnityEngine;
+using MPConsole;
 
-#pragma warning disable IDE0052 // Remove unread private members
-#pragma warning disable IDE0044 // Add readonly modifier
-#pragma warning disable IDE0051 // Remove unused private members
-#pragma warning disable UNT0001 // Empty Unity message
-#pragma warning disable IDE0059 // Unnecessary assignment of a value
-#pragma warning disable CS0414 // Unnecessary assignment of a value
+//#pragma warning disable IDE0052 // Remove unread private members
+//#pragma warning disable IDE0044 // Add readonly modifier
+//#pragma warning disable IDE0051 // Remove unused private members
+//#pragma warning disable UNT0001 // Empty Unity message
+//#pragma warning disable IDE0059 // Unnecessary assignment of a value
+//#pragma warning disable CS0414 // Unnecessary assignment of a value
 namespace MPCore
 {
+    [ContainsConsoleCommands]
     public class CharacterAI2 : MonoBehaviour
     {
         public float viewAngle = 45;
-        public LineRenderer debugLineTemplate;
+        public LineRenderer debugLine;
 
 
         //private LineRenderer line;
@@ -28,14 +30,11 @@ namespace MPCore
 
         // Path
         private JobHandle pathJob = default;
-        //private Vector3[] path = null;
         private readonly List<Vector3> path = new List<Vector3>();
         private float pathPosition = 0;
-        private float pathValid = 0;
         // Targeting
-        private float tTarget = 0;
-        private float tMoveTarget = 0;
-        private Component moveTarget;
+        private float nextTargetTime = 0;
+        private float targetSatisfactionDistance = 1f;
         private Component lookTarget;
         private Vector3 moveDest;
         private Vector3 lookDest;
@@ -48,6 +47,12 @@ namespace MPCore
 
         private LineRenderer line;
 
+        private static readonly Dictionary<Type, float> satisfactionDistances = new Dictionary<Type, float>()
+        {
+            {typeof(Character), 3f },
+            {typeof(InventoryObject), 0.5f }
+        };
+
         private void Awake()
         {
             body = GetComponent<CharacterBody>();
@@ -57,70 +62,82 @@ namespace MPCore
             layerMask = LayerMask.GetMask(layers);
 
             lookDir = body.cameraSlot.forward;
+
+            PauseManager.Add(OnPauseUnPause);
+            MPConsole.Console.RegisterInstance(this);
         }
 
         private void OnDestroy()
         {
-            //if (line)
-            //    Destroy(line.gameObject);
+            if (line)
+                Destroy(line.gameObject);
+
+            PauseManager.Remove(OnPauseUnPause);
+            MPConsole.Console.RemoveInstance(this);
         }
 
         void Update()
         {
+            // Invalid State
             if (Time.timeScale < float.Epsilon)
                 return;
 
-            if (!moveTarget || tTarget < Time.time)
-            {
-                moveTarget = GetTarget();
-                tTarget = Time.time + 10f;
-                path.Clear();
-                pathPosition = 0;
-
-                pathJob = Navigator.RequestPath(transform.position, GetMoveDestination(), path, body.cap.height / 2f);
-            }
-
-            if ((path.Count > 0 && pathPosition >= path.Count - 2)
-                || (lookTarget && lookTarget is Character))
-                tTarget -= 10 * Time.deltaTime;
-
-            if (path.Count > 0 && path.Count != 0 && Vector3.Distance(transform.position, path[path.Count - 1]) < 2f)
-                tTarget = 0;
+            // Request Path
+            if (pathJob.IsCompleted
+                && (path.Count == 0
+                || nextTargetTime < Time.time
+                || Vector3.Distance(transform.position, path[path.Count - 1]) < targetSatisfactionDistance))
+                pathJob = RequestNewPath();
 
             if (path.Count > 0)
             {
-                lookTarget = GetTarget(typeof(Character));
-                input.Move(MouseLook);
-                Move();
+                MoveAlongPath();
+            }
 
-                //if (!line && debugLineTemplate)
-                //{
-                //    line = Instantiate(debugLineTemplate.gameObject).GetComponent<LineRenderer>();
-                //    line.positionCount = path.Count;
-                //    line.SetPositions(path.ToArray());
-                //}
+            lookTarget = FindTarget(typeof(Character));
+            input.Move(MouseDeltaTarget);
+
+            if (Debugger.enabled)
+            {
+                if (line)
+                {
+                    line.positionCount = path.Count;
+
+                    for (int i = 0; i < path.Count; i++)
+                        line.SetPosition(i, path[i]);
+
+                }
+                else if (debugLine)
+                    line = Instantiate(debugLine).GetComponent<LineRenderer>();
             }
         }
 
-        private Vector3 GetMoveDestination()
+        private JobHandle RequestNewPath()
+        {
+            Component moveTarget = FindTarget();
+            Vector3 moveDestination = GetMoveDestination(moveTarget);
+
+            nextTargetTime = Time.time + 10f;
+            path.Clear();
+            pathPosition = 0;
+
+            if (!moveTarget || !satisfactionDistances.TryGetValue(moveTarget.GetType(), out targetSatisfactionDistance))
+                targetSatisfactionDistance = 0.5f;
+
+            return Navigator.RequestPath(transform.position, moveDestination, path, body.cap.height / 2f);
+        }
+
+        private Vector3 GetMoveDestination(Component moveTarget)
         {
             if (moveTarget)
-            {
-                //if (moveTarget is Character)
-                //    return moveTarget.transform.position + Quaternion.AngleAxis(UnityEngine.Random.Range(0f, 180f), moveTarget.transform.up) * (moveTarget.transform.right * UnityEngine.Random.Range(3f, 5f));
-                //else
-                if (moveTarget is CharacterAI2)
-                    return Navigator.RandomPoint(body.cap.height / 2);
-                else
-                    return moveTarget.transform.position;
-            }
-
-            return transform.position;
+                return moveTarget.transform.position;
+            else
+                return Navigator.RandomPoint(body.cap.height / 2);
         }
 
         private static bool TryMax(float p, ref float priority) => priority != p && (priority = Mathf.Max(p, priority)) == p;
 
-        private Component GetTarget(params Type[] types)
+        private Component FindTarget(params Type[] types)
         {
             float bestPriority = float.MinValue;
             Component bestTarget = null;
@@ -130,7 +147,7 @@ namespace MPCore
                 {
                     float priority = float.MinValue;
 
-                    if (candidate is Character && IsVisible(candidate, viewAngle, out _))
+                    if (candidate is Character && IsTargetVisible(candidate, viewAngle, out _))
                         priority = 100f - Vector3.Distance(transform.position, candidate.transform.position);
                     else if (candidate is InventoryObject io)
                         if (io.inventory is HealthPickup hp && character.Health < 100)
@@ -140,8 +157,8 @@ namespace MPCore
                         bestTarget = candidate;
                 }
 
-            if (bestTarget == null)
-                bestTarget = this;
+            //if (bestTarget == null)
+            //    bestTarget = this;
 
             return bestTarget;
         }
@@ -151,7 +168,7 @@ namespace MPCore
         //    path = new;
         //}
 
-        private bool IsVisible(Component target, float viewAngle, out RaycastHit hit)
+        private bool IsTargetVisible(Component target, float viewAngle, out RaycastHit hit)
         {
             hit = default;
 
@@ -165,16 +182,18 @@ namespace MPCore
                 && hit.collider.gameObject.Equals(target.gameObject);
         }
 
-        private Vector2 MouseLook(float time)
+        private Vector2 MouseDeltaTarget(float time)
         {
             // Set lookDir
-            if (lookTarget && lookTarget is Character && (!Physics.Raycast(
-                origin: body.cameraSlot.position,
-                direction: lookTarget.transform.position - body.cameraSlot.position,
-                hitInfo: out RaycastHit hit,
-                maxDistance: Vector3.Distance(body.cameraSlot.position, lookTarget.transform.position),
-                layerMask: layerMask,
-                queryTriggerInteraction: QueryTriggerInteraction.Ignore)
+            if (lookTarget 
+                && lookTarget is Character 
+                && (!Physics.Raycast(
+                    origin: body.cameraSlot.position,
+                    direction: lookTarget.transform.position - body.cameraSlot.position,
+                    hitInfo: out RaycastHit hit,
+                    maxDistance: Vector3.Distance(body.cameraSlot.position, lookTarget.transform.position),
+                    layerMask: layerMask,
+                    queryTriggerInteraction: QueryTriggerInteraction.Ignore)
                 || hit.collider.transform.IsChildOf(lookTarget.transform)))
             {
                 if (lookTarget is Character c && c.gameObject.GetComponent<CharacterBody>() is CharacterBody b && b)
@@ -183,7 +202,9 @@ namespace MPCore
                     lookDir = lookTarget.transform.position - body.cameraSlot.position;
 
                 // Combat
-                if (hostile && lookTarget is Character && Vector3.Angle(lookDir, body.cameraSlot.forward) < 5f)
+                if (hostile 
+                    && lookTarget is Character 
+                    && Vector3.Angle(lookDir, body.cameraSlot.forward) < 5f)
                 {
                     input.Press("Fire", 0.5f);
                 }
@@ -207,7 +228,7 @@ namespace MPCore
         }
 
 
-        private void Move()
+        private void MoveAlongPath()
         {
             pathPosition = Navigator.GetCoordinatesOnPath(path, transform.position, pathPosition, out float off);
             moveDest = Navigator.GetPositionOnPath(path, pathPosition, Mathf.Max(1.5f, 2f - off));
@@ -247,6 +268,19 @@ namespace MPCore
                     input.Press("Forward", 0.25f);
                 }
             }
+        }
+
+        private void OnPauseUnPause(bool paused)
+        {
+            if(!character.isPlayer)
+                enabled = !paused;
+        }
+
+        [ConsoleCommand("posess", "Toggle AI for players")]
+        public void Posess()
+        {
+            if(character.isPlayer)
+                enabled = !enabled;
         }
     }
 }

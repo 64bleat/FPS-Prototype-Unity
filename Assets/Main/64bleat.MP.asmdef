@@ -1,5 +1,6 @@
 {
     "name": "MP",
+    "rootNamespace": "MPCore",
     "references": [
         "GUID:6055be8ebefd69e48b49212b09b47b2f",
         "GUID:9c2bd93f884c4054a9e67a5d03e82955",

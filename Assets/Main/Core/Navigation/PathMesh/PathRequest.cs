@@ -4,7 +4,6 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using UnityEngine;
-using MPConsole;
 
 namespace MPCore
 {
@@ -19,7 +18,7 @@ namespace MPCore
         public NativeList<Vector3> path;
         public NativeArray<int> flow;
         public NativeArray<float> flowDistance;
-        public NativeList<PathNode> slideLine;
+        public NativeList<PathNode> slidePath;
 
         private struct Triangle
         {
@@ -63,7 +62,7 @@ namespace MPCore
             path = new NativeList<Vector3>(Allocator.Persistent);
             flow = new NativeArray<int>(mesh.triangles.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             flowDistance = new NativeArray<float>(mesh.triangles.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-            slideLine = new NativeList<PathNode>(Allocator.Persistent);
+            slidePath = new NativeList<PathNode>(Allocator.Persistent);
         }
 
         public void Dispose()
@@ -72,7 +71,7 @@ namespace MPCore
             path.Dispose();
             flow.Dispose();
             flowDistance.Dispose();
-            slideLine.Dispose();
+            slidePath.Dispose();
         }
 
         public void Execute()
@@ -144,11 +143,8 @@ namespace MPCore
         /// <summary> A* flow to destination </summary>
         private void ComputeTriangleFlow(int destTriangle)
         {
-            for (int i = 0; i < flow.Length; i++)
-                flow[i] = -1;
-
-            for (int i = 0; i < flow.Length; i++)
-                flowDistance[i] = float.NaN;
+            Fill(-1, flow);
+            Fill(float.NaN, flowDistance);
 
             flowDistance[destTriangle] = 0;
 
@@ -202,14 +198,19 @@ namespace MPCore
             }
         }
 
-        private void ComputePath(Vector3 localStart, int strartTriangle, Vector3 localEnd)
+        private static void Fill<T>(T value, NativeArray<T> array) where T : struct
+        {
+            for (int i = 0; i < array.Length; i++)
+                array[i] = value;
+        }
+
+        private void ComputePath(Vector3 localStart, int startTriangle, Vector3 localEnd)
         {
             Stack<int> bendIndeces = new Stack<int>();
-            int index = strartTriangle;
+            int index = startTriangle;
 
-            slideLine.Clear();
-            path.Clear();
-            slideLine.Add(new PathNode(localStart, Vector3.zero));
+            slidePath.Clear();
+            slidePath.Add(new PathNode(localStart + mesh.normals[startTriangle / 3].normalized * height, Vector3.zero));
             bendIndeces.Push(0);
 
             // Follow flow until a dead end is reached
@@ -221,7 +222,7 @@ namespace MPCore
                 Vector3 heightOffset = mesh.normals[neighbor / 3].normalized * height;
                 Vector3 leftPoint = mesh.vertices[v1] + heightOffset;
                 Vector3 rightPoint = mesh.vertices[v2] + heightOffset;
-                Vector3 bendPoint = slideLine[bendIndeces.Peek()];
+                Vector3 bendPoint = slidePath[bendIndeces.Peek()];
                 PathNode node = new PathNode(leftPoint, rightPoint - leftPoint);
 
                 // Pull on the path until a bend is found
@@ -229,30 +230,31 @@ namespace MPCore
                 {
                     node = newNode;
 
-                    for (int j = slideLine.Length - 1; j > 0; j--)
+                    for (int j = slidePath.Length - 1; j > 0; j--)
                     {
                         if (j == bendIndeces.Peek())
                             bendIndeces.Pop();
 
-                        if (slideLine[j].SlideAndCollide(slideLine[bendIndeces.Peek()], node, out PathNode newJ))
+                        if (slidePath[j].SlideAndCollide(slidePath[bendIndeces.Peek()], node, out PathNode newJ))
                         {
-                            slideLine[j] = newJ;
+                            slidePath[j] = newJ;
                             bendIndeces.Push(j);
                             break;
                         }
                     }
 
-                    bendIndeces.Push(slideLine.Length);
+                    bendIndeces.Push(slidePath.Length);
                 }
 
-                slideLine.Add(node);
+                slidePath.Add(node);
 
                 index = neighbor - neighbor % 3;
             }
 
-            path.Add(mesh.local2World.MultiplyPoint(localStart + mesh.normals[strartTriangle / 3].normalized * height));
+            path.Clear();
+            path.Add(startPosition);
 
-            foreach (Vector3 sp in slideLine)
+            foreach (Vector3 sp in slidePath)
             {
                 Vector3 worldPoint = mesh.local2World.MultiplyPoint(sp);
 

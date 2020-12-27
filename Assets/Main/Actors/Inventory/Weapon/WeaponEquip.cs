@@ -57,6 +57,8 @@ namespace MPCore
             state.Add(new State("Idle"));
             state.Add(new State("Firing", start: FiringBegin, update: FiringUpdate));
             state.Initialize("Idle");
+
+            PauseManager.Add(OnPauseUnPause);
         }
 
         private void OnEnable()
@@ -68,21 +70,28 @@ namespace MPCore
         private void OnDisable()
         {
             if (character && character.isPlayer && hudBroadcaster)
-                hudBroadcaster.OnSetCrosshair.Invoke(null);
+                hudBroadcaster.OnSetCrosshair.Invoke(null); 
+        }
+
+        private void OnDestroy()
+        {
+            PauseManager.Remove(OnPauseUnPause);
+        }
+
+        private void OnPauseUnPause(bool paused)
+        {
+            enabled = !paused;
         }
 
         private void Update()
         {
-            if(!Console.Paused)
-                state.Update();
+            state.Update();
         }
 
         private void FixedUpdate()
         {
             GrappleUpdate();
-
-            if(!Console.Paused)
-                state.FixedUpdate();
+            state.FixedUpdate();
         }
 
         // GRAPPLE TEST

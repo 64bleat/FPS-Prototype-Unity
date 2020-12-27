@@ -8,38 +8,6 @@ namespace MPConsole
     [ContainsConsoleCommands]
     public static class Console
     {
-        #region TODO: MOVE TIME REGION TO NEW CLASS
-        public const int MAX_GAMETIME = 50;
-        private static float gameTime = 1;
-        private static bool paused = false;
-
-        public static float GameTime
-        {
-            get => gameTime;
-            set
-            {
-                gameTime = Mathf.Clamp(value, 0, MAX_GAMETIME);
-                UpdateTimeScale();
-            }
-        }
-
-        public static bool Paused
-        {
-            get => paused;
-            set
-            {
-                paused = value;
-                UpdateTimeScale();
-            }
-        }
-
-        public static void UpdateTimeScale()
-        {
-            Time.timeScale = Paused ? 0 : gameTime;
-            Time.fixedDeltaTime = 0.01f * gameTime;
-        }
-        #endregion
-
         public static object target;
         private static readonly Dictionary<string, IList<CommandInfo>> commands = new Dictionary<string, IList<CommandInfo>>();
         private static readonly Dictionary<char, char> parseCloser = new Dictionary<char, char>() { { '"', '"' }, { '(', ')' } };
@@ -70,36 +38,42 @@ namespace MPConsole
         [ConsoleCommand("find", "Finds commands containing a given part")]
         public static string Find(string part)
         {
-            string ret = "------------\n";
-            part = part ?? "";
+            string ret;
+
+            if (part == null || part.Length == 0)
+                ret = "\n--- Displaying all commands ---\n";
+            else 
+                ret = $"\n--- Displaying commands containing '{part}' ---\n";
+
+            part ??= "";
 
             if (part.Length > 0)
             {
-                SortedList<float, string> matches = new SortedList<float, string>();
+                SortedList<float, ConsoleCommandAttribute> matches = new SortedList<float, ConsoleCommandAttribute>();
 
-                foreach (string key in commands.Keys)
-                    if (key.Contains(part))
+                foreach (var kvp in commands)
+                    if (kvp.Key.Contains(part))
                     {
-                        float position = key.Length / part.Length;
+                        float position = kvp.Key.Length / part.Length;
 
                         while (matches.ContainsKey(position))
                             position += 0.00001f;
 
-                        matches.Add(position, key);
+                        matches.Add(position, kvp.Value[0].attribute);
                     }
 
-                foreach (string match in matches.Values)
-                    ret += match + '\n';
+                foreach (var match in matches.Values)
+                    ret += $" * {match.callname}   {match.info}\n";
             }
             else
             {
-                SortedSet<string> matches = new SortedSet<string>();
+                SortedList<string, ConsoleCommandAttribute> matches = new SortedList<string, ConsoleCommandAttribute>();
 
-                foreach (string key in commands.Keys)
-                    matches.Add(key);
+                foreach (var kvp in commands)
+                    matches.Add(kvp.Key, kvp.Value[0].attribute);
 
-                foreach (string match in matches)
-                    ret += match + '\n';
+                foreach (var match in matches.Values)
+                    ret += $" * {match.callname}   {match.info}\n";
             }    
 
             return ret;

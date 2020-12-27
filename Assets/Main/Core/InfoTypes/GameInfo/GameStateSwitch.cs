@@ -21,6 +21,9 @@ namespace MPGUI
         {
             if(applyOnEnable)
                 ApplySettings();
+
+            if (pause)
+                PauseManager.Request(this);
         }
 
         private void OnDisable()
@@ -28,6 +31,9 @@ namespace MPGUI
             if (applyParentOnDisable && transform.parent
                 && transform.parent.GetComponentInParent<GameStateSwitch>() is var p && p)
                 p.ApplySettings();
+
+            if (pause)
+                PauseManager.Release(this);
         }
 
         public void ApplySettings()
@@ -39,7 +45,7 @@ namespace MPGUI
                 if (inputUnmask != null && inputUnmask.Length > 0)
                     input.Unmask(inputUnmask);
             }
-            Console.Paused = pause;
+            //Console.Paused = pause;
             Cursor.lockState = cursorMode;
             Cursor.visible = cursorVisible;
 

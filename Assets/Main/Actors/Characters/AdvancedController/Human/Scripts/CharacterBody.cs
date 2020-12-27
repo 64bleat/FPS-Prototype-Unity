@@ -129,6 +129,7 @@ namespace MPCore
 
             // Make Crouch States
             InitializeCrouchRoutine();
+            PauseManager.Add(OnPauseUnPause);
         }
 
         private void InitializeCrouchRoutine()
@@ -206,6 +207,16 @@ namespace MPCore
         {
             if (character.isPlayer)
                 onSpeedSet.Invoke("");
+        }
+
+        private void OnDestroy()
+        {
+            PauseManager.Remove(OnPauseUnPause);
+        }
+
+        private void OnPauseUnPause(bool paused)
+        {
+            enabled = !paused;
         }
 
         private void Update()
