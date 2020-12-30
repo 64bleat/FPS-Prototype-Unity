@@ -5,7 +5,7 @@ using System;
 namespace MPCore
 {
     [ContainsConsoleCommands]
-    public static class ExtensionTest
+    public static class AstronomyCommands
     {
         [ConsoleCommand("time")]
         public static void SetTime(string timecode)

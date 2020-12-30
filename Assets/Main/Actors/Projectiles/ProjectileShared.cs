@@ -28,8 +28,8 @@ namespace MPCore
         public float bounceScaleMin = 0.125f;
         public float bounceScaleMax = 0.3f;
         public float bounceAngle = 2f;
+        public int hitsPerFrame = 10;
         [Header("Effects")]
         public Particle wallHitParticle;
-        public float hue = 0.5f;
     }
 }

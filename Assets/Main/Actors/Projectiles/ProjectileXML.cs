@@ -1,6 +1,5 @@
 ﻿using MPCore;
-using System.Collections;
-using System.Collections.Generic;
+using MPWorld;
 using UnityEngine;
 
 namespace Serialization
@@ -14,7 +13,8 @@ namespace Serialization
         {
             if(o is Projectile p && p)
             {
-                velocity = p.Velocity;
+                if(p.TryGetComponent(out IGravityUser gu))
+                    velocity = gu.Velocity;
             }
 
             return this;
@@ -24,7 +24,8 @@ namespace Serialization
         {
             if (o is Projectile p && p)
             {
-                p.Velocity = velocity;
+                if (p.TryGetComponent(out IGravityUser gu))
+                    gu.Velocity = velocity;
             }
 
             return this;
