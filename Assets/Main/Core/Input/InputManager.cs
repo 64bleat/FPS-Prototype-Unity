@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.UI;
 
 namespace MPCore
@@ -19,7 +20,7 @@ namespace MPCore
         private readonly Dictionary<string, List<KeyListener>> keyListeners = new Dictionary<string, List<KeyListener>>();
         private readonly List<string> listenerKeys = new List<string>();
         private readonly Dictionary<string, BotPress> botPresses = new Dictionary<string, BotPress>();
-        private readonly HashSet<BotMouse> botMouse = new HashSet<BotMouse>();
+        //private readonly HashSet<BotMouse> botMouse = new HashSet<BotMouse>();
         private static readonly HashSet<string> keyMasks = new HashSet<string>();
         private Vector2 botMouseDelta;
         private Vector2 mousePositionDelta;
@@ -32,7 +33,9 @@ namespace MPCore
         private static readonly List<BotPress> botPressEnd = new List<BotPress>();
         private static readonly List<BotPress> botPressStart = new List<BotPress>();
         private static readonly List<KeyListener> removeKL = new List<KeyListener>();
-        private static readonly List<BotMouse> removeBP = new List<BotMouse>();
+
+        public delegate Vector2 MouseUpdateDelegate(float dt);
+        public event MouseUpdateDelegate OnMouseMove;
 
         private class KeyListener
         {
@@ -51,10 +54,10 @@ namespace MPCore
             internal bool started = false;
         }
 
-        private class BotMouse
+        private struct BotMouse
         {
-            internal Func<float, Vector2> path;
-            internal float unpressTime;
+            public MouseUpdateDelegate path;
+            public float unpressTime;
         }
 
         // UNITY
@@ -64,12 +67,23 @@ namespace MPCore
             lastMousePosition = Input.mousePosition;
             LoadKeyBindList(loadKeyBindList);
             PauseManager.Add(OnPauseUnPause);
+
+            if (TryGetComponent(out Character c))
+                c.OnPlayerSet += OnPlayerSet;
         }
 
         private void OnDestroy()
         {
             keyMasks.Clear();
             PauseManager.Remove(OnPauseUnPause);
+
+            if (TryGetComponent(out Character c))
+                c.OnPlayerSet -= OnPlayerSet;
+        }
+
+        private void OnPlayerSet(bool isPlayer)
+        {
+            this.isPlayer = isPlayer;
         }
 
         private void OnPauseUnPause(bool paused)
@@ -138,21 +152,23 @@ namespace MPCore
                 botPresses.Remove(press.key);
 
             // Mouse movement
-            botMouseDelta.x = botMouseDelta.y = 0f;
+            //botMouseDelta.x = botMouseDelta.y = 0f;
 
-            foreach (BotMouse bot in botMouse)
-            {
-                botMouseDelta += bot?.path?.Invoke(bot.unpressTime - Time.time) ?? Vector3.zero;
+            //foreach (BotMouse bot in botMouse)
+            //{
+            //    botMouseDelta += bot.path?.Invoke(bot.unpressTime - Time.time) ?? Vector3.zero;
 
-                if (Time.time > bot.unpressTime)
-                    removeBP.Add(bot);
-            }
+            //    if (Time.time > bot.unpressTime)
+            //        removeBP.Add(bot);
+            //}
 
-            foreach (BotMouse bot in removeBP)
-                botMouse.Remove(bot);
+            //foreach (BotMouse bot in removeBP)
+            //    botMouse.Remove(bot);
 
-            removeBP.Clear();
+            botMouseDelta = Vector2.zero;
+            botMouseDelta += OnMouseMove?.Invoke(Time.deltaTime) ?? Vector2.zero;
 
+            //removeBP.Clear();
             actionDownSet.Clear();
             actionHoldSet.Clear();
             actionUpSet.Clear();
@@ -194,17 +210,19 @@ namespace MPCore
                 press.unpressTime = -1f;
         }
 
-        public void Move(Func<float, Vector2> mouseDelta, float seconds = 0f)
+        public void MouseMove(MouseUpdateDelegate mouseDelta, float seconds = 0f)
         {
-            botMouse.Add(new BotMouse(){
-                path = mouseDelta,
-                unpressTime = Time.time + seconds});
+            //Profiler.BeginSample("Input.MouseMove");
+            //botMouse.Add(new BotMouse(){
+            //    path = mouseDelta,
+            //    unpressTime = Time.time + seconds});
+            //Profiler.EndSample();
         }
 
-        public void Stop()
-        {
-            botMouse.Clear();
-        }
+        //public void Stop()
+        //{
+        //    botMouse.Clear();
+        //}
 
         // GETTING
         public bool GetKey(string keyName)

@@ -25,14 +25,23 @@ namespace MPCore
             input.Bind("Sprint", () => UntoggleMove(MoveState.Run, toggleSprint.value), this, KeyPressType.Up);
             input.Bind("Walk", () => UntoggleMove(MoveState.Run, toggleWalk.value), this, KeyPressType.Up);
             input.Bind("Crouch", () => UntoggleMove(MoveState.Run, toggleCrouch.value), this, KeyPressType.Up);
+
+            if (TryGetComponent(out Character c))
+                c.OnPlayerSet += Restart;
         }
 
         private void OnEnable()
         {
-            Restart();
+            Restart(false);
         }
 
-        public void Restart()
+        private void OnDestroy()
+        {
+            if (TryGetComponent(out Character c))
+                c.OnPlayerSet -= Restart;
+        }
+
+        private void Restart(bool isPlayer)
         {
             ToggleMove(MoveState.Run);
         }

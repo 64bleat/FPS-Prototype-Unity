@@ -39,7 +39,7 @@ namespace MPCore
                 nextTime = Random.Range(0.125f, 4f);
                 input.Press(buttons[Random.Range(0, buttons.Length)], Random.Range(0, 0.25f));
 
-                input.Move(t => randomDir * Time.deltaTime, Random.Range(0.125f, 0.75f));
+                input.MouseMove(t => randomDir * Time.deltaTime, Random.Range(0.125f, 0.75f));
                 timer.Restart();
             }
 

@@ -14,53 +14,53 @@ namespace MPCore
 
         // SERIALIZED
         [Header("Abilities")]
-        [SerializeField] public bool enableAlwaysRun = true;
-        [SerializeField] public bool enableCrouch = true;
-        [SerializeField] public bool enableJump = true;
+        public bool enableAlwaysRun = true;
+        public bool enableCrouch = true;
+        public bool enableJump = true;
         [Header("Modules")]
-        [SerializeField] public Glider glider;
-        [SerializeField] public WallJumpBoots wallJump;
-        [SerializeField] public WallClimbGloves wallClimb;
+        public Glider glider;
+        public WallJumpBoots wallJump;
+        public WallClimbGloves wallClimb;
         [Header("Movement")]
-        [SerializeField] public float defaultWalkSpeed = 2.15f;
-        [SerializeField] public float defaultMoveSpeed = 5.5f;
-        [SerializeField] public float defaultStrideSpeed = 7f;
-        [SerializeField] public float defaultSprintSpeed = 7.5f;
-        [SerializeField] public float defaultGroundAcceleration = 40f;
-        [SerializeField] public float defaultStrideAcceleration = 1f;
-        [SerializeField] public float defaultGroundDecceleration = 25f;
-        [SerializeField] public float defaultAirAcceleration = 6f;
-        [SerializeField] public float defaultSpeedDecceleration = 2.5f;
-        [SerializeField] public float defaultslopeLimit = 46;
+        public float defaultWalkSpeed = 2.15f;
+        public float defaultMoveSpeed = 5.5f;
+        public float defaultStrideSpeed = 7f;
+        public float defaultSprintSpeed = 7.5f;
+        public float defaultGroundAcceleration = 40f;
+        public float defaultStrideAcceleration = 1f;
+        public float defaultGroundDecceleration = 25f;
+        public float defaultAirAcceleration = 6f;
+        public float defaultSpeedDecceleration = 2.5f;
+        public float defaultslopeLimit = 46;
         [Header("Crouching")]
-        [SerializeField] public float defaultCrouchDownSpeed = 5.5f;
-        [SerializeField] public float defaultCrouchUpSpeed = 4f;
+        public float defaultCrouchDownSpeed = 5.5f;
+        public float defaultCrouchUpSpeed = 4f;
         [Header("Jumping")]
-        [SerializeField] public float defaultJumpHeight = 0.8f;
-        [SerializeField] public float defaultCrouchJumpHeight = 0.8f;
-        [SerializeField] public float defaultBunnyHopRate = 0.5f;
-        [SerializeField] public float defaultMaxKickVelocity = 15f;
+        public float defaultJumpHeight = 0.8f;
+        public float defaultCrouchJumpHeight = 0.8f;
+        public float defaultBunnyHopRate = 0.5f;
+        public float defaultMaxKickVelocity = 15f;
         [Header("Gliding")]
-        [SerializeField] public float defaultGlideAngle = 60f;
-        [SerializeField] public float defaultSpeedToLift = 9f;
-        [SerializeField] public float defaultDrag = 2.5f;
-        [SerializeField] public float defaultJetAccel = 0f;
-        [SerializeField] public float defaultJetSpeed = 200f;
+        public float defaultGlideAngle = 60f;
+        public float defaultSpeedToLift = 9f;
+        public float defaultDrag = 2.5f;
+        public float defaultJetAccel = 0f;
+        public float defaultJetSpeed = 200f;
         [Header("Other")]
-        [SerializeField] public bool leftHanded = false;
-        [SerializeField] public float defaultHeight = 1.65f;
-        [SerializeField] public float defaultCrouchHeight = 0.7f;
-        [SerializeField] public float defaultStepOffset = 0.3f;
-        [SerializeField] public float defaultMaxSafeImpactSpeed = 11f;
-        [SerializeField] public float defaultGroundStickThreshold = 11f;
-        [SerializeField] public float defaultMass = 80f;
+        public bool leftHanded = false;
+        public float defaultHeight = 1.65f;
+        public float defaultCrouchHeight = 0.7f;
+        public float defaultStepOffset = 0.3f;
+        public float defaultMaxSafeImpactSpeed = 11f;
+        public float defaultGroundStickThreshold = 11f;
+        public float defaultMass = 80f;
         [Header("Components")]
-        [SerializeField] public GameObject thirdPersonBody;
-        [SerializeField] public Transform cameraAnchor;
-        [SerializeField] public Transform cameraSlot;
-        [SerializeField] public Transform rightHand;
-        [SerializeField] public Transform leftHand;
-        [SerializeField] public GameObject deadBody;
+        public GameObject thirdPersonBody;
+        public Transform cameraAnchor;
+        public Transform cameraSlot;
+        public Transform rightHand;
+        public Transform leftHand;
+        public GameObject deadBody;
         [Header("References")]
         public DamageType impactDamageType;
         public StringEvent onSpeedSet;
@@ -116,7 +116,7 @@ namespace MPCore
 
             // CollisionBuffer
             cb = new CollisionBuffer(gameObject);
-            cb.CollisionEvent += Impact;
+            cb.OnCollision += Impact;
 
             // Gravity
             GravityZones.Clear();
@@ -130,6 +130,8 @@ namespace MPCore
             // Make Crouch States
             InitializeCrouchRoutine();
             PauseManager.Add(OnPauseUnPause);
+
+            character.OnPlayerSet += OnSetPlayer;
         }
 
         private void InitializeCrouchRoutine()
@@ -207,11 +209,23 @@ namespace MPCore
         {
             if (character.isPlayer)
                 onSpeedSet.Invoke("");
+
+            character.OnPlayerSet -= OnSetPlayer;
         }
 
         private void OnDestroy()
         {
             PauseManager.Remove(OnPauseUnPause);
+        }
+
+        private void OnSetPlayer(bool isPlayer)
+        {
+            if (isPlayer)
+                CameraManager.target = cameraSlot ? cameraSlot.gameObject : gameObject;
+            if (thirdPersonBody)
+                thirdPersonBody.SetActive(!isPlayer);
+            if (cameraAnchor && cameraAnchor.TryGetComponent(out MeshRenderer mr))
+                mr.enabled = !isPlayer;
         }
 
         private void OnPauseUnPause(bool paused)
@@ -298,7 +312,7 @@ namespace MPCore
             {
                 falseGravity = -hit.normal * Gravity.magnitude;
 
-                cb.AddHit(new CollisionBuffer.Collision(hit));
+                cb.AddHit(new CBCollision(hit, Velocity));
                 currentState = MoveState.Grounded;
             }
             else if (cb.Normal.sqrMagnitude != 0)
@@ -433,7 +447,7 @@ namespace MPCore
                         if ((Physics.SphereCast(origin, cap.radius * 0.9f, moveDir, out RaycastHit hit, cap.radius * 1.5f, layerMask, QueryTriggerInteraction.Ignore)
                             || Physics.SphereCast(origin, cap.radius * 0.9f, -moveDir, out hit, cap.radius * 1.5f, layerMask, QueryTriggerInteraction.Ignore))
                             && !hit.collider.transform.IsChildOf(transform))
-                            cb.AddHit(new CollisionBuffer.Collision(hit));
+                            cb.AddHit(new CBCollision(hit, Velocity));
                     }
 
                     if (!cb.IsEmpty)
@@ -482,7 +496,7 @@ namespace MPCore
 
                 if (Physics.SphereCast(point, cap.radius * 0.9f, -transform.up, out RaycastHit hit, distance, layerMask, QueryTriggerInteraction.Ignore))
                 {
-                    CollisionBuffer.Collision collision = new CollisionBuffer.Collision(hit);
+                    CBCollision collision = new CBCollision(hit, Velocity);
                     float trigOpposite = Vector3.ProjectOnPlane(transform.position - collision.point, transform.up).magnitude;
                     float trigAdjacent = new Vector2(cap.radius, trigOpposite).magnitude;
                     float floorDelta = hit.distance - stepOffset - offset + trigAdjacent - cap.radius;
@@ -491,7 +505,7 @@ namespace MPCore
 
                     if (Physics.Raycast(point, -transform.up, out hit, distance, layerMask, QueryTriggerInteraction.Ignore)
                      || Physics.Raycast(point + transform.forward * cap.radius / 2f, -transform.up, out hit, distance, layerMask, QueryTriggerInteraction.Ignore))
-                        collision = new CollisionBuffer.Collision(hit);
+                        collision = new CBCollision(hit, Velocity);
 
                     cb.AddHit(collision);
                     transform.position -= transform.up * floorDelta;
@@ -532,7 +546,7 @@ namespace MPCore
 
                     finalOffset = fpd;
 
-                    cb.AddHit(new CollisionBuffer.Collision(collider, normal, transform.position));
+                    cb.AddHit(new CBCollision(collider, normal, transform.position, Velocity));
                     transform.position += direction;
                 }
             }
@@ -570,7 +584,7 @@ namespace MPCore
                     && hit.distance > velDist)
                 {
                     hit.distance -= velDist;
-                    CollisionBuffer.Collision collision = new CollisionBuffer.Collision(hit);
+                    CBCollision collision = new CBCollision(hit, Velocity);
                     cb.AddHit(collision);
                     distance = Mathf.Min(hit.distance, distance);
                 }
@@ -581,8 +595,9 @@ namespace MPCore
             }
         }
 
-        public void Impact(CollisionBuffer.Collision hit, float impactSpeed)
+        public void Impact(CBCollision hit, float impactSpeed)
         {
+
             int damage = (int)(Mathf.Pow(impactSpeed - defaultMaxSafeImpactSpeed, 1.5f) * 2.5f);
 
             if (damage > 5)

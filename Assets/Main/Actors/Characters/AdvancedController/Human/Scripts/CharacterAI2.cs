@@ -4,6 +4,7 @@ using System.Linq;
 using Unity.Jobs;
 using UnityEngine;
 using MPConsole;
+using UnityEngine.Profiling;
 
 //#pragma warning disable IDE0052 // Remove unread private members
 //#pragma warning disable IDE0044 // Add readonly modifier
@@ -47,6 +48,7 @@ namespace MPCore
 
         private LineRenderer line;
 
+        private static readonly HashSet<Type> attackTargets = new HashSet<Type>() { typeof(Character) };
         private static readonly Dictionary<Type, float> satisfactionDistances = new Dictionary<Type, float>()
         {
             {typeof(Character), 3f },
@@ -65,6 +67,17 @@ namespace MPCore
 
             PauseManager.Add(OnPauseUnPause);
             MPConsole.Console.RegisterInstance(this);
+            character.OnPlayerSet += OnSetPlayer;
+        }
+
+        private void OnEnable()
+        {
+            input.OnMouseMove += OnMouseMove;
+        }
+
+        private void OnDisable()
+        {
+            input.OnMouseMove -= OnMouseMove;
         }
 
         private void OnDestroy()
@@ -74,28 +87,35 @@ namespace MPCore
 
             PauseManager.Remove(OnPauseUnPause);
             MPConsole.Console.RemoveInstance(this);
+            character.OnPlayerSet -= OnSetPlayer;
         }
 
         void Update()
         {
+            Profiler.BeginSample("Invalid State");
             // Invalid State
             if (Time.timeScale < float.Epsilon)
                 return;
+            Profiler.EndSample();
 
             // Request Path
+            Profiler.BeginSample("RequestPath");
             if (pathJob.IsCompleted
                 && (path.Count == 0
                 || nextTargetTime < Time.time
                 || Vector3.Distance(transform.position, path[path.Count - 1]) < targetSatisfactionDistance))
                 pathJob = RequestNewPath();
+            Profiler.EndSample();
 
+            // Move Along Path
+            Profiler.BeginSample("MoveAlongPath");
             if (path.Count > 0)
-            {
                 MoveAlongPath();
-            }
+            Profiler.EndSample();
 
-            lookTarget = FindTarget(typeof(Character));
-            input.Move(MouseDeltaTarget);
+            Profiler.BeginSample("MouseMove");
+            lookTarget = FindTarget(attackTargets);
+            Profiler.EndSample();
 
             if (Debugger.enabled)
             {
@@ -110,6 +130,11 @@ namespace MPCore
                 else if (debugLine)
                     line = Instantiate(debugLine).GetComponent<LineRenderer>();
             }
+        }
+
+        private void OnSetPlayer(bool isPlayer)
+        {
+            enabled = !isPlayer;
         }
 
         private JobHandle RequestNewPath()
@@ -137,13 +162,13 @@ namespace MPCore
 
         private static bool TryMax(float p, ref float priority) => priority != p && (priority = Mathf.Max(p, priority)) == p;
 
-        private Component FindTarget(params Type[] types)
+        private Component FindTarget(HashSet<Type> types = null)
         {
             float bestPriority = float.MinValue;
             Component bestTarget = null;
 
             foreach (Component candidate in AiInterestPoints.interestPoints)
-                if (candidate && !candidate.Equals(character) && (types.Length == 0 || types.Contains(candidate.GetType())))
+                if (candidate && !candidate.Equals(character) && (types == null || types.Contains(candidate.GetType())))
                 {
                     float priority = float.MinValue;
 
@@ -225,6 +250,51 @@ namespace MPCore
                 desiredY - currentAngleY);
 
             return mouseDir.normalized * Mathf.Min(mouseDir.magnitude, mouseVelocity * Time.deltaTime);
+        }
+
+        private Vector2 OnMouseMove(float dt)
+        {
+            // Set lookDir
+            if (lookTarget
+                && lookTarget is Character
+                && (!Physics.Raycast(
+                    origin: body.cameraSlot.position,
+                    direction: lookTarget.transform.position - body.cameraSlot.position,
+                    hitInfo: out RaycastHit hit,
+                    maxDistance: Vector3.Distance(body.cameraSlot.position, lookTarget.transform.position),
+                    layerMask: layerMask,
+                    queryTriggerInteraction: QueryTriggerInteraction.Ignore)
+                || hit.collider.transform.IsChildOf(lookTarget.transform)))
+            {
+                if (lookTarget is Character c && c.gameObject.GetComponent<CharacterBody>() is CharacterBody b && b)
+                    lookDir = b.cameraSlot.position - body.cameraSlot.position;
+                else
+                    lookDir = lookTarget.transform.position - body.cameraSlot.position;
+
+                // Combat
+                if (hostile
+                    && lookTarget is Character
+                    && Vector3.Angle(lookDir, body.cameraSlot.forward) < 5f)
+                {
+                    input.Press("Fire", 0.5f);
+                }
+            }
+            else if (path.Count > 0)
+                lookDir = Navigator.GetPositionOnPath(path, pathPosition, 2f) - transform.position;
+            else
+                lookDir = transform.forward;
+
+            // MouseLook
+            Vector3 lookDirX = Vector3.ProjectOnPlane(lookDir, body.transform.up);
+            Vector3 lookDirY = Vector3.ProjectOnPlane(lookDir, body.transform.right);
+            float currentAngleY = Mathf.PingPong(Vector3.Angle(body.transform.forward, body.cameraSlot.forward), 90) * Mathf.Sign(Vector3.Dot(body.transform.up, body.cameraSlot.forward));
+            float desiredY = Mathf.PingPong(Vector3.Angle(body.transform.forward, lookDirY), 90) * Mathf.Sign(Vector3.Dot(body.transform.up, lookDirY));
+            float mouseVelocity = angularVelocity * Mathf.Clamp01(Vector3.Angle(body.cameraSlot.forward, lookDir) / Mathf.Max(1f, slowAngle));
+            Vector2 mouseDir = new Vector2(
+                Vector3.Angle(body.transform.forward, lookDirX) * Mathf.Sign(Vector3.Dot(body.transform.right, lookDirX)),
+                desiredY - currentAngleY);
+
+            return mouseDir.normalized * Mathf.Min(mouseDir.magnitude, mouseVelocity * dt);
         }
 
 

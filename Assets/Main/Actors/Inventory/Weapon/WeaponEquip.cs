@@ -141,7 +141,7 @@ namespace MPCore
                 {
                     if (!Input.GetKey(KeyCode.Mouse4) || this.grappleDistance >= maxGrappleDistance)
                     {
-                        CollisionBuffer.Collision collision = new CollisionBuffer.Collision(grappleCollider, grappleDirection.normalized, grappleWorldPos);
+                        CBCollision collision = new CBCollision(grappleCollider, grappleDirection.normalized, grappleWorldPos);
                         Vector3 snapPosition = grappleWorldPos - Vector3.ClampMagnitude(grappleDirection, this.grappleDistance);
                         body.Velocity = body.cb.ApplyCollision(body.Velocity, Vector3.zero, collision);
                         body.cb.ApplyCollision(-grappleDirection.normalized * reelSpeed, Vector3.zero, collision);

@@ -64,59 +64,43 @@ namespace MPCore
 
         private void FixedUpdate()
         {
+            Vector3 position = transform.position;
+            Quaternion rotation = transform.rotation;
             float dt = Time.fixedDeltaTime;
 
-            if (!hasHitWall && visuals)
-                visuals.localPosition -= Vector3.ClampMagnitude(visuals.localPosition, Mathf.Min(visuals.localPosition.magnitude, dt / 0.5f));
-
-            Gravity = GravityZone.GetPointGravity(transform.position, GravityZones);
+            Gravity = GravityZone.GetPointGravity(position, GravityZones);
 
             lifeTime += dt;
 
-            //// overlap test
-            //if (hasHitWall)
-            //{
-            //    int oCount = Physics.OverlapSphereNonAlloc(transform.position, sphere.radius, cBuffer, playerMask);
-
-            //    //while (oCount-- > 0)
-            //    for (int i = 0; i < oCount; i++)
-            //    {
-            //        Collider over = cBuffer[i];
-
-            //        if (over.gameObject.TryGetComponent(out Character _)
-            //            && Physics.ComputePenetration(over, over.transform.position, over.transform.rotation,
-            //            sphere, transform.position, transform.rotation,
-            //            out Vector3 direction, out float _))
-            //            Hit(over, -direction, over.transform.position);
-            //    }
-            //}
-
-            //detect hits: Projectiles are fast and can bounce multiple times in one frame. Limit the number of bounces to prevent possible infinite loops.
-            float timeBudget = dt;
+            // Subfixed Update
+            float sdt = dt; // sub-delta-time
             int fb = frameBounces;
-            while (Velocity.sqrMagnitude != 0 && timeBudget > 0 && fb-- > 0)
+            while (Velocity.sqrMagnitude != 0 && sdt > 0 && fb-- > 0)
             {
-                if (Physics.SphereCast(transform.position, sphere.radius, Velocity, out RaycastHit hit, Velocity.magnitude * timeBudget, mask))
+                if (Physics.SphereCast(position, sphere.radius, Velocity, out RaycastHit hit, Velocity.magnitude * sdt, mask))
                 {
-                    if (hit.collider.gameObject != instigator || (travelDistance > 2f && hit.collider.gameObject == instigator))
+                    if (hasHitWall || hit.collider.gameObject != instigator || travelDistance > 2f)
                     {
                         travelDistance += hit.distance;
-                        transform.position += Velocity.normalized * hit.distance;
-                        timeBudget = Mathf.Max(0, timeBudget - hit.distance / Velocity.magnitude);
-                        Hit(hit.collider, hit.normal, hit.point);
+                        position += Velocity.normalized * hit.distance;
+                        sdt -= hit.distance / Velocity.magnitude;
+                        Hit(hit);
                     }
                 }
                 else
                     break;
             }
 
-            if (timeBudget > 0)
+            if (sdt > 0)
             {
-                travelDistance += (Velocity * timeBudget).magnitude;
-                transform.position += Velocity * timeBudget;
+                travelDistance += (Velocity * sdt).magnitude;
+                position += Velocity * sdt;
             }
 
-            Velocity += 2 * Gravity * shared.gravityFactor * dt;
+            Velocity += 2 * Gravity * dt * shared.gravityFactor;
+            transform.SetPositionAndRotation(
+                position,
+                Quaternion.Lerp(rotation, Quaternion.LookRotation(Velocity, transform.up), Velocity.sqrMagnitude));
 
             // SPARKLECANNON STUFF
             if (lifeTime > shared.lifeSpan)
@@ -127,86 +111,56 @@ namespace MPCore
                     GameObjectPool.DestroyMember(gameObject);
             }
 
-            // trail effect rotation
-            if (Velocity.magnitude > 1f)
-                transform.rotation = Quaternion.LookRotation(Velocity, transform.up);
+            // Visual offset effect
+            if (!hasHitWall && visuals)
+                visuals.localPosition -= Vector3.ClampMagnitude(visuals.localPosition, Mathf.Min(visuals.localPosition.magnitude, dt / 0.5f));
 
             // trail effect scale
             if (trail)
                 trail.localScale = new Vector3(1, 1, Mathf.Lerp(0, 6, Velocity.magnitude / 100f));
         }
 
-        public virtual bool Hit(Collider collider, Vector3 normal, Vector3 position)
+        public virtual bool Hit(RaycastHit hit)
         {
-            Character character = null;
-            Transform t = collider.transform;
-
-            if (visuals)
-                visuals.localPosition = Vector3.zero;
-
-            while (t)
-            {
-                if (t.TryGetComponent(typeof(Character), out Component c))
-                {
-                    character = c as Character;
-                    break;
-                }
-
-                t = t.parent;
-            }
-
-            hasHitWall = true;
-
-            // Momentum Transfer
+            // OnHit += Momentum Transfer
             Vector3 momentum;
             float momentumMag = shared.hitMomentumTransfer;
 
-            if (character)
+            if (hit.collider.transform.TryGetComponentInParent(out Character character))
                 momentumMag *= shared.characterHitMomentumScale;
 
-            momentum = (Velocity - Vector3.ProjectOnPlane(Velocity, normal) * (1 - shared.hitFrictionFactor)).normalized * momentumMag;
+            momentum = (Velocity - Vector3.ProjectOnPlane(Velocity, hit.normal) * (1 - shared.hitFrictionFactor)).normalized * momentumMag;
             momentum *= Velocity.magnitude / shared.exitSpeed;
 
-            if (collider.attachedRigidbody is var rb && rb && !rb.isKinematic)
+            if (hit.collider.attachedRigidbody is var rb && rb && !rb.isKinematic)
             {
                 momentum /= Mathf.Max(1, shared.minimumTransferMass / rb.mass);
-                rb.AddForceAtPosition(momentum, position, ForceMode.Impulse);
-                Velocity += Vector3.Project(rb.velocity, normal);   
+                rb.AddForceAtPosition(momentum, hit.point, ForceMode.Impulse);
+                Velocity += Vector3.Project(rb.velocity, hit.normal);   
             }
-            else if(collider.TryGetComponent(typeof(IGravityUser), out Component c))
+            else if(hit.collider.TryGetComponent(out IGravityUser gu))
             {
-                IGravityUser gu = c as IGravityUser;
                 momentum /= Mathf.Max(1, shared.minimumTransferMass / gu.Mass);
                 gu.Velocity += momentum * Time.fixedDeltaTime;
-                Velocity += Vector3.Project(gu.Velocity, normal);
+                Velocity += Vector3.Project(gu.Velocity, hit.normal);
             }
 
-            // Reflection
-            float hitDot = Vector3.Dot(Velocity.normalized, normal);
+            // OnHit += Reflection
+            float hitDot = Vector3.Dot(Velocity.normalized, hit.normal);
 
             if (hitDot < 0)
-                Velocity = Vector3.Reflect(Velocity * Mathf.Lerp(shared.bounceScaleMax, shared.bounceScaleMin, -hitDot), normal);
+                Velocity = Vector3.Reflect(Velocity * Mathf.Lerp(shared.bounceScaleMax, shared.bounceScaleMin, -hitDot), hit.normal);
 
             Velocity = Vector3.RotateTowards(Velocity, Random.onUnitSphere, shared.bounceAngle * Mathf.Deg2Rad * Random.value, 0);
 
-            ////overlapFix
-            //{
-            //    int oCount = Physics.OverlapSphereNonAlloc(transform.position, sphere.radius, cBuffer, mask);
+            // OnHit += HitEffects
+            if (visuals)
+                visuals.localPosition = Vector3.zero;
 
-            //    while(oCount-- > 0)
-            //    {
-            //        Collider c = cBuffer[oCount];
-
-            //        if (Physics.ComputePenetration(sphere, transform.position, transform.rotation, c, c.transform.position, c.transform.rotation, out Vector3 dir, out float des))
-            //            transform.position += dir * des;
-            //    }
-            //}
-
-            // Hit Effects
-            if (collider.TryGetComponent(out CharacterBody body) && body.shotEffect
+            if (hit.collider.TryGetComponent(out CharacterBody body) && body.shotEffect
                 && GameObjectPool.TryGetPool(body.shotEffect.gameObject, 100, out GameObjectPool pool))
             {
-                GameObject b = pool.Spawn(position, Random.rotation);
+                GameObject b = pool.Spawn(hit.point, Random.rotation);
 
                 if (b.TryGetComponent(out Rigidbody prb))
                     prb.velocity = Vector3.RotateTowards(Velocity * 0.25f, Random.insideUnitSphere, Random.value * 45f, 0);
@@ -227,8 +181,21 @@ namespace MPCore
                         mr.SetPropertyBlock(mpb);
             }
 
-            if (character)
+            // OnHit += Character Hit
+            if (hit.collider.TryGetComponentInParent(out character))
                 CharacterHit(character, shared.hitDamage);
+            else if (!hasHitWall)
+            {
+                int overlapCount = Physics.OverlapSphereNonAlloc(transform.position, sphere.radius, cBuffer, playerMask);
+
+                while (overlapCount-- > 0)
+                    if (cBuffer[overlapCount].TryGetComponent(out Character ch))
+                        CharacterHit(ch, shared.hitDamage);
+
+                hasHitWall = true;
+            }
+
+
 
             return true;
         }
@@ -239,29 +206,44 @@ namespace MPCore
             GameObjectPool.DestroyMember(gameObject);
         }
 
-        public static void Fire(GameObjectPool pool, Vector3 position, Quaternion rotation, Transform firePoint, GameObject instigator, Vector3 relativeVel = default)
+        /// <summary>
+        /// Use Fire to spawn projectiles rather than Instantiate
+        /// </summary>
+        /// <param name="pool">the pool of projectile GameObjects to pull from</param>
+        /// <param name="position">world spawn position</param>
+        /// <param name="rotation">world spawn rotation</param>
+        /// <param name="firePoint">where the projectile appears to be shot from</param>
+        /// <param name="origin">where the projectile is coming from</param>
+        /// <param name="relativeVel">Added to initial velocity</param>
+        public static void Fire(GameObjectPool pool, Vector3 position, Quaternion rotation, Transform firePoint, GameObject origin, Vector3 relativeVel = default)
         {
-            Projectile r = pool.resource.GetComponent<Projectile>();
-
-            for(int i = r.shared.fireCount; i > 0; i--)
+            if (pool.resource.TryGetComponent(out Projectile r))
             {
-                float angle = Random.Range(-r.shared.fireAngle, r.shared.fireAngle);
-                float choke = Mathf.Pow(Mathf.Abs(angle / Mathf.Max(r.shared.fireAngle, float.Epsilon)), r.shared.fireAngleChoke);
-                Quaternion direction = Quaternion.AngleAxis(angle * choke, Quaternion.AngleAxis(Random.Range(0f, 360f), firePoint.forward) * firePoint.up);
-                GameObject o = pool.Spawn(position, direction * rotation);
-                Projectile p = o.GetComponent<Projectile>();
+                ProjectileShared shared = r.shared;
 
-                p.visuals.position = firePoint.position;
-                p.instigator = instigator;
+                for (int i = shared.fireCount; i > 0; i--)
+                {
+                    float randSpread = Random.value * shared.fireAngle;
+                    float randAngle = Random.value * 360f;
+                    Quaternion direction = Quaternion.AngleAxis(randSpread, Quaternion.AngleAxis(randAngle, firePoint.forward) * firePoint.up);
+                    GameObject o = pool.Spawn(position, direction * rotation);
 
-                if (p.shared.randomSpeedDeviation)
-                    p.Velocity *= 1f + Random.Range(-r.shared.speedDeviation, r.shared.speedDeviation);
-                else
-                    p.Velocity *= 1f - r.shared.speedDeviation * (i - 1) / r.shared.fireCount;
+                    if (o.TryGetComponent(out Projectile p))
+                    {
+                        p.visuals.position = firePoint.position;
+                        p.instigator = origin;
 
-                p.Velocity += relativeVel;
+                        if (p.shared.randomSpeedDeviation)
+                            p.Velocity *= 1f + Random.Range(-shared.speedDeviation, shared.speedDeviation);
+                        else
+                            p.Velocity *= 1f - shared.speedDeviation * (i - 1) / shared.fireCount;
 
-                p.FixedUpdate();
+                        p.Velocity += relativeVel;
+
+                        // Projectiles move one frame immediately upon spawn
+                        p.FixedUpdate();
+                    }
+                }
             }
         }
     }

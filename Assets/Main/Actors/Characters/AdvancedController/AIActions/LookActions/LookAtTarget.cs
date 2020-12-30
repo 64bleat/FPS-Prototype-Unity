@@ -32,7 +32,7 @@ namespace MPCore
         {
             if (ai && ai.target)
             {
-                input.Move(Look);
+                input.MouseMove(Look);
 
                 return GOAPStatus.Running;
             }

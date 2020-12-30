@@ -113,9 +113,9 @@ namespace MPCore
         }
 
         /// <summary> Child-defined code for picking up an item </summary>
-        /// <param name="owner"> The active gameObject that is trying to pick this item up </param>
+        /// <param name="pickedBy"> The active gameObject that is trying to pick this item up </param>
         /// <returns> true when the item is ready to be picked up </returns>
-        public virtual bool OnPickup(GameObject owner)
+        public virtual bool OnPickup(GameObject pickedBy)
         {
             return true;
         }

@@ -107,7 +107,7 @@ public class PhysicalBody : MonoBehaviour, IGravityUser
 
                 if (finalHit.normal != Vector3.zero)
                 {
-                    cb.AddHit(new CollisionBuffer.Collision(finalHit));
+                    cb.AddHit(new CBCollision(finalHit, Velocity));
                     //velocity = cb.ApplyAllCollisions(velocity, Vector3.zero);
                     cb.Clear();
                 }
@@ -133,7 +133,7 @@ public class PhysicalBody : MonoBehaviour, IGravityUser
                             distance: out float distance))
                     {
                         transform.position += direction * distance;
-                        cb.AddHit(new CollisionBuffer.Collision(overlap, direction, transform.position));
+                        cb.AddHit(new CBCollision(overlap, direction, transform.position, Velocity));
                     }
 
         return velocity;//cb.ApplyAllCollisions(velocity, Vector3.zero);

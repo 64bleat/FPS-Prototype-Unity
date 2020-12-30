@@ -1,11 +1,16 @@
 ﻿using MPGUI;
-using UnityEngine;
+using MPConsole;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace MPCore
 {
+    [ContainsConsoleCommands]
     public class Character : MonoBehaviour
     {
+        public delegate void SetPlayer(bool isPlayer);
+        public event SetPlayer OnPlayerSet;
+
         public List<ResourceItem> resources = new List<ResourceItem>();
         public List<Inventory> inventory = new List<Inventory>();
         public ResourceType hurtResource;
@@ -15,58 +20,48 @@ namespace MPCore
         public ObjectEvent onCharacterSpawn;
 
         [HideInInspector] public CharacterInfo characterInfo;
-        public int Health => health?.value ?? 0;
 
-        private (GameObject instigator, float time) lastAttacker;
         private ResourceItem health;
+        private (GameObject instigator, float time) lastAttacker;
+
+        public int Health => health?.value ?? 0;
 
         private void OnEnable()
         {
             AiInterestPoints.interestPoints.Add(this);
+            Console.RegisterInstance(this);
 
-            for(int i = 0; health == null && i < resources.Count; i++)
-                if(resources[i].resourceType == hurtResource)
-                    health = resources[i];
+            // Find Health Resource
+            GetHealthResource();
         }
 
         private void OnDisable()
         {
             AiInterestPoints.interestPoints.Remove(this);
+            Console.RemoveInstance(this);
         }
 
-
-        public void SetAsCurrentPlayer(bool becomePlayer)
+        public void GetHealthResource()
         {
-            isPlayer = becomePlayer;
+            for (int i = 0; health == null && i < resources.Count; i++)
+                if (resources[i].resourceType == hurtResource)
+                    health = resources[i];
+        }
 
-            if(TryGetComponent(out CharacterBody body))
-            {
-                if(becomePlayer)
-                    CameraManager.target = body.cameraSlot ? body.cameraSlot.gameObject : gameObject;
-                if(body.thirdPersonBody)
-                    body.thirdPersonBody.SetActive(!becomePlayer);
-                if(body.cameraAnchor && body.cameraAnchor.TryGetComponent(out MeshRenderer mr))
-                    mr.enabled = !becomePlayer;
-            }
+        public void SetAsCurrentPlayer(bool isPlayer)
+        {
+            this.isPlayer = isPlayer;
 
-            if(TryGetComponent(out CharacterAI2 ai))
-                ai.enabled = !becomePlayer;
+            OnPlayerSet?.Invoke(isPlayer);
 
-            if (TryGetComponent(out InputManager im))
-                im.isPlayer = becomePlayer;
-
-            if (TryGetComponent(out CharacterInput ci))
-                ci.Restart();
+            if (isPlayer && onDisplayHealth)
+                onDisplayHealth.Invoke(health.value.ToString());
 
             if (onCharacterSpawn)
                 onCharacterSpawn.Invoke(this);
-
-            if (becomePlayer && onDisplayHealth)
-                onDisplayHealth.Invoke(health.value.ToString());
-
         }
 
-        public int Damage(int damage, GameObject instigator, GameObject method, DamageType type)
+        public int Damage(int damage, GameObject instigator, GameObject weapon, DamageType damageType)
         {
             if (health != null)
             {
@@ -81,7 +76,7 @@ namespace MPCore
                     onDisplayHealth.Invoke(health.value.ToString());
 
                 if (initialValue > 0 && health.value <= 0)
-                    Kill(instigator, method, type);
+                    Kill(instigator, weapon, damageType);
 
                 return health.value;
             }
@@ -89,19 +84,19 @@ namespace MPCore
                 return 0;
         }
 
-        public int Heal(int heal, GameObject instigator, GameObject method)
+        public int Heal(int value, GameObject healer, GameObject healingPickup)
         {
             if (health != null)
             {
                 int initialValue = health.value;
 
-                health.value = Mathf.Min(health.maxValue, health.value + heal);
+                health.value = Mathf.Min(health.maxValue, health.value + value);
 
                 if (isPlayer && health.value != initialValue && onDisplayHealth)
                     onDisplayHealth.Invoke(health.value.ToString());
 
                 if (initialValue > 0 && health.value <= 0)
-                    Kill(instigator, method, null);
+                    Kill(healer, healingPickup, null);
 
                 return health.value;
             }
@@ -151,6 +146,16 @@ namespace MPCore
             }
 
             Destroy(gameObject);
+        }
+
+        [ConsoleCommand("god", "Toggle god mode on players")]
+        public void ToggleGodMode()
+        {
+            if (isPlayer)
+                if (health != default)
+                    health = default;
+                else
+                    GetHealthResource();
         }
     }
 }
