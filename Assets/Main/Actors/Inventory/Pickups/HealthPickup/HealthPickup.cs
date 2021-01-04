@@ -14,7 +14,7 @@ namespace MPCore
         public override bool OnPickup(GameObject pickedBy)
         {
             if (pickedBy && restoreResourceType && pickedBy.TryGetComponent(out Character character))
-                foreach (ResourceItem health in character.resources)
+                foreach (ResourceValue health in character.resources)
                     if (health.resourceType == restoreResourceType)
                     {
                         int healValue = (int)Mathf.Clamp(health.value + restoreAmount, health.value, health.maxValue * percentOfMax ) - health.value;

@@ -11,9 +11,9 @@ namespace MPCore
         /// <param name="type">the resource type to be consumed</param>
         /// <param name="value">the amount to be consumed (negative values restore)</param>
         /// <returns> the remaining resource amount </returns>
-        public static int Consume(List<ResourceItem> list, ResourceType type, int value, GameObject instigator)
+        public static int Consume(List<ResourceValue> list, ResourceType type, int value, GameObject instigator)
         {
-            foreach (ResourceItem resource in list)
+            foreach (ResourceValue resource in list)
                 if (resource.resourceType.resourcePath.Equals(type.resourcePath))
                 {
                     int oldValue = resource.value;
@@ -36,9 +36,9 @@ namespace MPCore
         /// <param name="list">the list of available resources</param>
         /// <param name="type">the resource type to be sampled</param>
         /// <returns> the current value of the resource type in the list</returns>
-        public static int ValueOf(List<ResourceItem> list, ResourceType type)
+        public static int ValueOf(List<ResourceValue> list, ResourceType type)
         {
-            foreach (ResourceItem resource in list)
+            foreach (ResourceValue resource in list)
                if (resource.resourceType.formalName.Equals(type.formalName))
                     return resource.value;
 
@@ -49,9 +49,9 @@ namespace MPCore
         /// <param name="list">the list of available resources</param>
         /// <param name="type">the resource type to be consumed</param>
         /// <returns> the entire resource item </returns>
-        public static ResourceItem GetResource(List<ResourceItem> list, ResourceType type)
+        public static ResourceValue GetResource(List<ResourceValue> list, ResourceType type)
         {
-            foreach (ResourceItem resource in list)
+            foreach (ResourceValue resource in list)
                 if (resource.resourceType.formalName.Equals(type.formalName))
                     return resource;
 

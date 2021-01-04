@@ -5,7 +5,7 @@ namespace MPCore
 {
     /// <summary> a resource type and value of that type </summary>
     [System.Serializable]
-    public class ResourceItem
+    public class ResourceValue
     {
         public ResourceType resourceType;
         [Tooltip("starting amount of this resource")]

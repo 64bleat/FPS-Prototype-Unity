@@ -42,8 +42,6 @@ namespace MPGUI
                 bb.OnValueChange += b => kbl.alwaysRun = b;
             }
 
-
-
             buttonSet.AddTitle("Values");
 
             foreach(ScriptFloat val in values)

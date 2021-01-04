@@ -8,6 +8,7 @@ namespace MPCore
         public Inventory inventory;
         public bool countDownDestroy = false;
         public float lifeTime;
+        public bool destroyOnPickup = true;
 
         private void OnEnable()
         {
@@ -27,9 +28,8 @@ namespace MPCore
 
         public virtual void OnPickup(GameObject picker)
         {
-            if (picker// && inventory
-                //&& picker.GetComponent<Character>() is var c && inventory.TryPickup(c))
-                && InventoryManager.PickUp(picker.GetComponent<Character>(), inventory))
+            if (picker && picker.TryGetComponent(out Character character)
+                && InventoryManager.PickUp(character, inventory))
             {
                 gameObject.SetActive(false);
 
@@ -37,7 +37,8 @@ namespace MPCore
                     && sound && sound.pickupSource)
                     sound.pickupSource.PlayOneShot(inventory.pickupSound);
 
-                Destroy(gameObject);
+                if(destroyOnPickup)
+                    Destroy(gameObject);
             }
         }
 

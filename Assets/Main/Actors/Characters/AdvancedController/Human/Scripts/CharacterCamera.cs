@@ -2,21 +2,36 @@
 
 namespace MPCore
 {
+    /// <summary>
+    /// Used to smooth player view on stairs
+    /// </summary>
     public class CharacterCamera : MonoBehaviour
     {
         [HideInInspector] public float stepOffset = 0f;
 
         private CharacterBody body;
-        private Vector3 headBob = Vector3.zero;
 
         private void Awake()
         {
             body = GetComponentInParent<CharacterBody>();
+            PauseManager.Add(OnPause);
+        }
+
+        private void OnDestroy()
+        {
+            PauseManager.Remove(OnPause);
+        }
+
+        private void OnPause(bool pause)
+        {
+            enabled = !pause;
         }
 
         private void FixedUpdate()
         {
             stepOffset = Mathf.Lerp(stepOffset, 0f, Mathf.Min(1, 12f * Time.fixedDeltaTime));
+
+            transform.localPosition = transform.InverseTransformDirection(body.transform.up) * stepOffset;
 
             //if (body.currentState == CharacterBody.MoveState.Grounded)
             //{
@@ -42,8 +57,6 @@ namespace MPCore
             //    //headBob = Vector3.Lerp(headBob, Vector3.zero, Mathf.Clamp01(12f * Time.fixedDeltaTime));
             //    headBob = Vector3.ClampMagnitude(headBob, mag);
             //}
-
-            transform.localPosition = transform.InverseTransformDirection(body.transform.up) * stepOffset;
         }
     }
 }

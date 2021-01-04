@@ -1,0 +1,73 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using MPConsole;
+using Serialization;
+using UnityEngine.UI;
+using MPGUI;
+
+namespace MPCore
+{
+    //[ContainsConsoleCommands]
+    public class SettingsManager : MonoBehaviour
+    {
+        //private void Awake()
+        //{
+        //    Console.RegisterInstance(this);
+        //}
+
+        //private void OnDestroy()
+        //{
+        //    Console.RemoveInstance(this);
+        //}
+
+        //[ConsoleCommand("s")]
+        //public string TestSave()
+        //{
+        //    string ret = "\n--- SAVE SETTINGS TEST ---\n";
+
+        //    ret += XMLSerialization.SaveToString(SerializeSettings());
+
+        //    return ret;
+        //}
+
+        public void SaveSettings()
+        {
+            XMLSerialization.Save(SerializeSettings(), "settings");
+        }
+
+        public void LoadSettings()
+        {
+            SettingsSerializationData data = XMLSerialization.Load<SettingsSerializationData>("settings");
+
+            if (data != default)
+                DeserializeSettings(data);
+        }
+
+        private SettingsSerializationData SerializeSettings()
+        {
+            SettingsSerializationData data = new SettingsSerializationData();
+
+            CanvasScaler cs = gameObject.GetComponentInChildren<CanvasScaler>(true);
+            KeyMapSettingsGUI kms = gameObject.GetComponentInChildren<KeyMapSettingsGUI>(true);
+
+            if (cs)
+                data.Serialize(cs);
+            if (kms)
+                data.Serialize(kms);
+
+            return data;
+        }
+
+        private void DeserializeSettings(SettingsSerializationData data)
+        {
+            CanvasScaler cs = gameObject.GetComponentInChildren<CanvasScaler>(true);
+            KeyMapSettingsGUI kms = gameObject.GetComponentInChildren<KeyMapSettingsGUI>(true);
+
+            if (cs)
+                data.Deserialize(cs);
+            if (kms)
+                data.Deserialize(kms);
+        }
+    }
+}

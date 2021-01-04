@@ -14,8 +14,7 @@ namespace MPCore
         public void Add(params State[] states)
         {
             foreach (State state in states)
-                if (state != null)
-                    stateList.Add(state.name, state);
+                stateList.Add(state.name, state);
         }
 
         /// <summary> Delete a state by name. </summary>
@@ -33,52 +32,50 @@ namespace MPCore
 
         public void SetState(State newState)
         {
-            if (newState != null)
-            {
-                currentState?.end?.Invoke();
-                currentState = newState;
-                currentState.startTime = Time.time;
-                currentState.start?.Invoke();
-            }
+            currentState.end?.Invoke();
+            currentState = newState;
+            currentState.startTime = Time.time;
+            currentState.start?.Invoke();
         }
 
         /// <summary> Initialize the state system. </summary>
         public void Initialize(string name)
         {
             if (stateList.TryGetValue(name, out State s))
-                (currentState = s)?.start?.Invoke();
+                (currentState = s).start?.Invoke();
         }
 
         /// <summary> Update the current state. </summary>
         public void Update()
         {
-            currentState?.update?.Invoke();
+            currentState.update?.Invoke();
         }
 
         /// <summary> FixedUpdate the current state. </summary>
         public void FixedUpdate()
         {
-            currentState?.fixedUpdate?.Invoke();
+            currentState.fixedUpdate?.Invoke();
         }
 
         /// <summary> Time (s) of current state duration. </summary>
-        public float StateTime => Time.time - currentState?.startTime ?? Time.time;
+        public float StateTime => Time.time - currentState.startTime;
 
         /// <summary> Check what the current state is. </summary>
         public bool IsCurrentState(string name)
         {
-            return currentState?.name?.Equals(name) ?? false;
+            return currentState.name?.Equals(name) ?? false;
         }
     }
 
     public class State
     {
-        public float startTime = Time.time;
+        public float startTime;
         public readonly string name;
         public readonly Action start, update, fixedUpdate, end;
 
         public State(string name, Action start = null, Action update = null, Action fixedUpdate = null, Action end = null)
         {
+            startTime = Time.time;
             this.name = name;
             this.start = start;
             this.update = update;

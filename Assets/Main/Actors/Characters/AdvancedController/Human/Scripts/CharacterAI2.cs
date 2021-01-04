@@ -5,6 +5,7 @@ using Unity.Jobs;
 using UnityEngine;
 using MPConsole;
 using UnityEngine.Profiling;
+using MPWorld;
 
 //#pragma warning disable IDE0052 // Remove unread private members
 //#pragma warning disable IDE0044 // Add readonly modifier
@@ -36,12 +37,13 @@ namespace MPCore
         // Targeting
         private float nextTargetTime = 0;
         private float targetSatisfactionDistance = 1f;
-        private Component lookTarget;
+        //private Component lookTarget;
+        private SightInfo sight;
+        private TouchInfo touch;
         private Vector3 moveDest;
-        private Vector3 lookDest;
         // Looking
-        private Vector3 lookDir;
-        private const float angularVelocity = 180;
+        //private Vector3 lookDir;
+        private const float angularVelocity = 420;
         private const float slowAngle = 45f;
         //Combat
         public bool hostile = true;
@@ -55,6 +57,21 @@ namespace MPCore
             {typeof(InventoryObject), 0.5f }
         };
 
+        public struct SightInfo
+        {
+            public dynamic target;
+            public Vector3 focalPoint;
+            public Vector3 lookDirection;
+        }
+
+        public struct TouchInfo
+        {
+            public GameObject target;
+            public float time;
+            public Vector3 normal;
+            public Vector3 point;
+        }
+
         private void Awake()
         {
             body = GetComponent<CharacterBody>();
@@ -63,7 +80,7 @@ namespace MPCore
 
             layerMask = LayerMask.GetMask(layers);
 
-            lookDir = body.cameraSlot.forward;
+            //lookDir = body.cameraSlot.forward;
 
             PauseManager.Add(OnPauseUnPause);
             MPConsole.Console.RegisterInstance(this);
@@ -73,11 +90,13 @@ namespace MPCore
         private void OnEnable()
         {
             input.OnMouseMove += OnMouseMove;
+            character.OnHit += OnHit;
         }
 
         private void OnDisable()
         {
             input.OnMouseMove -= OnMouseMove;
+            character.OnHit -= OnHit;
         }
 
         private void OnDestroy()
@@ -92,11 +111,9 @@ namespace MPCore
 
         void Update()
         {
-            Profiler.BeginSample("Invalid State");
             // Invalid State
             if (Time.timeScale < float.Epsilon)
                 return;
-            Profiler.EndSample();
 
             // Request Path
             Profiler.BeginSample("RequestPath");
@@ -114,7 +131,8 @@ namespace MPCore
             Profiler.EndSample();
 
             Profiler.BeginSample("MouseMove");
-            lookTarget = FindTarget(attackTargets);
+            //lookTarget = FindTarget(attackTargets);
+            sight.target = FindTarget(attackTargets);
             Profiler.EndSample();
 
             if (Debugger.enabled)
@@ -175,23 +193,15 @@ namespace MPCore
                     if (candidate is Character && IsTargetVisible(candidate, viewAngle, out _))
                         priority = 100f - Vector3.Distance(transform.position, candidate.transform.position);
                     else if (candidate is InventoryObject io)
-                        if (io.inventory is HealthPickup hp && character.Health < 100)
+                        if (io.inventory is HealthPickup hp && character.Health < 100 && character.Health != 0)
                             priority = (100f - character.Health) * 5f - Vector3.Distance(transform.position, candidate.transform.position);
 
                     if (TryMax(priority, ref bestPriority))
                         bestTarget = candidate;
                 }
 
-            //if (bestTarget == null)
-            //    bestTarget = this;
-
             return bestTarget;
         }
-
-        //private void SetPath(Vector3[] p)
-        //{
-        //    path = new;
-        //}
 
         private bool IsTargetVisible(Component target, float viewAngle, out RaycastHit hit)
         {
@@ -207,94 +217,59 @@ namespace MPCore
                 && hit.collider.gameObject.Equals(target.gameObject);
         }
 
-        private Vector2 MouseDeltaTarget(float time)
-        {
-            // Set lookDir
-            if (lookTarget 
-                && lookTarget is Character 
-                && (!Physics.Raycast(
-                    origin: body.cameraSlot.position,
-                    direction: lookTarget.transform.position - body.cameraSlot.position,
-                    hitInfo: out RaycastHit hit,
-                    maxDistance: Vector3.Distance(body.cameraSlot.position, lookTarget.transform.position),
-                    layerMask: layerMask,
-                    queryTriggerInteraction: QueryTriggerInteraction.Ignore)
-                || hit.collider.transform.IsChildOf(lookTarget.transform)))
-            {
-                if (lookTarget is Character c && c.gameObject.GetComponent<CharacterBody>() is CharacterBody b && b)
-                    lookDir = b.cameraSlot.position - body.cameraSlot.position;
-                else
-                    lookDir = lookTarget.transform.position - body.cameraSlot.position;
-
-                // Combat
-                if (hostile 
-                    && lookTarget is Character 
-                    && Vector3.Angle(lookDir, body.cameraSlot.forward) < 5f)
-                {
-                    input.Press("Fire", 0.5f);
-                }
-            }
-            else if (path.Count > 0)
-                lookDir = Navigator.GetPositionOnPath(path, pathPosition, 2f) - transform.position;
-            else
-                lookDir = transform.forward;
-
-            // MouseLook
-            Vector3 lookDirX = Vector3.ProjectOnPlane(lookDir, body.transform.up);
-            Vector3 lookDirY = Vector3.ProjectOnPlane(lookDir, body.transform.right);
-            float currentAngleY = Mathf.PingPong(Vector3.Angle(body.transform.forward, body.cameraSlot.forward), 90) * Mathf.Sign(Vector3.Dot(body.transform.up, body.cameraSlot.forward));
-            float desiredY = Mathf.PingPong(Vector3.Angle(body.transform.forward, lookDirY), 90) * Mathf.Sign(Vector3.Dot(body.transform.up, lookDirY));
-            float mouseVelocity = angularVelocity * Mathf.Clamp01(Vector3.Angle(body.cameraSlot.forward, lookDir) / Mathf.Max(1f, slowAngle));
-            Vector2 mouseDir = new Vector2(
-                Vector3.Angle(body.transform.forward, lookDirX) * Mathf.Sign(Vector3.Dot(body.transform.right, lookDirX)),
-                desiredY - currentAngleY);
-
-            return mouseDir.normalized * Mathf.Min(mouseDir.magnitude, mouseVelocity * Time.deltaTime);
-        }
-
         private Vector2 OnMouseMove(float dt)
         {
-            // Set lookDir
-            if (lookTarget
-                && lookTarget is Character
-                && (!Physics.Raycast(
-                    origin: body.cameraSlot.position,
-                    direction: lookTarget.transform.position - body.cameraSlot.position,
-                    hitInfo: out RaycastHit hit,
-                    maxDistance: Vector3.Distance(body.cameraSlot.position, lookTarget.transform.position),
-                    layerMask: layerMask,
-                    queryTriggerInteraction: QueryTriggerInteraction.Ignore)
-                || hit.collider.transform.IsChildOf(lookTarget.transform)))
+            // Set look direction
+            if (sight.target is Character character)
             {
-                if (lookTarget is Character c && c.gameObject.GetComponent<CharacterBody>() is CharacterBody b && b)
-                    lookDir = b.cameraSlot.position - body.cameraSlot.position;
+                if (character.TryGetComponent(out CharacterBody body))
+                    sight.focalPoint = body.cameraAnchor.position;
                 else
-                    lookDir = lookTarget.transform.position - body.cameraSlot.position;
-
-                // Combat
-                if (hostile
-                    && lookTarget is Character
-                    && Vector3.Angle(lookDir, body.cameraSlot.forward) < 5f)
-                {
-                    input.Press("Fire", 0.5f);
-                }
+                    sight.focalPoint = character.transform.position;
             }
+            else if (touch.target && Time.time - touch.time < 3)
+                sight.focalPoint = transform.position - touch.normal.normalized * 20f;
             else if (path.Count > 0)
-                lookDir = Navigator.GetPositionOnPath(path, pathPosition, 2f) - transform.position;
+                sight.focalPoint = Navigator.GetPositionOnPath(path, pathPosition, 5f) + body.transform.up * body.cap.height / 2f;
             else
-                lookDir = transform.forward;
+                sight.focalPoint = transform.TransformPoint(transform.forward * 1000f);
+
+            // Velocity Prediction
+            Vector3 velocity = Vector3.zero;
+
+            if (sight.target is Component component)
+                if (component.TryGetComponent(out IGravityUser gu))
+                    velocity = gu.Velocity;
+                else if (component.TryGetComponent(out Collider collider))
+                    if (collider.attachedRigidbody is Rigidbody rb)
+                        velocity = rb.velocity;
+
+            float distance = Vector3.Distance(this.body.cameraSlot.position, sight.focalPoint);
+            float impactTime = distance / 100f;
+            Vector3 predictOffset = velocity * impactTime;
+            sight.focalPoint += predictOffset;
+
+            // Convert point to direction
+            sight.lookDirection = sight.focalPoint - body.cameraSlot.position;
+
+            // Combat
+            if (hostile && sight.target is Character
+                && Vector3.Angle(sight.lookDirection, this.body.cameraSlot.forward) < 5f)
+            {
+                input.Press("Fire", 0.5f);
+            }
 
             // MouseLook
-            Vector3 lookDirX = Vector3.ProjectOnPlane(lookDir, body.transform.up);
-            Vector3 lookDirY = Vector3.ProjectOnPlane(lookDir, body.transform.right);
+            Vector3 lookDirX = Vector3.ProjectOnPlane(sight.lookDirection, body.transform.up);
+            Vector3 lookDirY = Vector3.ProjectOnPlane(sight.lookDirection, body.transform.right);
             float currentAngleY = Mathf.PingPong(Vector3.Angle(body.transform.forward, body.cameraSlot.forward), 90) * Mathf.Sign(Vector3.Dot(body.transform.up, body.cameraSlot.forward));
             float desiredY = Mathf.PingPong(Vector3.Angle(body.transform.forward, lookDirY), 90) * Mathf.Sign(Vector3.Dot(body.transform.up, lookDirY));
-            float mouseVelocity = angularVelocity * Mathf.Clamp01(Vector3.Angle(body.cameraSlot.forward, lookDir) / Mathf.Max(1f, slowAngle));
+            float mouseVelocity = angularVelocity * Mathf.Clamp(Vector3.Angle(body.cameraSlot.forward, sight.lookDirection) / Mathf.Max(1f, slowAngle), 0.1f, 1f);
             Vector2 mouseDir = new Vector2(
                 Vector3.Angle(body.transform.forward, lookDirX) * Mathf.Sign(Vector3.Dot(body.transform.right, lookDirX)),
                 desiredY - currentAngleY);
 
-            return mouseDir.normalized * Mathf.Min(mouseDir.magnitude, mouseVelocity * dt);
+            return Vector2.ClampMagnitude(mouseDir, mouseVelocity * dt);
         }
 
 
@@ -338,6 +313,13 @@ namespace MPCore
                     input.Press("Forward", 0.25f);
                 }
             }
+        }
+
+        private void OnHit(int damage, GameObject instigator, GameObject conduit, DamageType damageType, Vector3 direction)
+        {
+            touch.target = instigator;
+            touch.normal = direction;
+            touch.time = Time.time;
         }
 
         private void OnPauseUnPause(bool paused)

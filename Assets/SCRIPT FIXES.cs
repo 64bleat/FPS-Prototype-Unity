@@ -5,26 +5,32 @@
     so this file keeps the fixes so I can paste them back 
     in when they are needed 
 
-    ProBuilderMeshFunction.cs
-    void RefreshColors()
-    {
-        Mesh m = filter.sharedMesh;
+    --- Replace in ProBuilderMeshFunction.cs ---
 
-        if (m_Colors.Length == m.colors.Length)
-            m.colors = m_Colors;
-        else
+        void RefreshColors()
         {
-            Debug.LogWarning($"FIXING COLOR ARRAY ON {filter.gameObject.name}!");
-            Color[] fix = new Color[m.colors.Length];
-            int length = Mathf.Min(fix.Length, m_Colors.Length);
+            MeshFilter filter = this.filter;
+            Mesh mesh = filter.sharedMesh;
 
-            for (int i = 0; i < length; i++)
-                fix[i] = m_Colors[i];
+            if (mesh.colors.Length == m_Colors.Length)
+                mesh.colors = m_Colors;
+            else
+            {
+                Debug.LogWarning($"FIXING COLOR ARRAY ON {gameObject.name}!", gameObject);
 
-            m.colors = fix;
-            filter.sharedMesh.colors = fix;
+                Color[] fix = new Color[mesh.colors.Length];
+
+                for (int i = 0; i < fix.Length; i++)
+                    if (i < m_Colors.Length)
+                        fix[i] = m_Colors[i];
+                    else
+                        fix[i] = Color.white;
+
+                mesh.colors = fix;
+                m_Colors = fix;
+                filter.sharedMesh = mesh;
+            }
         }
-    }
  
 
  * */

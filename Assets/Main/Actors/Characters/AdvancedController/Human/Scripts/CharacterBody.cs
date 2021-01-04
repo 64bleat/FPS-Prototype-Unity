@@ -63,7 +63,7 @@ namespace MPCore
         public GameObject deadBody;
         [Header("References")]
         public DamageType impactDamageType;
-        public StringEvent onSpeedSet;
+        //public StringEvent onSpeedSet;
         [Header("Effects")]
         public Particle shotEffect;
 
@@ -74,6 +74,7 @@ namespace MPCore
         [NonSerialized] private CharacterInput input;
         [NonSerialized] private Character character;
         [NonSerialized] private CharacterCamera characterCamera;
+        private CharacterEventManager events;
         [NonSerialized] public Vector3 moveDir = Vector3.zero;
         [NonSerialized] public Vector3 lastPlatformVelocity = Vector3.zero;
         [NonSerialized] public Vector3 falseGravity;
@@ -110,6 +111,7 @@ namespace MPCore
             characterCamera = GetComponentInChildren<CharacterCamera>();
             characterSound = GetComponent<CharacterSound>();
             input = GetComponent<CharacterInput>();
+            TryGetComponent(out events);
 
             // CharacterController
             stepOffset = defaultStepOffset;
@@ -130,85 +132,20 @@ namespace MPCore
             // Make Crouch States
             InitializeCrouchRoutine();
             PauseManager.Add(OnPauseUnPause);
-
-            character.OnPlayerSet += OnSetPlayer;
-        }
-
-        private void InitializeCrouchRoutine()
-        {
-            float appliedCrouchHeight;
-            float appliedHeight;
-
-            void SharedStart() 
-            {
-                appliedCrouchHeight = defaultCrouchHeight - defaultCrouchHeight / defaultHeight * defaultStepOffset;
-                appliedHeight = defaultHeight - defaultStepOffset;
-            }
-
-            void SharedEnd()
-            {
-                stepOffset = cap.height / defaultHeight * defaultStepOffset;
-            }
-
-            crouchState.Add(new State(name: "Idle"),
-                new State(name: "GoDown",
-                fixedUpdate: () => 
-                    {
-                        SharedStart();
-
-                        if (input.Crouch && appliedCrouchHeight < cap.height)
-                            cap.height = Mathf.Max(appliedCrouchHeight, cap.height - defaultCrouchDownSpeed * Time.fixedDeltaTime);
-                        else if (!input.Crouch) 
-                            crouchState.SwitchTo("GoUp");
-
-                        SharedEnd();
-                    }),
-                new State(name: "GoUp",
-                fixedUpdate: () =>
-                    {
-                        SharedStart();
-
-                        if (!input.Crouch && appliedHeight < defaultHeight)
-                        {
-                            float desiredHeight = Mathf.Min(appliedHeight, cap.height + defaultCrouchUpSpeed * Time.fixedDeltaTime);
-                            float rayDistance = appliedHeight - cap.height;
-                            Vector3 rayStart = transform.position - transform.up * (cap.height / 2 - cap.radius);
-                            int oCount = Physics.OverlapSphereNonAlloc(rayStart, cap.radius * 0.9f, cBuffer, layerMask, QueryTriggerInteraction.Ignore);
-                            bool hasOverlap = false;
-
-                            for (int i = 0; i < oCount; i++)
-                                if (!cBuffer[i].transform.IsChildOf(transform))
-                                {
-                                    hasOverlap = true;
-                                    break;
-                                }
-
-                            if (!hasOverlap
-                                && !Physics.SphereCast(rayStart, cap.radius * 0.9f, transform.up, out RaycastHit hit, rayDistance, layerMask))
-                            {
-                                transform.position += transform.up * (desiredHeight - cap.height) * 0.5f;
-                                cap.height = desiredHeight;
-                            }
-                        }
-                        else if (input.Crouch) 
-                            crouchState.SwitchTo("GoDown");
-
-                        SharedEnd();
-                    }));
-
-            crouchState.Initialize("GoDown");
         }
 
         private void OnEnable()
         {
             if (character.isPlayer)
-                onSpeedSet.Invoke("0");
+                events.onSpeedSet.Invoke("0");
+
+            character.OnPlayerSet += OnSetPlayer;
         }
 
         private void OnDisable()
         {
             if (character.isPlayer)
-                onSpeedSet.Invoke("");
+                events.onSpeedSet.Invoke("");
 
             character.OnPlayerSet -= OnSetPlayer;
         }
@@ -483,7 +420,7 @@ namespace MPCore
             else
                 speed = (int)Mathf.Round(Vector3.ProjectOnPlane(Velocity, transform.up).magnitude * 10);
 
-            onSpeedSet.Invoke(speed.ToString());
+            events.onSpeedSet.Invoke(speed.ToString());
         }
 
         private void GroundDetection()
@@ -551,11 +488,12 @@ namespace MPCore
                 }
             }
 
-            float squeeze = Vector3.Distance(oldPos, transform.position);
+            Vector3 offset = transform.position - oldPos;
+            float squeeze = offset.magnitude;
             GameObject method = cBuffer[0] ? cBuffer[0].gameObject : null;
 
             if (squeeze > cap.radius)
-                character.Damage((int)(squeeze * 200), gameObject, method, impactDamageType);
+                character.Damage((int)(squeeze * 200), gameObject, method, impactDamageType, offset);
         }
 
         private void Move()
@@ -601,10 +539,75 @@ namespace MPCore
             int damage = (int)(Mathf.Pow(impactSpeed - defaultMaxSafeImpactSpeed, 1.5f) * 2.5f);
 
             if (damage > 5)
-                character.Damage(damage, gameObject, hit.gameObject, impactDamageType);
+                character.Damage(damage, gameObject, hit.gameObject, impactDamageType, hit.normal);
 
             if (characterSound)
                 characterSound.PlayImpact(impactSpeed - 3f);
+        }
+
+        private void InitializeCrouchRoutine()
+        {
+            float appliedCrouchHeight;
+            float appliedHeight;
+
+            void SharedStart()
+            {
+                appliedCrouchHeight = defaultCrouchHeight - defaultCrouchHeight / defaultHeight * defaultStepOffset;
+                appliedHeight = defaultHeight - defaultStepOffset;
+            }
+
+            void SharedEnd()
+            {
+                stepOffset = cap.height / defaultHeight * defaultStepOffset;
+            }
+
+            crouchState.Add(new State(name: "Idle"),
+                new State(name: "GoDown",
+                fixedUpdate: () =>
+                {
+                    SharedStart();
+
+                    if (input.Crouch && appliedCrouchHeight < cap.height)
+                        cap.height = Mathf.Max(appliedCrouchHeight, cap.height - defaultCrouchDownSpeed * Time.fixedDeltaTime);
+                    else if (!input.Crouch)
+                        crouchState.SwitchTo("GoUp");
+
+                    SharedEnd();
+                }),
+                new State(name: "GoUp",
+                fixedUpdate: () =>
+                {
+                    SharedStart();
+
+                    if (!input.Crouch && appliedHeight < defaultHeight)
+                    {
+                        float desiredHeight = Mathf.Min(appliedHeight, cap.height + defaultCrouchUpSpeed * Time.fixedDeltaTime);
+                        float rayDistance = appliedHeight - cap.height;
+                        Vector3 rayStart = transform.position - transform.up * (cap.height / 2 - cap.radius);
+                        int oCount = Physics.OverlapSphereNonAlloc(rayStart, cap.radius * 0.9f, cBuffer, layerMask, QueryTriggerInteraction.Ignore);
+                        bool hasOverlap = false;
+
+                        for (int i = 0; i < oCount; i++)
+                            if (!cBuffer[i].transform.IsChildOf(transform))
+                            {
+                                hasOverlap = true;
+                                break;
+                            }
+
+                        if (!hasOverlap
+                            && !Physics.SphereCast(rayStart, cap.radius * 0.9f, transform.up, out RaycastHit hit, rayDistance, layerMask))
+                        {
+                            transform.position += transform.up * (desiredHeight - cap.height) * 0.5f;
+                            cap.height = desiredHeight;
+                        }
+                    }
+                    else if (input.Crouch)
+                        crouchState.SwitchTo("GoDown");
+
+                    SharedEnd();
+                }));
+
+            crouchState.Initialize("GoDown");
         }
     }
 }

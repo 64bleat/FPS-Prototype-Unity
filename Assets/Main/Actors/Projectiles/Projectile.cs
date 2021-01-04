@@ -105,6 +105,7 @@ namespace MPCore
         private void Hit(RaycastHit hit)
         {
             // OnHit += Momentum Transfer
+            Vector3 hitVelocity = this.body.Velocity;
             Vector3 momentum;
             float momentumMag = shared.hitMomentumTransfer;
 
@@ -151,11 +152,13 @@ namespace MPCore
             {
                 pool = GameObjectPool.GetPool(shared.wallHitParticle.gameObject, 400);
                 GameObject p = pool.Spawn(transform.position, transform.rotation);
-                //Transform pt = p.transform;
+
 
                 if (p.TryGetComponent(out Rigidbody prb))
                     prb.velocity = this.body.Velocity;
 
+                // Move particle color
+                //Transform pt = p.transform;
                 //int childCount = p.transform.childCount;
 
                 //for (int i = 0; i < childCount; i++)
@@ -165,22 +168,22 @@ namespace MPCore
 
             // OnHit += Character Hit
             if (hit.collider.TryGetComponentInParent(out character))
-                CharacterHit(character, shared.hitDamage);
+                CharacterHit(character, shared.hitDamage, hitVelocity);
             else if (!hasHitWall)
             {
                 int overlapCount = Physics.OverlapSphereNonAlloc(transform.position, sphere.radius, cBuffer, playerMask);
 
                 while (overlapCount-- > 0)
                     if (cBuffer[overlapCount].TryGetComponent(out Character ch))
-                        CharacterHit(ch, shared.hitDamage);
+                        CharacterHit(ch, shared.hitDamage, hitVelocity);
 
                 hasHitWall = true;
             }
         }
 
-        public virtual void CharacterHit(Character target, int damage)
+        public virtual void CharacterHit(Character target, int damage, Vector3 direction)
         { 
-            target.Damage(damage, instigator, gameObject, shared.damageType);
+            target.Damage(damage, instigator, gameObject, shared.damageType, direction);
             GameObjectPool.DestroyMember(gameObject);
         }
 

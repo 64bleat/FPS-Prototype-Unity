@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MPCore
 {
@@ -17,6 +15,7 @@ namespace MPCore
 
         void FixedUpdate()
         {
+            // TODO: Add OnHeightChanged(float height) to CharacterBody 
             transform.localPosition = Vector3.up * (cap.height / 2f - eyeOffset);
         }
     }

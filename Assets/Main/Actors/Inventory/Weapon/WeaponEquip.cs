@@ -11,13 +11,13 @@ namespace MPCore
         public Transform firePoint;
         public AudioClip fireSound;
         public LineRenderer ropePrefab;
-        public HudEvents hudBroadcaster;
+        //public HudEvents hudBroadcaster;
 
         [HideInInspector] public GameObject owner;
 
         private GameObjectPool primProjPool;
         private CharacterBody body;
-        private Character character;
+        //private Character character;
         private InputManager input;
         protected AudioSource audioSource;
         private ImpactJiggler recoil;
@@ -46,7 +46,7 @@ namespace MPCore
             owner = GetComponentInParent<Character>().gameObject;
             body = GetComponentInParent<CharacterBody>();
             input = GetComponentInParent<InputManager>();
-            character = GetComponentInParent<Character>();
+            //character = GetComponentInParent<Character>();
 
             layerMask = LayerMask.GetMask(layermask);
 
@@ -61,17 +61,17 @@ namespace MPCore
             PauseManager.Add(OnPauseUnPause);
         }
 
-        private void OnEnable()
-        {
-            if (character && character.isPlayer && hudBroadcaster)
-                hudBroadcaster.OnSetCrosshair.Invoke(weapon.crosshair);
-        }
+        //private void OnEnable()
+        //{
+        //    if (character && character.isPlayer && hudBroadcaster)
+        //        hudBroadcaster.OnSetCrosshair.Invoke(weapon.crosshair);
+        //}
 
-        private void OnDisable()
-        {
-            if (character && character.isPlayer && hudBroadcaster)
-                hudBroadcaster.OnSetCrosshair.Invoke(null); 
-        }
+        //private void OnDisable()
+        //{
+        //    if (character && character.isPlayer && hudBroadcaster)
+        //        hudBroadcaster.OnSetCrosshair.Invoke(null); 
+        //}
 
         private void OnDestroy()
         {

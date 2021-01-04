@@ -9,107 +9,95 @@ namespace Serialization
     public class CharacterXML : XMLSurrogate
     {
         public bool isPlayer;
-        public InventoryXML[] inventory;
+        public List<InventoryItemXML> inventory;
         public ResourceItemXML[] resources;
 
-        public override XMLSurrogate Serialize(object o)
+        [System.Serializable]
+        public struct ResourceItemXML
         {
-            if (o is Character c && c)
+            public string resourcePath;
+            public int value;
+            public int maxValue;
+        }
+
+        [System.Serializable]
+        public struct InventoryItemXML
+        {
+            public string resourcePath;
+            public bool staticReference;
+            public int count;
+            public int maxCount;
+        }
+
+        public override XMLSurrogate Serialize(dynamic o)
+        {
+            if (o is Character character)
             {
-                isPlayer = c.isPlayer;
-                
+                isPlayer = character.isPlayer;
+
                 // Inventory
-                inventory = new InventoryXML[c.inventory.Count];
-                for (int i = 0; i < inventory.Length; i++)
-                    inventory[i] = new InventoryXML().Serialize(c.inventory[i]) as InventoryXML;
+                inventory = new List<InventoryItemXML>(character.inventory.Count);
+                foreach (Inventory item in character.inventory)
+                    inventory.Add(new InventoryItemXML()
+                    {
+                        resourcePath = item.resourcePath,
+                        staticReference = item.staticReference,
+                        count = item.count,
+                        maxCount = item.maxCount
+                    });
 
                 // Resources
-                resources = new ResourceItemXML[c.resources.Count];
+                resources = new ResourceItemXML[character.resources.Count];
                 for (int i = 0; i < resources.Length; i++)
-                    resources[i] = new ResourceItemXML(c.resources[i]);
+                    resources[i] = new ResourceItemXML()
+                    {
+                        resourcePath = character.resources[i].resourceType.resourcePath,
+                        value = character.resources[i].value,
+                        maxValue = character.resources[i].maxValue
+                    };
             }
 
             return this;
         }
 
-        public override XMLSurrogate Deserialize(object o)
+        public override XMLSurrogate Deserialize(dynamic o)
         {
-            if(o is Character c && c)
+            if(o is Character character && character)
             {
-                c.SetAsCurrentPlayer(isPlayer);
-
                 // Inventory
-                c.inventory.Clear();
-                foreach(InventoryXML item in inventory)
+                character.inventory.Clear();
+                foreach(InventoryItemXML item in inventory)
                     if (Resources.Load<ScriptableObject>(item.resourcePath) is Inventory inv && inv)
                     {
                         if (!item.staticReference)
-                            item.Deserialize(inv = Object.Instantiate(inv));
+                        {
+                            inv = ScriptableObject.Instantiate(inv);
+                            inv.maxCount = item.maxCount;
+                            inv.count = item.count;
+                        }
 
-                        InventoryManager.PickUp(c, inv);
+                        InventoryManager.PickUp(character, inv);
                     }
+                    else
+                        Debug.LogWarning($"Resource error: missing {item.resourcePath}");
 
                 // Resources
-                for (int i = 0; i < resources.Length; i++)
-                    if (i < c.resources.Count)
-                    {
-                        resources[i].Deserialize(c.resources[i]);
+                character.resources.Clear();
+                foreach (ResourceItemXML res in resources)
+                    if (Resources.Load<ScriptableObject>(res.resourcePath) is ResourceType rtype && rtype)
+                        character.resources.Add(new ResourceValue()
+                        {
+                            resourceType = rtype,
+                            value = res.value,
+                            maxValue = res.maxValue
+                        });
+                    else
+                        Debug.LogWarning($"Resource error: missing {res.resourcePath}");
 
-                        c.resources[i].OnValueChange?.Invoke(null, c.resources[i].value);
-                        //foreach (var action in c.resources[i].OnValueChange)
-                        //    action?.Invoke(c.resources[i].resourceType, c.resources[i].value);
-                    }
+                character.SetAsCurrentPlayer(isPlayer);
             }
 
             return this;
-        }
-    }
-
-    [System.Serializable]
-    public class ResourceItemXML : XMLSurrogate
-    {
-        public string resourcePath;
-        public int value;
-        public int maxValue;
-
-        public ResourceItemXML() { }
-        public ResourceItemXML(ResourceItem r)
-        {
-            Serialize(r);
-        }
-
-        public override XMLSurrogate Serialize(object o)
-        {
-            if (o is ResourceItem r)
-            {
-                resourcePath = r.resourceType.resourcePath;
-                value = r.value;
-                maxValue = r.maxValue;
-            }
-
-            return this;
-        }
-
-        public override XMLSurrogate Deserialize(object o)
-        {
-            if(o is ResourceItem r)
-            {
-                r.value = value;
-                r.maxValue = maxValue;
-                if (!r.resourceType || !r.resourceType.resourcePath.Equals(resourcePath))
-                    r.resourceType = Resources.Load<ResourceType>(resourcePath);
-            }
-
-            return this;
-        }
-
-        public static ResourceItem FindResourceItem(List<ResourceItem> list, string resourcePath)
-        {
-            foreach (ResourceItem item in list)
-                if (item.resourceType && item.resourceType.resourcePath.Equals(resourcePath))
-                    return item;
-
-            return null;
         }
     }
 }
