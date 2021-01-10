@@ -132,33 +132,30 @@ namespace MPCore
             // Make Crouch States
             InitializeCrouchRoutine();
             PauseManager.Add(OnPauseUnPause);
+
+            character.OnPlayerSet += OnSetPlayer;
         }
 
         private void OnEnable()
         {
             if (character.isPlayer)
                 events.onSpeedSet.Invoke("0");
-
-            character.OnPlayerSet += OnSetPlayer;
         }
 
         private void OnDisable()
         {
             if (character.isPlayer)
                 events.onSpeedSet.Invoke("");
-
-            character.OnPlayerSet -= OnSetPlayer;
         }
 
         private void OnDestroy()
         {
             PauseManager.Remove(OnPauseUnPause);
+            character.OnPlayerSet -= OnSetPlayer;
         }
 
         private void OnSetPlayer(bool isPlayer)
         {
-            if (isPlayer)
-                CameraManager.target = cameraSlot ? cameraSlot.gameObject : gameObject;
             if (thirdPersonBody)
                 thirdPersonBody.SetActive(!isPlayer);
             if (cameraAnchor && cameraAnchor.TryGetComponent(out MeshRenderer mr))
@@ -491,9 +488,16 @@ namespace MPCore
             Vector3 offset = transform.position - oldPos;
             float squeeze = offset.magnitude;
             GameObject method = cBuffer[0] ? cBuffer[0].gameObject : null;
+            CharacterInfo instigator;
+
+            if (method && method.TryGetComponent(out Character ch) && ch.characterInfo)
+                instigator = ch.characterInfo;
+            else
+                instigator = null;
+
 
             if (squeeze > cap.radius)
-                character.Damage((int)(squeeze * 200), gameObject, method, impactDamageType, offset);
+                character.Damage((int)(squeeze * 200), gameObject, method,  instigator, impactDamageType, offset);
         }
 
         private void Move()
@@ -537,9 +541,15 @@ namespace MPCore
         {
 
             int damage = (int)(Mathf.Pow(impactSpeed - defaultMaxSafeImpactSpeed, 1.5f) * 2.5f);
+            CharacterInfo instigator;
+
+            if (hit.gameObject && hit.gameObject.TryGetComponent(out Character ch) && ch.characterInfo)
+                instigator = ch.characterInfo;
+            else
+                instigator = null;
 
             if (damage > 5)
-                character.Damage(damage, gameObject, hit.gameObject, impactDamageType, hit.normal);
+                character.Damage(damage, gameObject, hit.gameObject, instigator, impactDamageType, hit.normal);
 
             if (characterSound)
                 characterSound.PlayImpact(impactSpeed - 3f);

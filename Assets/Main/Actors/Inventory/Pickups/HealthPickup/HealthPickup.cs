@@ -19,7 +19,7 @@ namespace MPCore
                     {
                         int healValue = (int)Mathf.Clamp(health.value + restoreAmount, health.value, health.maxValue * percentOfMax ) - health.value;
 
-                        character.Heal(healValue, null, pickedBy);
+                        character.Heal(healValue, character.gameObject, character.characterInfo, pickedBy);
 
                         return healValue > 0;
                     }

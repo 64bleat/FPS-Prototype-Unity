@@ -1,10 +1,15 @@
 ﻿using MPCore;
 using UnityEngine;
 
-public struct DeathEventParameters
+namespace MPCore
 {
-    public GameObject target;
-    public GameObject instigator;
-    public GameObject method;
-    public DamageType damageType;
+    public struct DeathEventParameters
+    {
+        public GameObject target;
+        public GameObject owner;
+        public GameObject method;
+        public CharacterInfo instigator;
+        public CharacterInfo victim;
+        public DamageType damageType;
+    }
 }

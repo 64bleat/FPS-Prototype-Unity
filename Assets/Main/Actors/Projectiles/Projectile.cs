@@ -14,7 +14,8 @@ namespace MPCore
         public delegate void HitDelegate(RaycastHit hit);
         public event HitDelegate OnHit;
 
-        private GameObject instigator;
+        private CharacterInfo instigator;
+        private GameObject owner;
         private float lifeTime;
         private float travelDistance;
         private bool hasHitWall;
@@ -65,7 +66,7 @@ namespace MPCore
             {
                 if (Physics.SphereCast(position, sphere.radius, body.Velocity, out RaycastHit hit, body.Velocity.magnitude * sdt, layerMask))
                 {
-                    if (hasHitWall || hit.collider.gameObject != instigator || travelDistance > 2f)
+                    if (hasHitWall || hit.collider.gameObject != owner || travelDistance > 2f)
                     {
                         travelDistance += hit.distance;
                         position += body.Velocity.normalized * hit.distance;
@@ -183,7 +184,7 @@ namespace MPCore
 
         public virtual void CharacterHit(Character target, int damage, Vector3 direction)
         { 
-            target.Damage(damage, instigator, gameObject, shared.damageType, direction);
+            target.Damage(damage, owner, gameObject, instigator, shared.damageType, direction);
             GameObjectPool.DestroyMember(gameObject);
         }
 
@@ -194,9 +195,9 @@ namespace MPCore
         /// <param name="position">world spawn position</param>
         /// <param name="rotation">world spawn rotation</param>
         /// <param name="firePoint">where the projectile appears to be shot from</param>
-        /// <param name="origin">where the projectile is coming from</param>
+        /// <param name="owner">where the projectile is coming from</param>
         /// <param name="relativeVel">Added to initial velocity</param>
-        public static void Fire(GameObjectPool pool, Vector3 position, Quaternion rotation, Transform firePoint, GameObject origin, Vector3 relativeVel = default)
+        public static void Fire(GameObjectPool pool, Vector3 position, Quaternion rotation, Transform firePoint, GameObject owner, CharacterInfo instigator, Vector3 relativeVel = default)
         {
             if (pool.resource.TryGetComponent(out Projectile r))
             {
@@ -212,7 +213,8 @@ namespace MPCore
                     if (o.TryGetComponent(out Projectile p))
                     {
                         p.visuals.position = firePoint.position;
-                        p.instigator = origin;
+                        p.owner = owner;
+                        p.instigator = instigator;
 
                         if (o.TryGetComponent(out IGravityUser gu))
                         {

@@ -7,7 +7,7 @@ namespace MPCore
     {
         public static bool enabled = false;
 
-        [ConsoleCommand("debug")]
+        [ConsoleCommand("debug", "Enter debug mode")]
         public static void ToggleDebugger()
         {
             enabled = !enabled;

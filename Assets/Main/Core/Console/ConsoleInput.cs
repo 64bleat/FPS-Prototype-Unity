@@ -193,7 +193,7 @@ namespace MPConsole
             Vector3[] verts = inputText.mesh.vertices;
             int index = Mathf.Min(verts.Length - 1, (commandHeader.Length + cursorPosition - blankCount - 1) * 4 + 2);
 
-            if (verts.Length >= 0)
+            if (index >= 0)
             {
                 Vector3 lpos = verts[index];
 

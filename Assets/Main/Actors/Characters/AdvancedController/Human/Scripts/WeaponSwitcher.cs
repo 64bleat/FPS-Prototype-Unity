@@ -10,6 +10,9 @@ namespace MPCore
     {
         public bool drawOnStart = true;
         public Inventory heldWeapon;
+        public RectTransform emptyCrosshair;
+
+
         private Character character;
         private Transform weaponHand;
         private GameObject currentWeaponGO;
@@ -97,7 +100,7 @@ namespace MPCore
                 currentWeaponGO = null;
                 currentWeaponSlot = -1;
 
-                events.hud.OnSetCrosshair.Invoke(null);
+                events.hud.OnSetCrosshair.Invoke(emptyCrosshair);
             }
 
             heldWeapon = nextWeapon;

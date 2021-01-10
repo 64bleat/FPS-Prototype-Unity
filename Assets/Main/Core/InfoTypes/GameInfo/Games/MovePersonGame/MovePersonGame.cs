@@ -18,23 +18,14 @@ namespace MPCore
         public MessageEvent onShortMessage;
         public DeathEvent onDeath;
 
+        private readonly List<CharacterInfo> loadedBots = new List<CharacterInfo>();
+        private readonly Queue<CharacterInfo> deadBots = new Queue<CharacterInfo>();
+
         private InputManager input;
         private GameObject currentPlayer;
         private readonly StateMachine state = new StateMachine();
 
         private int botCount = 0;
-
-        [ConsoleCommand("respawn", "Respawns the player")]
-        public void Respawn()
-        {
-            Spawn(playerInfo);
-        }
-
-        [ConsoleCommand("player", "Selects the player GameObject in console")]
-        public void TargetPlayer()
-        {
-            Console.target = currentPlayer;
-        }
 
         private void Awake()
         {
@@ -47,7 +38,7 @@ namespace MPCore
             if (characterSpawnChannel)
                 characterSpawnChannel.Add(SetCharacterSpawn, false);
             if (onDeath)
-                onDeath.Add(CharacterDied);
+                onDeath.Add(OnCharacterDied);
 
             Console.RegisterInstance(this);
             PauseManager.Add(OnPauseUnPause);
@@ -59,11 +50,36 @@ namespace MPCore
                 Spawn(playerInfo);
 
             if (botmatchInfo)
-                while (botCount < botmatchInfo.botCount)
+                for(int i = 0; i < botmatchInfo.botCount; i++)
                 {
-                    Spawn(playerInfo, false);
-                    botCount++;
+                    int repeat = i / botmatchInfo.botRoster.Length;
+                    CharacterInfo template = botmatchInfo.botRoster[i % botmatchInfo.botRoster.Length];
+                    CharacterInfo botInfo = Instantiate(template);
+
+                    if (repeat > 0)
+                        botInfo.displayName = $"{template.displayName} ({repeat})";
+
+                    loadedBots.Add(botInfo);
+                    deadBots.Enqueue(botInfo);
                 }
+        }
+
+        private void Update()
+        {
+            if (deadBots.Count > 0)
+                Spawn(deadBots.Dequeue(), false);
+            else if(botmatchInfo && loadedBots.Count < botmatchInfo.botCount)
+            {
+                int i = loadedBots.Count;
+                int repeat = i / botmatchInfo.botRoster.Length;
+                CharacterInfo botInfo = Instantiate(botmatchInfo.botRoster[i % botmatchInfo.botRoster.Length]);
+
+                if (repeat > 0)
+                    botInfo.name = $"{botInfo.name} {repeat}";
+
+                loadedBots.Add(botInfo);
+                deadBots.Enqueue(botInfo);
+            }
         }
 
         private void OnDestroy()
@@ -71,7 +87,7 @@ namespace MPCore
             if (characterSpawnChannel)
                 characterSpawnChannel.Remove(SetCharacterSpawn);
             if (onDeath)
-                onDeath.Remove(CharacterDied);
+                onDeath.Remove(OnCharacterDied);
 
             Console.RemoveInstance(this);
             PauseManager.Remove(OnPauseUnPause);
@@ -96,55 +112,46 @@ namespace MPCore
             }
         }
 
-        private void CharacterDied(DeathEventParameters death)
+        private void OnCharacterDied(DeathEventParameters death)
         {
-            Character target = null;
-            Character instigator = null;
-
-            if (death.target)
-                death.target.TryGetComponent(out target);
-
-            if (death.instigator)
-                death.instigator.TryGetComponent(out instigator);
-
             // Bot Died
-            if (target)
-                if (target.isPlayer) 
-                    state.SwitchTo("PlayerDead", true);
-                else if (botmatchInfo)
-                {
-                    botCount--;
+            if (death.victim == playerInfo) 
+                state.SwitchTo("PlayerDead", true);
+            else if (botmatchInfo)
+            {
+                botCount--;
 
-                    while (botCount < botmatchInfo.botCount)
-                    {
-                        Spawn(playerInfo, false);
-                        botCount++;
-                    }
+                if (botCount < botmatchInfo.botCount)
+                {
+                    deadBots.Enqueue(death.victim);
+                    botCount++;
                 }
+                else
+                    Destroy(death.victim);
+            }
 
             // Display Death HUD Notifications
             try
             {
-                if (target.isPlayer)
+                if (death.victim == playerInfo)
                 {
-                    if (death.target.Equals(death.instigator))
+                    if (death.victim == death.instigator)
                         onShortMessage.Invoke("F");
                     else if (death.method.TryGetComponent(out Projectile _))
-                        onShortMessage.Invoke("You were shot to death by " + instigator.characterInfo.displayName);
+                        onShortMessage.Invoke($"You were shot to death by {death.instigator.displayName}");
                     else if (death.method.TryGetComponent(out Collider _))
-                        onShortMessage.Invoke("You were smashed into a wall by " + instigator.characterInfo.displayName);
+                        onShortMessage.Invoke($"You were smashed into a wall by {death.instigator.displayName}");
                     else
                         onShortMessage.Invoke("You are dead. Not big surprise.");
                 }
-                else if (instigator.isPlayer)
+                else if (death.instigator == playerInfo)
                 {
-                    if (target.characterInfo)
-                        if (death.method.TryGetComponent(out Projectile _))
-                            onShortMessage.Invoke($"You killed {target.characterInfo.displayName}");
-                        else if (death.method.TryGetComponent(out Collider _))
-                            onShortMessage.Invoke("You smashed " + target.characterInfo.displayName + " into a wall!");
-                        else
-                            onShortMessage.Invoke("You killed " + target.characterInfo.displayName + " somehow...");
+                    if (death.method.TryGetComponent(out Projectile _))
+                        onShortMessage.Invoke($"You killed {death.victim.displayName}");
+                    else if (death.method.TryGetComponent(out Collider _))
+                        onShortMessage.Invoke($"You crushed {death.victim.displayName}");
+                    else
+                        onShortMessage.Invoke($"You killed {death.victim.displayName} somehow...");
                 }
             }
             catch (Exception)
@@ -176,7 +183,10 @@ namespace MPCore
                 GameObject point = PortaSpawn.stack.Count != 0 ? PortaSpawn.stack.Peek() : SpawnPoint.GetSpawnPoint().gameObject;
 
                 if (isPlayer && currentPlayer)
-                    Destroy(currentPlayer);
+                    if (currentPlayer.TryGetComponent(out Character ch))
+                        ch.Kill(gameObject, ch.characterInfo, gameObject, null);
+                    else
+                        Destroy(currentPlayer);
 
                 if (point)
                 {
@@ -212,6 +222,18 @@ namespace MPCore
                 else
                     Debug.LogWarning("No spawn point found!");
             }
+        }
+
+        [ConsoleCommand("respawn", "Respawns the player")]
+        public void Respawn()
+        {
+            Spawn(playerInfo);
+        }
+
+        [ConsoleCommand("player", "Selects the player GameObject in console")]
+        public void TargetPlayer()
+        {
+            Console.target = currentPlayer;
         }
     }
 }

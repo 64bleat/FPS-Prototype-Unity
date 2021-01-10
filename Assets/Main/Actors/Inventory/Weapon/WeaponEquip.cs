@@ -14,10 +14,10 @@ namespace MPCore
         //public HudEvents hudBroadcaster;
 
         [HideInInspector] public GameObject owner;
-
+        
         private GameObjectPool primProjPool;
         private CharacterBody body;
-        //private Character character;
+        private Character character;
         private InputManager input;
         protected AudioSource audioSource;
         private ImpactJiggler recoil;
@@ -46,7 +46,7 @@ namespace MPCore
             owner = GetComponentInParent<Character>().gameObject;
             body = GetComponentInParent<CharacterBody>();
             input = GetComponentInParent<InputManager>();
-            //character = GetComponentInParent<Character>();
+            character = GetComponentInParent<Character>();
 
             layerMask = LayerMask.GetMask(layermask);
 
@@ -220,7 +220,7 @@ namespace MPCore
             distance -= body.cap.radius * 0.25f;
             Vector3 point = body.cameraSlot.transform.position + body.cameraSlot.transform.forward * distance;
 
-            Projectile.Fire(projectilePool, point, body.cameraSlot.rotation, firePoint, owner, body.lastPlatformVelocity);
+            Projectile.Fire(projectilePool, point, body.cameraSlot.rotation, firePoint, owner, character.characterInfo, body.lastPlatformVelocity);
         }
     }
 }

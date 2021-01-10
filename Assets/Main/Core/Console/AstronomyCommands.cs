@@ -7,8 +7,8 @@ namespace MPCore
     [ContainsConsoleCommands]
     public static class AstronomyCommands
     {
-        [ConsoleCommand("time")]
-        public static void SetTime(string timecode)
+        [ConsoleCommand("time", "set the date down to the millisecond")]
+        public static string SetTime(string timecode)
         {
             DateTime time = TimeManager.currentTime;
 
@@ -31,7 +31,15 @@ namespace MPCore
             if (timecode == "now")
                 TimeManager.SetCurrentTime(DateTime.Now);
 
+            return $"date set to {TimeManager.currentTime}";
+        }
 
+        [ConsoleCommand("dayscale", "Scales the length of a day")]
+        public static string SetDayScale(float timescale)
+        {
+            TimeManager.timeScale = timescale;
+
+            return $"day scale set to {TimeManager.timeScale}.";
         }
     }
 }
