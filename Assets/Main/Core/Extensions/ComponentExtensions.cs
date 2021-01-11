@@ -30,20 +30,15 @@ namespace MPCore
 
         public static bool TryGetComponentInChildren<T>(this Component c, out T component)
         {
-            if (c == null)
-            {
-                component = default;
-                return false;
-            }
-            else if (c.TryGetComponent(out component))
-                return true;
-            else
-                for (int cc = c.transform.childCount, i = 0; i < cc; i++)
-                    if (c.transform.GetChild(i).TryGetComponent(out component))
-                        return true;
+            if(c)
+                if (c.TryGetComponent(out component))
+                    return true;
+                else
+                    for (int i = 0, count = c.transform.childCount; i < count; i++)
+                        if (c.transform.GetChild(i).TryGetComponentInChildren(out component))
+                            return true;
 
             component = default;
-
             return false;
         }
 

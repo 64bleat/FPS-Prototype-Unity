@@ -14,38 +14,53 @@ namespace MPCore
 
         private void OnDestroy()
         {
-            if (resource && pools.ContainsKey(resource))
-                pools.Remove(resource);
+            pools.Remove(resource);
         }
 
-        private void DisableMember(GameObject instance)
+        private void DisableInstance(GameObject instance)
         {
             instance.SetActive(false);
             availableInstances.Push(instance);
         }
 
-        private GameObject EnableMember()
+        private GameObject EnableInstance()
         {
             if (availableInstances.Count == 0)
-                AddMember();
+                AddInstance();
 
             return availableInstances.Pop();
         }
 
-        private void AddMember()
+        private void AddInstance()
         {
-            if (resource && Instantiate(resource, transform) is var instance && instance)
+            GameObject instance = Instantiate(resource, transform);
+
+            instance.name = resource.name;
+            DisableInstance(instance);
+        }
+
+        public GameObject Spawn(Vector3 position = default, Quaternion rotation = default, Transform parent = null)
+        {
+            GameObject spawn;
+
+            if (spawn = EnableInstance())
             {
-                instance.name = resource.name;
-                DisableMember(instance);
+                if (parent)
+                {
+                    position = parent.TransformPoint(position);
+                    rotation *= parent.rotation;
+                }
+
+                spawn.transform.SetPositionAndRotation(position, rotation);
+                spawn.SetActive(true);
             }
+
+            return spawn;
         }
 
         public static bool TryGetPool(GameObject prefab, int assureCount, out GameObjectPool pool)
         {
-            pool = GetPool(prefab, assureCount);
-
-            return pool != null;
+            return pool = GetPool(prefab, assureCount);
         }
 
         public static GameObjectPool GetPool(GameObject prefab, int assureCount)
@@ -67,34 +82,17 @@ namespace MPCore
 
             if (pool)
                 for (int i = pool.transform.childCount; i < assureCount; i++)
-                    pool.AddMember();
+                    pool.AddInstance();
 
             return pool;
         }
 
-        public GameObject Spawn(Vector3 position = default, Quaternion rotation = default, Transform parent = null)
-        {
-            GameObject spawn;
-
-            if (spawn = EnableMember())
-            {
-                if (parent)
-                {
-                    position = parent.TransformPoint(position);
-                    rotation *= parent.rotation;
-                }
-
-                spawn.transform.SetPositionAndRotation(position, rotation);
-                spawn.SetActive(true);
-            }
-
-            return spawn;
-        }
-
         public static void DestroyMember(GameObject gameObject)
         {
-            if (gameObject.GetComponentInParent<GameObjectPool>() is var pool && pool)
-                pool.DisableMember(gameObject);
+            Transform parent = gameObject.transform.parent;
+
+            if (parent && parent.TryGetComponent(out GameObjectPool pool))
+                pool.DisableInstance(gameObject);
             else
                 Destroy(gameObject);
         }

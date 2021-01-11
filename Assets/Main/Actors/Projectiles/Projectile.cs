@@ -10,6 +10,7 @@ namespace MPCore
     {
         public ProjectileShared shared;
         public Transform visuals;
+        public bool ricochet = true;
 
         public delegate void HitDelegate(RaycastHit hit);
         public event HitDelegate OnHit;
@@ -72,6 +73,9 @@ namespace MPCore
                         position += body.Velocity.normalized * hit.distance;
                         sdt -= hit.distance / body.Velocity.magnitude;
                         OnHit?.Invoke(hit);
+
+                        if (!gameObject || !gameObject.activeSelf)
+                            return;
                     }
                 }
                 else
@@ -130,12 +134,7 @@ namespace MPCore
             }
 
             // OnHit += Reflection
-            float hitDot = Vector3.Dot(this.body.Velocity.normalized, hit.normal);
 
-            if (hitDot < 0)
-                this.body.Velocity = Vector3.Reflect(this.body.Velocity * Mathf.Lerp(shared.bounceScaleMax, shared.bounceScaleMin, -hitDot), hit.normal);
-
-            this.body.Velocity = Vector3.RotateTowards(this.body.Velocity, Random.onUnitSphere, shared.bounceAngle * Mathf.Deg2Rad * Random.value, 0);
 
             // OnHit += HitEffects
             if (visuals)
@@ -147,7 +146,7 @@ namespace MPCore
                 GameObject b = pool.Spawn(hit.point, Random.rotation);
 
                 if (b.TryGetComponent(out Rigidbody prb))
-                    prb.velocity = Vector3.RotateTowards(this.body.Velocity * 0.25f, Random.insideUnitSphere, Random.value * 45f, 0);
+                    prb.velocity = Vector3.RotateTowards(Vector3.ClampMagnitude(this.body.Velocity, 10), Random.insideUnitSphere, Random.value * 45f, 0);
             }
             else if (shared.wallHitParticle && this.body.Velocity.sqrMagnitude > 1)
             {
@@ -170,16 +169,28 @@ namespace MPCore
             // OnHit += Character Hit
             if (hit.collider.TryGetComponentInParent(out character))
                 CharacterHit(character, shared.hitDamage, hitVelocity);
-            else if (!hasHitWall)
+            if (ricochet)
             {
-                int overlapCount = Physics.OverlapSphereNonAlloc(transform.position, sphere.radius, cBuffer, playerMask);
+                if (!hasHitWall)
+                {
+                    int overlapCount = Physics.OverlapSphereNonAlloc(transform.position, sphere.radius, cBuffer, playerMask);
 
-                while (overlapCount-- > 0)
-                    if (cBuffer[overlapCount].TryGetComponent(out Character ch))
-                        CharacterHit(ch, shared.hitDamage, hitVelocity);
+                    while (overlapCount-- > 0)
+                        if (cBuffer[overlapCount].TryGetComponent(out Character ch))
+                            CharacterHit(ch, shared.hitDamage, hitVelocity);
 
-                hasHitWall = true;
+                    hasHitWall = true;
+                }
+
+                float hitDot = Vector3.Dot(this.body.Velocity.normalized, hit.normal);
+
+                if (hitDot < 0)
+                    this.body.Velocity = Vector3.Reflect(this.body.Velocity * Mathf.Lerp(shared.bounceScaleMax, shared.bounceScaleMin, -hitDot), hit.normal);
+
+                this.body.Velocity = Vector3.RotateTowards(this.body.Velocity, Random.onUnitSphere, shared.bounceAngle * Mathf.Deg2Rad * Random.value, 0);
             }
+            else
+                GameObjectPool.DestroyMember(gameObject);
         }
 
         public virtual void CharacterHit(Character target, int damage, Vector3 direction)
