@@ -3,6 +3,7 @@ using MPWorld;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Console = MPConsole.Console;
 using Random = UnityEngine.Random;
 
@@ -12,11 +13,14 @@ namespace MPCore
     public class MovePersonGame : Game
     {
         public List<Inventory> spawnInventory;
+        public List<Inventory> randomSpawnInventory;
         public CharacterInfo playerInfo;
         public BotmatchGameInfo botmatchInfo;
+        [Header("References")]
         public ObjectEvent characterSpawnChannel;
         public MessageEvent onShortMessage;
         public DeathEvent onDeath;
+        public DamageType respawnDamageType;
 
         private readonly List<CharacterInfo> loadedBots = new List<CharacterInfo>();
         private readonly Queue<CharacterInfo> deadBots = new Queue<CharacterInfo>();
@@ -127,21 +131,25 @@ namespace MPCore
                 {
                     if (death.victim == death.instigator)
                         onShortMessage.Invoke("F");
-                    else if (death.method.TryGetComponent(out Projectile _))
-                        onShortMessage.Invoke($"You were shot to death by {death.instigator.displayName}");
-                    else if (death.method.TryGetComponent(out Collider _))
-                        onShortMessage.Invoke($"You were smashed into a wall by {death.instigator.displayName}");
                     else
-                        onShortMessage.Invoke("You are dead. Not big surprise.");
+                        onShortMessage.Invoke($"You were killed by {death.instigator.displayName}");
+                    //else if (death.conduit.TryGetComponent(out Projectile _))
+                    //    onShortMessage.Invoke($"You were shot to death by {death.instigator.displayName}");
+                    //else if (death.conduit.TryGetComponent(out Collider _))
+                    //    onShortMessage.Invoke($"You were smashed into a wall by {death.instigator.displayName}");
+                    //else
+                    //    onShortMessage.Invoke("You are dead. Not big surprise.");
                 }
                 else if (death.instigator == playerInfo)
                 {
-                    if (death.method.TryGetComponent(out Projectile _))
-                        onShortMessage.Invoke($"You killed {death.victim.displayName}");
-                    else if (death.method.TryGetComponent(out Collider _))
-                        onShortMessage.Invoke($"You crushed {death.victim.displayName}");
-                    else
-                        onShortMessage.Invoke($"You killed {death.victim.displayName} somehow...");
+                    onShortMessage.Invoke($"You killed {death.victim.displayName}");
+
+                    //if (death.conduit.TryGetComponent(out Projectile _))
+                    //    onShortMessage.Invoke($"You killed {death.victim.displayName}");
+                    //else if (death.conduit.TryGetComponent(out Collider _))
+                    //    onShortMessage.Invoke($"You crushed {death.victim.displayName}");
+                    //else
+                    //    onShortMessage.Invoke($"You killed {death.victim.displayName} somehow...");
                 }
             }
             catch (Exception)
@@ -174,7 +182,7 @@ namespace MPCore
                 if (currentPlayer && characterInfo == playerInfo)
                     if (currentPlayer.TryGetComponent(out Character ch))
                     {
-                        ch.Kill(gameObject, ch.characterInfo, gameObject, null);
+                        ch.Kill(ch.characterInfo, gameObject, respawnDamageType);
                         input.Unbind("Fire", PlayerDeadEnd);
                     }
                     else
@@ -189,8 +197,11 @@ namespace MPCore
                         character.characterInfo = characterInfo;
                         character.SetAsCurrentPlayer(characterInfo == playerInfo);
 
-                        if (spawnInventory.Count > 0)
-                            spawnInventory[Random.Range(0, Mathf.Max(0, spawnInventory.Count))].TryPickup(character);
+                        foreach (Inventory inv in spawnInventory)
+                            inv.TryPickup(character);
+
+                        if (randomSpawnInventory.Count > 0)
+                            randomSpawnInventory[Random.Range(0, Mathf.Max(0, randomSpawnInventory.Count))].TryPickup(character);
 
                         if (point.TryGetComponentInParent(out PortaSpawn spawnPs))
                             spawnPs.TransferStuff(character);

@@ -29,13 +29,13 @@ namespace MPWorld
                     if (Time.time - lastDamageTime >= damageDuration)
                     {
                         damageTimes.Remove(target);
-                        character.Damage(damage, target, surface, instigator, damageType, hit.GetContact(0).normal);
+                        character.Damage(damage, surface, instigator, damageType, hit.GetContact(0).normal);
                         damageTimes.Add(target, Time.time);
                     }
                 }
                 else
                 {
-                    character.Damage(damage, target, surface, instigator, damageType, hit.GetContact(0).normal);
+                    character.Damage(damage, surface, instigator, damageType, hit.GetContact(0).normal);
                     damageTimes.Add(target, Time.time);
                 }
             }

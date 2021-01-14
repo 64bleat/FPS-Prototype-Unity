@@ -7,7 +7,13 @@ namespace MPCore
     [ContainsConsoleCommands]
     public static class AstronomyCommands
     {
-        [ConsoleCommand("time", "set the date down to the millisecond")]
+        [ConsoleCommand("time", "log the current time")]
+        public static string GetTime()
+        {
+            return TimeManager.currentTime.ToString("s");
+        }
+
+        [ConsoleCommand("settime", "set the date down to the second")]
         public static string SetTime(string timecode)
         {
             DateTime time = TimeManager.currentTime;
@@ -26,12 +32,12 @@ namespace MPCore
                     break;
             }
 
-            TimeManager.SetCurrentTime(time);
+            TimeManager.currentTime = time;
 
             if (timecode == "now")
-                TimeManager.SetCurrentTime(DateTime.Now);
+                TimeManager.currentTime = DateTime.Now;
 
-            return $"date set to {TimeManager.currentTime}";
+            return $"Date set to {TimeManager.currentTime}";
         }
 
         [ConsoleCommand("dayscale", "Scales the length of a day")]

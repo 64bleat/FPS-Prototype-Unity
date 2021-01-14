@@ -19,7 +19,7 @@ namespace MPCore
         public ObjectEvent onCharacterSpawn;
 
         public delegate void SetPlayer(bool isPlayer);
-        public delegate void CharacterHit(int damage, GameObject instigator, GameObject conduit, DamageType damageType, Vector3 direction);
+        public delegate void CharacterHit(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction);
 
         public event SetPlayer OnPlayerSet;
         public event CharacterHit OnHit;
@@ -28,6 +28,7 @@ namespace MPCore
 
         private ResourceValue health;
         private (GameObject instigator, float time) lastAttacker;
+        private (CharacterInfo instigator, float taime) lastAttackedBy;
 
         public int Health => health?.value ?? 0;
 
@@ -70,15 +71,15 @@ namespace MPCore
             OnPlayerSet?.Invoke(isPlayer);
         }
 
-        public int Damage(int damage, GameObject owner, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction)
+        public int Damage(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction)
         {
 
-            OnHit?.Invoke(damage, owner, conduit, damageType, direction);
+            OnHit?.Invoke(damage, conduit, instigator, damageType, direction);
 
             if (health != null)
             {
-                if (owner && owner.TryGetComponent(out Character c) && c != this)
-                    lastAttacker = (owner, Time.time);
+                if (instigator && instigator != characterInfo)
+                    lastAttackedBy = (instigator, Time.time);
 
                 int initialValue = health.value;
 
@@ -88,7 +89,7 @@ namespace MPCore
                     onDisplayHealth.Invoke(health.value.ToString());
 
                 if (initialValue > 0 && health.value <= 0)
-                    Kill(owner, instigator, conduit, damageType);
+                    Kill(instigator, conduit, damageType);
 
                 return health.value;
             }
@@ -108,7 +109,7 @@ namespace MPCore
                     onDisplayHealth.Invoke(health.value.ToString());
 
                 if (initialValue > 0 && health.value <= 0)
-                    Kill(owner, instigator, conduit, null);
+                    Kill(instigator, conduit, null);
 
                 return health.value;
             }
@@ -116,12 +117,12 @@ namespace MPCore
                 return 0;
         }
 
-        public void Kill(GameObject owner, CharacterInfo instigator, GameObject method, DamageType type)
+        public void Kill(CharacterInfo instigator, GameObject conduit, DamageType damageType)
         {
-            if (TryGetComponent(out CharacterBody body))
+           // if (TryGetComponent(out CharacterBody body))
             {
                 // Spawn Dead Body
-                if (body.deadBody)
+                if (TryGetComponent(out CharacterBody body) &&body.deadBody)
                 {
                     GameObject db = Instantiate(body.deadBody, body.cameraAnchor.position, body.cameraAnchor.rotation, null);
 
@@ -143,15 +144,13 @@ namespace MPCore
                         i.TryDrop(gameObject, transform.position, transform.rotation, default, out _);
 
                 // Finished off by
-                if (lastAttacker.instigator && Time.time - lastAttacker.time < 3f)
-                    owner = lastAttacker.instigator;
+                if (lastAttackedBy.instigator && Time.time - lastAttackedBy.taime < 3f)
+                    instigator = lastAttackedBy.instigator;
 
                 //Create Death Ticket
                 DeathEventParameters ticket;
-                ticket.target = gameObject;
-                ticket.owner = owner;
-                ticket.method = method;
-                ticket.damageType = type;
+                ticket.conduit = conduit;
+                ticket.damageType = damageType;
                 ticket.instigator = instigator;
                 ticket.victim = characterInfo;
 

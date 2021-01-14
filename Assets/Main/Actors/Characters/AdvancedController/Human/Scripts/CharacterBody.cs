@@ -58,6 +58,7 @@ namespace MPCore
         public GameObject thirdPersonBody;
         public Transform cameraAnchor;
         public Transform cameraSlot;
+        public Transform cameraHand;
         public Transform rightHand;
         public Transform leftHand;
         public GameObject deadBody;
@@ -485,19 +486,19 @@ namespace MPCore
                 }
             }
 
-            Vector3 offset = transform.position - oldPos;
-            float squeeze = offset.magnitude;
-            GameObject method = cBuffer[0] ? cBuffer[0].gameObject : null;
+            Vector3 dir = transform.position - oldPos;
+            float squeeze = dir.magnitude;
+            GameObject conduit = cBuffer[0] ? cBuffer[0].gameObject : null;
             CharacterInfo instigator;
 
-            if (method && method.TryGetComponent(out Character ch) && ch.characterInfo)
+            if (conduit && conduit.TryGetComponent(out Character ch) && ch.characterInfo)
                 instigator = ch.characterInfo;
             else
                 instigator = null;
 
 
             if (squeeze > cap.radius)
-                character.Damage((int)(squeeze * 200), gameObject, method,  instigator, impactDamageType, offset);
+                character.Damage((int)(squeeze * 200), conduit,  instigator, impactDamageType, dir);
         }
 
         private void Move()
@@ -549,7 +550,7 @@ namespace MPCore
                 instigator = null;
 
             if (damage > 5)
-                character.Damage(damage, gameObject, hit.gameObject, instigator, impactDamageType, hit.normal);
+                character.Damage(damage, hit.gameObject, instigator, impactDamageType, hit.normal);
 
             if (characterSound)
                 characterSound.PlayImpact(impactSpeed - 3f);

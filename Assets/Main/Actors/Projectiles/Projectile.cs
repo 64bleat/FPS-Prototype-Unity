@@ -195,7 +195,7 @@ namespace MPCore
 
         public virtual void CharacterHit(Character target, int damage, Vector3 direction)
         { 
-            target.Damage(damage, owner, gameObject, instigator, shared.damageType, direction);
+            target.Damage(damage, gameObject, instigator, shared.damageType, direction);
             GameObjectPool.DestroyMember(gameObject);
         }
 

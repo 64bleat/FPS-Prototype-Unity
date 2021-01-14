@@ -1,18 +1,11 @@
-﻿using System;
+﻿using MPConsole;
+using MPWorld;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using Unity.Jobs;
 using UnityEngine;
-using MPConsole;
 using UnityEngine.Profiling;
-using MPWorld;
 
-//#pragma warning disable IDE0052 // Remove unread private members
-//#pragma warning disable IDE0044 // Add readonly modifier
-//#pragma warning disable IDE0051 // Remove unused private members
-//#pragma warning disable UNT0001 // Empty Unity message
-//#pragma warning disable IDE0059 // Unnecessary assignment of a value
-//#pragma warning disable CS0414 // Unnecessary assignment of a value
 namespace MPCore
 {
     [ContainsConsoleCommands]
@@ -21,66 +14,83 @@ namespace MPCore
         public float viewAngle = 45;
         public LineRenderer debugLine;
 
+        //Combat
+        public bool hostile = true;
 
-        //private LineRenderer line;
+        // Character References
         private CharacterBody body;
         private InputManager input;
+        private CharacterInput characterInput;
         private Character character;
-
-        private static readonly string[] layers = { "Default", "Physical", "Player" };
-        private static int layerMask;
+        private WeaponSwitcher weapons;
+        private int id;
 
         // Path
         private JobHandle pathJob = default;
         private readonly List<Vector3> path = new List<Vector3>();
         private float pathPosition = 0;
+
         // Targeting
         private float nextTargetTime = 0;
         private float targetSatisfactionDistance = 1f;
-        //private Component lookTarget;
+        private OmniInfo omni;
         private SightInfo sight;
         private TouchInfo touch;
         private Vector3 moveDest;
-        // Looking
-        //private Vector3 lookDir;
+        private dynamic moveTarget;
+
+        // Ability
         private const float angularVelocity = 420;
         private const float slowAngle = 45f;
-        //Combat
-        public bool hostile = true;
+        private float projectileSpeed = 100f;
 
-        private LineRenderer line;
+        // Debug
+        private LineRenderer pathLine;
 
+        private static readonly string[] layers = { "Default", "Physical", "Player" };
+        private static int layerMask;
         private static readonly HashSet<Type> attackTargets = new HashSet<Type>() { typeof(Character) };
         private static readonly Dictionary<Type, float> satisfactionDistances = new Dictionary<Type, float>()
         {
-            {typeof(Character), 3f },
+            {typeof(Character), 0.5f },
             {typeof(InventoryObject), 0.5f }
         };
 
+        public struct OmniInfo
+        {
+            public dynamic target;
+            public float priority;
+            public Vector3 position;
+        }
+
         public struct SightInfo
         {
+            public float priority;
+            public float lastSeen;
             public dynamic target;
             public Vector3 focalPoint;
             public Vector3 lookDirection;
+            public Vector3 lastSeenPosition;
         }
 
         public struct TouchInfo
         {
-            public GameObject target;
+            public CharacterInfo instigator;
             public float time;
-            public Vector3 normal;
+            public Vector3 direction;
             public Vector3 point;
         }
 
         private void Awake()
         {
-            body = GetComponent<CharacterBody>();
-            input = GetComponent<InputManager>();
-            character = GetComponent<Character>();
+            TryGetComponent(out body);
+            TryGetComponent(out input);
+            TryGetComponent(out characterInput);
+            TryGetComponent(out character);
+            TryGetComponent(out weapons);
 
             layerMask = LayerMask.GetMask(layers);
-
-            //lookDir = body.cameraSlot.forward;
+            id = gameObject.GetInstanceID() % 4096;
 
             PauseManager.Add(OnPauseUnPause);
             MPConsole.Console.RegisterInstance(this);
@@ -101,8 +111,8 @@ namespace MPCore
 
         private void OnDestroy()
         {
-            if (line)
-                Destroy(line.gameObject);
+            if (pathLine)
+                Destroy(pathLine.gameObject);
 
             PauseManager.Remove(OnPauseUnPause);
             MPConsole.Console.RemoveInstance(this);
@@ -120,7 +130,13 @@ namespace MPCore
             if (pathJob.IsCompleted
                 && (path.Count == 0
                 || nextTargetTime < Time.time
-                || Vector3.Distance(transform.position, path[path.Count - 1]) < targetSatisfactionDistance))
+                || 0.75f >= Vector3.Distance(transform.position, path[path.Count - 1])
+                ||  (!(moveTarget is InventoryObject) 
+                    && sight.target is Character
+                    && weapons.heldWeapon 
+                    && weapons.heldWeapon.preferredCombatDistance <= Vector3.Distance(sight.lastSeenPosition, path[path.Count - 1])
+                    )
+                ))
                 pathJob = RequestNewPath();
             Profiler.EndSample();
 
@@ -137,16 +153,16 @@ namespace MPCore
 
             if (Debugger.enabled)
             {
-                if (line)
+                if (pathLine)
                 {
-                    line.positionCount = path.Count;
+                    pathLine.positionCount = path.Count;
 
                     for (int i = 0; i < path.Count; i++)
-                        line.SetPosition(i, path[i]);
+                        pathLine.SetPosition(i, path[i]);
 
                 }
                 else if (debugLine)
-                    line = Instantiate(debugLine).GetComponent<LineRenderer>();
+                    pathLine = Instantiate(debugLine).GetComponent<LineRenderer>();
             }
         }
 
@@ -161,7 +177,6 @@ namespace MPCore
             Vector3 moveDestination = GetMoveDestination(moveTarget);
 
             nextTargetTime = Time.time + 10f;
-            path.Clear();
             pathPosition = 0;
 
             if (!moveTarget || !satisfactionDistances.TryGetValue(moveTarget.GetType(), out targetSatisfactionDistance))
@@ -170,10 +185,21 @@ namespace MPCore
             return Navigator.RequestPath(transform.position, moveDestination, path, body.cap.height / 2f);
         }
 
-        private Vector3 GetMoveDestination(Component moveTarget)
+        private Vector3 GetMoveDestination(Component _)
         {
-            if (moveTarget)
-                return moveTarget.transform.position;
+            if (moveTarget is Character character && character
+            && 0.5f >= Time.time - sight.lastSeen
+            && weapons.heldWeapon)
+            {
+                Vector3 rand = UnityEngine.Random.insideUnitSphere * weapons.heldWeapon.preferredCombatDistance;
+
+                if (Physics.Raycast(character.transform.position, rand, out RaycastHit hit, rand.magnitude, layerMask, QueryTriggerInteraction.Ignore))
+                    return hit.point;
+                else
+                    return character.transform.position + rand;
+            }
+            else if (moveTarget is Component component && component)
+                return component.transform.position;
             else
                 return Navigator.RandomPoint(body.cap.height / 2);
         }
@@ -182,25 +208,51 @@ namespace MPCore
 
         private Component FindTarget(HashSet<Type> types = null)
         {
-            float bestPriority = float.MinValue;
-            Component bestTarget = null;
+            (Component bestTarget, float bestPriority) sightTarget = default;
+            (Component bestTarget, float bestPriority) omniTarget = default;
 
             foreach (Component candidate in AiInterestPoints.interestPoints)
-                if (candidate && !candidate.Equals(character) && (types == null || types.Contains(candidate.GetType())))
-                {
-                    float priority = float.MinValue;
-
+                if (candidate && candidate != this.character && (types == null || types.Contains(candidate.GetType())))
                     if (candidate is Character && IsTargetVisible(candidate, viewAngle, out _))
-                        priority = 100f - Vector3.Distance(transform.position, candidate.transform.position);
+                    {
+                        float priority = 100f - Vector3.Distance(transform.position, candidate.transform.position);
+
+                        if (TryMax(priority, ref sightTarget.bestPriority))
+                            sightTarget.bestTarget = candidate;
+                    }
                     else if (candidate is InventoryObject io)
-                        if (io.inventory is HealthPickup hp && character.Health < 100 && character.Health != 0)
-                            priority = (100f - character.Health) * 5f - Vector3.Distance(transform.position, candidate.transform.position);
+                        if (io.inventory is HealthPickup && character.Health < 100 && character.Health != 0)
+                        {
+                            float priority = (100f - character.Health) * 5f - Vector3.Distance(transform.position, candidate.transform.position);
 
-                    if (TryMax(priority, ref bestPriority))
-                        bestTarget = candidate;
-                }
+                            if (TryMax(priority, ref omniTarget.bestPriority))
+                                omniTarget.bestTarget = io;
+                        }
 
-            return bestTarget;
+            if (sightTarget.bestTarget)
+            {
+                sight.target = sightTarget.bestTarget;
+                sight.lastSeen = Time.time;
+                sight.lastSeenPosition = sightTarget.bestTarget.transform.position;
+            }
+
+            //if(moveTarget.bestTarget)
+            {
+                omni.target = omniTarget.bestTarget;
+                omni.priority = omniTarget.bestPriority;
+
+                if(omniTarget.bestTarget)
+                    omni.position = omniTarget.bestTarget.transform.position;
+            }
+
+            if (omni.priority > sight.priority)
+                moveTarget = omni.target;
+            else if (Time.time - sight.lastSeen < 0.5f)
+                moveTarget = sight.target;
+            else
+                moveTarget = null;
+
+            return sightTarget.bestTarget;
         }
 
         private bool IsTargetVisible(Component target, float viewAngle, out RaycastHit hit)
@@ -219,16 +271,19 @@ namespace MPCore
 
         private Vector2 OnMouseMove(float dt)
         {
+            float tick = Time.frameCount + id;
             // Set look direction
-            if (sight.target is Character character)
+            if (0.5f >= Time.time - sight.lastSeen && sight.target is Character character)
             {
                 if (character.TryGetComponent(out CharacterBody body))
                     sight.focalPoint = body.cameraAnchor.position;
                 else
                     sight.focalPoint = character.transform.position;
             }
-            else if (touch.target && Time.time - touch.time < 3)
-                sight.focalPoint = transform.position - touch.normal.normalized * 20f;
+            else if (touch.instigator && Time.time - touch.time < 1.5f)
+                sight.focalPoint = transform.position - touch.direction.normalized * 20f;
+            else if (1.5f >= Time.time - sight.lastSeen)
+                sight.focalPoint = sight.lastSeenPosition;
             else if (path.Count > 0)
                 sight.focalPoint = Navigator.GetPositionOnPath(path, pathPosition, 5f) + body.transform.up * body.cap.height / 2f;
             else
@@ -245,19 +300,47 @@ namespace MPCore
                         velocity = rb.velocity;
 
             float distance = Vector3.Distance(this.body.cameraSlot.position, sight.focalPoint);
-            float impactTime = distance / 100f;
-            Vector3 predictOffset = velocity * impactTime;
+            float projectileInterceptTime = distance / projectileSpeed;
+            Vector3 predictOffset = velocity * projectileInterceptTime;
             sight.focalPoint += predictOffset;
 
             // Convert point to direction
             sight.lookDirection = sight.focalPoint - body.cameraSlot.position;
 
-            // Combat
-            if (hostile && sight.target is Character
-                && Vector3.Angle(sight.lookDirection, this.body.cameraSlot.forward) < 5f)
+            // Weapon Switch
+            if (tick % 120 == 0)
             {
-                input.Press("Fire", 0.5f);
+                (Weapon weapon, float priority) switchWeapon = (null, float.MaxValue);
+
+                foreach (Inventory i in this.character.inventory)
+                    if (i is Weapon w)
+                    {
+                        float dist = Mathf.Abs(w.preferredCombatDistance - distance);
+
+                        if (dist < switchWeapon.priority)
+                            switchWeapon = (w, dist);
+                    }
+
+                if (switchWeapon.weapon
+                    && switchWeapon.weapon.projectilePrimary
+                    && switchWeapon.weapon.projectilePrimary.TryGetComponent(out Projectile p))
+                    projectileSpeed = p.shared.exitSpeed;
+                else
+                    projectileSpeed = float.MaxValue * 0.5f;
+
+                weapons.DrawWeapon(switchWeapon.weapon);
             }
+
+            // Combat
+            if (tick % 30 == 0
+                && hostile
+                && weapons.heldWeapon
+                && sight.target is Character
+                && weapons.heldWeapon.validFireAngle >= Vector3.Angle(sight.lookDirection, this.body.cameraSlot.forward)
+                && weapons.heldWeapon.engagementRange >= Vector3.Distance(sight.focalPoint, this.body.cameraSlot.position))
+                input.Press("Fire", 0.5f);
+
+            
 
             // MouseLook
             Vector3 lookDirX = Vector3.ProjectOnPlane(sight.lookDirection, body.transform.up);
@@ -296,10 +379,8 @@ namespace MPCore
             else if (rAngle > 112.5)
                 input.Press("Left");
 
-            //if (distance < 5f)
-            //    input.Press("Walk");
-            //else if (distance > 15f)
-            input.Press("Sprint");
+            if(!character.isPlayer || !input.loadKeyBindList.alwaysRun)
+                input.Press("Sprint");
 
             if (body.currentState == CharacterBody.MoveState.Grounded)
             {
@@ -315,10 +396,10 @@ namespace MPCore
             }
         }
 
-        private void OnHit(int damage, GameObject instigator, GameObject conduit, DamageType damageType, Vector3 direction)
+        private void OnHit(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction)
         {
-            touch.target = instigator;
-            touch.normal = direction;
+            touch.instigator = instigator;
+            touch.direction = direction;
             touch.time = Time.time;
         }
 

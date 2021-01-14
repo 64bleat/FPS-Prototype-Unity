@@ -7,14 +7,14 @@ namespace MPCore
 {
     public class WeaponEquip : MonoBehaviour
     {
-        public Weapon weapon;
+       
         public Transform firePoint;
         public AudioClip fireSound;
         public LineRenderer ropePrefab;
-        //public HudEvents hudBroadcaster;
 
         [HideInInspector] public GameObject owner;
-        
+
+        private Weapon weapon;
         private GameObjectPool primProjPool;
         private CharacterBody body;
         private Character character;
@@ -39,6 +39,9 @@ namespace MPCore
 
         private void Awake()
         {
+            if (TryGetComponent(out InventoryItem inv))
+                weapon = inv.item as Weapon;
+
             primProjPool = GameObjectPool.GetPool(weapon.projectilePrimary, 100);
 
             audioSource = GetComponent<AudioSource>();
@@ -50,28 +53,27 @@ namespace MPCore
 
             layerMask = LayerMask.GetMask(layermask);
 
-            input.Bind("AltFire", Grapple, this, KeyPressType.Down);
-            input.Bind("AltFire", GrappleRelease, this, KeyPressType.Up);
-            input.Bind("Fire", SwitchToFire, this, KeyPressType.Held);
-
             state.Add(new State("Idle"));
             state.Add(new State("Firing", start: FiringBegin, update: FiringUpdate));
-            state.Initialize("Idle");
 
             PauseManager.Add(OnPauseUnPause);
         }
 
-        //private void OnEnable()
-        //{
-        //    if (character && character.isPlayer && hudBroadcaster)
-        //        hudBroadcaster.OnSetCrosshair.Invoke(weapon.crosshair);
-        //}
+        private void OnEnable()
+        {
+            input.Bind("AltFire", Grapple, this, KeyPressType.Down);
+            input.Bind("AltFire", GrappleRelease, this, KeyPressType.Up);
+            input.Bind("Fire", SwitchToFire, this, KeyPressType.Held);
 
-        //private void OnDisable()
-        //{
-        //    if (character && character.isPlayer && hudBroadcaster)
-        //        hudBroadcaster.OnSetCrosshair.Invoke(null); 
-        //}
+            state.Initialize("Idle");
+        }
+
+        private void OnDisable()
+        {
+            input.Unbind("AltFire", Grapple);
+            input.Unbind("AltFire", GrappleRelease);
+            input.Unbind("Fire", SwitchToFire);
+        }
 
         private void OnDestroy()
         {

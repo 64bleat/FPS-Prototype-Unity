@@ -9,12 +9,11 @@ namespace MPCore
     public class WeaponSwitcher : MonoBehaviour
     {
         public bool drawOnStart = true;
-        public Inventory heldWeapon;
+        public Weapon heldWeapon;
         public RectTransform emptyCrosshair;
 
-
         private Character character;
-        private Transform weaponHand;
+        private CharacterBody body;
         private GameObject currentWeaponGO;
         private int currentWeaponSlot;
         private CharacterEventManager events;
@@ -22,8 +21,8 @@ namespace MPCore
         private void Awake()
         {
             character = GetComponentInParent<Character>();
-            weaponHand = GetComponentInParent<CharacterBody>().rightHand;
             character.TryGetComponent(out events);
+            character.TryGetComponent(out body);
 
             if (TryGetComponent(out InputManager input))
             {
@@ -42,8 +41,16 @@ namespace MPCore
 
         private void Start()
         {
-            if (drawOnStart)
+            if (heldWeapon)
+                DrawWeapon(heldWeapon);
+            else if (drawOnStart)
                 SelectBestWeapon();
+        }
+
+        private void OnDestroy()
+        {
+            if(character.isPlayer)
+                events.hud.OnSetCrosshair.Invoke(null);
         }
 
         public void SelectBestWeapon(Inventory ignoreDropped = null)
@@ -53,7 +60,8 @@ namespace MPCore
             for (int i = 0, ie = character.inventory.Count; !nextWeapon && i < ie; i++)
                 if (character.inventory[i] is Weapon w)
                     if (!ignoreDropped || !character.inventory[i].Equals(ignoreDropped))
-                        nextWeapon = w;
+                        if (!nextWeapon || nextWeapon.weaponSlot > w.weaponSlot)
+                            nextWeapon = w;
 
             DrawWeapon(nextWeapon);
         }
@@ -65,7 +73,7 @@ namespace MPCore
                 Weapon nextWeapon = null;
 
                 for (int i = 0; !nextWeapon && i < character.inventory.Count; i++)
-                    if (character.inventory[i] is Weapon w && w.WeaponSlot == slot)
+                    if (character.inventory[i] is Weapon w && w.weaponSlot == slot)
                         nextWeapon = w;
 
                 if(nextWeapon)
@@ -89,18 +97,40 @@ namespace MPCore
 
             if (nextWeapon)
             {
-                currentWeaponGO = Instantiate(nextWeapon.WeaponEquip, weaponHand, false);
-                currentWeaponGO.GetComponent<WeaponEquip>().weapon = nextWeapon;
-                currentWeaponSlot = nextWeapon.WeaponSlot;
+                Transform weaponHand;
+                switch (nextWeapon.weaponHolder)
+                {
+                    case Weapon.WeaponHolder.RightHand:
+                        weaponHand = body.rightHand;
+                        break;
+                    case Weapon.WeaponHolder.LeftHand:
+                        weaponHand = body.leftHand;
+                        break;
+                    case Weapon.WeaponHolder.Center:
+                        weaponHand = body.cameraHand;
+                        break;
+                    case Weapon.WeaponHolder.Camera:
+                        weaponHand = body.cameraHand;
+                        break;
+                    default:
+                        weaponHand = body.rightHand;
+                        break;
+                }
 
-                events.hud.OnSetCrosshair.Invoke(nextWeapon.crosshair);
+                currentWeaponGO = Instantiate(nextWeapon.firstPersonPrefab, weaponHand, false);
+                currentWeaponGO.GetComponent<InventoryItem>().item = nextWeapon;
+                currentWeaponSlot = nextWeapon.weaponSlot;
+
+                if (character.isPlayer)
+                    events.hud.OnSetCrosshair.Invoke(nextWeapon.crosshair);
             }
             else
             {
                 currentWeaponGO = null;
                 currentWeaponSlot = -1;
 
-                events.hud.OnSetCrosshair.Invoke(emptyCrosshair);
+                if (character.isPlayer)
+                    events.hud.OnSetCrosshair.Invoke(emptyCrosshair);
             }
 
             heldWeapon = nextWeapon;
