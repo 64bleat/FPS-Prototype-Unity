@@ -2,103 +2,133 @@
 
 namespace MPCore
 {
-    /// <summary>
-    /// Handles switching of weapons. Searches through character inventory for weapons.
-    /// </summary>
+    /// <summary> Handles drawing and holstering of weapons. </summary>
     [System.Serializable]
     public class WeaponSwitcher : MonoBehaviour
     {
         public bool drawOnStart = true;
-        public Weapon heldWeapon;
+        public Weapon currentWeapon;
+        public Weapon lastWeapon;
         public RectTransform emptyCrosshair;
 
         private Character character;
         private CharacterBody body;
-        private GameObject currentWeaponGO;
+        private CharacterEventManager gui;
+        private GameObject currentWeaponEquip;
         private int currentWeaponSlot;
-        private CharacterEventManager events;
 
         private void Awake()
         {
             character = GetComponentInParent<Character>();
-            character.TryGetComponent(out events);
+            character.TryGetComponent(out gui);
             character.TryGetComponent(out body);
+
+            character.OnPlayerSet += OnPlayerSet;
 
             if (TryGetComponent(out InputManager input))
             {
-                input.Bind("WeaponSlot1", () => GetWeapon(1), this);
-                input.Bind("WeaponSlot2", () => GetWeapon(2), this);
-                input.Bind("WeaponSlot3", () => GetWeapon(3), this);
-                input.Bind("WeaponSlot4", () => GetWeapon(4), this);
-                input.Bind("WeaponSlot5", () => GetWeapon(5), this);
-                input.Bind("WeaponSlot6", () => GetWeapon(6), this);
-                input.Bind("WeaponSlot7", () => GetWeapon(7), this);
-                input.Bind("WeaponSlot8", () => GetWeapon(8), this);
-                input.Bind("WeaponSlot9", () => GetWeapon(9), this);
-                input.Bind("WeaponSlot0", () => GetWeapon(0), this);
+                input.Bind("LastWeapon", DrawLastWeapon, this);
+                input.Bind("WeaponSlot1", () => DrawWeapon(1), this);
+                input.Bind("WeaponSlot2", () => DrawWeapon(2), this);
+                input.Bind("WeaponSlot3", () => DrawWeapon(3), this);
+                input.Bind("WeaponSlot4", () => DrawWeapon(4), this);
+                input.Bind("WeaponSlot5", () => DrawWeapon(5), this);
+                input.Bind("WeaponSlot6", () => DrawWeapon(6), this);
+                input.Bind("WeaponSlot7", () => DrawWeapon(7), this);
+                input.Bind("WeaponSlot8", () => DrawWeapon(8), this);
+                input.Bind("WeaponSlot9", () => DrawWeapon(9), this);
+                input.Bind("WeaponSlot0", () => DrawWeapon(0), this);
             }
         }
 
         private void Start()
         {
-            if (heldWeapon)
-                DrawWeapon(heldWeapon);
+            if (currentWeapon)
+                DrawWeapon(currentWeapon);
             else if (drawOnStart)
-                SelectBestWeapon();
+                DrawBestWeapon();
         }
 
         private void OnDestroy()
         {
             if(character.isPlayer)
-                events.hud.OnSetCrosshair.Invoke(null);
+                gui.hud.OnSetCrosshair.Invoke(null);
+
+            character.OnPlayerSet -= OnPlayerSet;
         }
 
-        public void SelectBestWeapon(Inventory ignoreDropped = null)
+        private void OnPlayerSet(bool isPlayer)
         {
-            Weapon nextWeapon = null;
-
-            for (int i = 0, ie = character.inventory.Count; !nextWeapon && i < ie; i++)
-                if (character.inventory[i] is Weapon w)
-                    if (!ignoreDropped || !character.inventory[i].Equals(ignoreDropped))
-                        if (!nextWeapon || nextWeapon.weaponSlot > w.weaponSlot)
-                            nextWeapon = w;
-
-            DrawWeapon(nextWeapon);
+            if(isPlayer && currentWeapon)
+                gui.hud.OnSetCrosshair.Invoke(currentWeapon.crosshair);
         }
 
-        public void GetWeapon(int slot)
+        /// <summary> Draw an automatically picked weapon </summary>
+        public void DrawBestWeapon()
+        {
+            (Weapon weapon, float priority) next = (null, float.NegativeInfinity);
+
+            foreach (Inventory item in character.inventory)
+                if (item is Weapon weapon)
+                    if (weapon.weaponSlot > next.priority)
+                        next = (weapon, weapon.weaponSlot);
+
+            DrawWeapon(next.weapon);
+        }
+
+        /// <summary> Draw an automatically picked weapon that isn't currentWeapon </summary>
+        public void DrawNextBestWeapon()
+        {
+            (Weapon weapon, float priority) next = (null, -1);
+
+            foreach (Inventory item in character.inventory)
+                if (item is Weapon weapon && weapon != currentWeapon)
+                    if (weapon.weaponSlot > next.priority)
+                        next = (weapon, weapon.weaponSlot);
+
+            DrawWeapon(next.weapon);
+        }
+
+        /// <summary> Draw the previously drawn weapon if it exists </summary>
+        public void DrawLastWeapon()
+        {
+            if(lastWeapon && character.inventory.Contains(lastWeapon))
+                DrawWeapon(lastWeapon);
+        }
+
+        /// <summary> Draws a weapon in the provided slot if one exists </summary>
+        public void DrawWeapon(int slot)
         { 
             if (currentWeaponSlot != slot)
             {
                 Weapon nextWeapon = null;
 
-                for (int i = 0; !nextWeapon && i < character.inventory.Count; i++)
-                    if (character.inventory[i] is Weapon w && w.weaponSlot == slot)
-                        nextWeapon = w;
+                foreach (Inventory item in character.inventory)
+                    if (item is Weapon weapon && weapon.weaponSlot == slot)
+                        nextWeapon = weapon;
 
                 if(nextWeapon)
                     DrawWeapon(nextWeapon);
             }
         }
-        /// <summary>
-        /// Holsters the current weapon and draws a new weapon.
-        /// </summary>
-        /// <param name="nextWeapon">
-        /// The weapon to be drawn.
-        /// <para><c>Null</c> will simply holster the current weapon.</para>
-        /// <para>The weapon does not necessarily have to be in the character's inventory.</para> </param>
-        public void DrawWeapon(Weapon nextWeapon)
-        {
-            if (heldWeapon)
-                if (heldWeapon.Equals(nextWeapon))
-                    return;
-                else 
-                    Destroy(currentWeaponGO);
 
-            if (nextWeapon)
+        /// <summary> Draw any provided weapon </summary>
+        /// <remarks> If no weapon exists, currentWeapon will still be holstered. </remarks>
+        public void DrawWeapon(Weapon weapon)
+        {
+            if (currentWeapon)
+                if (weapon == currentWeapon)
+                    return;
+                else
+                {
+                    lastWeapon = currentWeapon;
+                    Destroy(currentWeaponEquip);
+                }
+
+            if (weapon)
             {
                 Transform weaponHand;
-                switch (nextWeapon.weaponHolder)
+                switch (weapon.weaponHolder)
                 {
                     case Weapon.WeaponHolder.RightHand:
                         weaponHand = body.rightHand;
@@ -117,23 +147,23 @@ namespace MPCore
                         break;
                 }
 
-                currentWeaponGO = Instantiate(nextWeapon.firstPersonPrefab, weaponHand, false);
-                currentWeaponGO.GetComponent<InventoryItem>().item = nextWeapon;
-                currentWeaponSlot = nextWeapon.weaponSlot;
+                currentWeaponEquip = Instantiate(weapon.firstPersonPrefab, weaponHand, false);
+                currentWeaponEquip.GetComponent<InventoryItem>().item = weapon;
+                currentWeaponSlot = weapon.weaponSlot;
 
                 if (character.isPlayer)
-                    events.hud.OnSetCrosshair.Invoke(nextWeapon.crosshair);
+                    gui.hud.OnSetCrosshair.Invoke(weapon.crosshair);
             }
             else
             {
-                currentWeaponGO = null;
+                currentWeaponEquip = null;
                 currentWeaponSlot = -1;
 
                 if (character.isPlayer)
-                    events.hud.OnSetCrosshair.Invoke(emptyCrosshair);
+                    gui.hud.OnSetCrosshair.Invoke(emptyCrosshair);
             }
 
-            heldWeapon = nextWeapon;
+            currentWeapon = weapon;
         }
     }
 }

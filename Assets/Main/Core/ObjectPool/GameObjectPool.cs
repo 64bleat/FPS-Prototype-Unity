@@ -6,52 +6,55 @@ namespace MPCore
 {
     public class GameObjectPool : MonoBehaviour
     {
-        public static readonly Dictionary<GameObject, GameObjectPool> pools = new Dictionary<GameObject, GameObjectPool>();
+        public static readonly Dictionary<GameObject, GameObjectPool> openPools = new Dictionary<GameObject, GameObjectPool>();
 
         public string resourcePath;
         public GameObject resource;
-        public readonly Stack<GameObject> availableInstances = new Stack<GameObject>();
+        public readonly Queue<GameObject> availableInstances = new Queue<GameObject>();
 
         private void OnDestroy()
         {
-            pools.Remove(resource);
+            openPools.Remove(resource);
         }
 
         private void DisableInstance(GameObject instance)
         {
             instance.SetActive(false);
-            availableInstances.Push(instance);
+            instance.transform.parent = transform;
+            availableInstances.Enqueue(instance);
         }
 
-        private GameObject EnableInstance()
+        private GameObject PullInstance()
         {
             if (availableInstances.Count == 0)
                 AddInstance();
 
-            return availableInstances.Pop();
+            return availableInstances.Dequeue();
         }
 
-        private void AddInstance()
+        public void AddInstance()
         {
             GameObject instance = Instantiate(resource, transform);
 
-            instance.name = resource.name;
             DisableInstance(instance);
+
+            if (!instance.TryGetComponent(out PoolReturn pr))
+                pr = instance.AddComponent<PoolReturn>();
+
+            instance.name = resource.name;
+            pr.returnPool = this;
         }
 
         public GameObject Spawn(Vector3 position = default, Quaternion rotation = default, Transform parent = null)
         {
             GameObject spawn;
 
-            if (spawn = EnableInstance())
-            {
-                if (parent)
-                {
-                    position = parent.TransformPoint(position);
-                    rotation *= parent.rotation;
-                }
+            parent ??= transform;
 
+            if (spawn = PullInstance())
+            { 
                 spawn.transform.SetPositionAndRotation(position, rotation);
+                spawn.transform.SetParent(parent, true);
                 spawn.SetActive(true);
             }
 
@@ -67,7 +70,7 @@ namespace MPCore
         {
             GameObjectPool pool = null;
 
-            if (prefab && !pools.TryGetValue(prefab, out pool))
+            if (prefab && !openPools.TryGetValue(prefab, out pool))
             {// Make Pool
                 pool = new GameObject().AddComponent<GameObjectPool>();
                 pool.gameObject.AddComponent<XMLSerializeable>();
@@ -77,7 +80,7 @@ namespace MPCore
                 if(pool.resource && pool.resource.TryGetComponent(out XMLSerializeable po))
                     pool.resourcePath = po.resourceID;
 
-                pools.Add(prefab, pool);
+                openPools.Add(prefab, pool);
             }
 
             if (pool)
@@ -87,12 +90,10 @@ namespace MPCore
             return pool;
         }
 
-        public static void DestroyMember(GameObject gameObject)
+        public static void Return(GameObject gameObject)
         {
-            Transform parent = gameObject.transform.parent;
-
-            if (parent && parent.TryGetComponent(out GameObjectPool pool))
-                pool.DisableInstance(gameObject);
+            if (gameObject.TryGetComponent(out PoolReturn pr) && pr.returnPool)
+                pr.returnPool.DisableInstance(gameObject);
             else
                 Destroy(gameObject);
         }

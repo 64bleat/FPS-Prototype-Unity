@@ -29,6 +29,7 @@ namespace MPCore
         private JobHandle pathJob = default;
         private readonly List<Vector3> path = new List<Vector3>();
         private float pathPosition = 0;
+        private Vector3 pathCursor;
 
         // Targeting
         private float nextTargetTime = 0;
@@ -36,13 +37,20 @@ namespace MPCore
         private OmniInfo omni;
         private SightInfo sight;
         private TouchInfo touch;
-        private Vector3 moveDest;
+        private Vector3 pathDestination;
         private dynamic moveTarget;
 
-        // Ability
+        // Skills
+        private float velocityExtrapolation = 1f;
+        private float accuracy = 0.8f;
+
+        // Skill-Related Values
+        private float maxInaccuracyDistance = 5f;
         private const float angularVelocity = 420;
         private const float slowAngle = 45f;
         private float projectileSpeed = 100f;
+        private Vector3 projectileOffset;
+        private Vector3 accuracyOffset;
 
         // Debug
         private LineRenderer pathLine;
@@ -121,6 +129,9 @@ namespace MPCore
 
         void Update()
         {
+            // Update Path Cursor
+            pathCursor = transform.position - transform.up * body.cap.height * 0.5f;
+
             // Invalid State
             if (Time.timeScale < float.Epsilon)
                 return;
@@ -130,11 +141,11 @@ namespace MPCore
             if (pathJob.IsCompleted
                 && (path.Count == 0
                 || nextTargetTime < Time.time
-                || 0.75f >= Vector3.Distance(transform.position, path[path.Count - 1])
+                || 0.75f >= Vector3.Distance(pathCursor, path[path.Count - 1])
                 ||  (!(moveTarget is InventoryObject) 
                     && sight.target is Character
-                    && weapons.heldWeapon 
-                    && weapons.heldWeapon.preferredCombatDistance <= Vector3.Distance(sight.lastSeenPosition, path[path.Count - 1])
+                    && weapons.currentWeapon 
+                    && weapons.currentWeapon.preferredCombatDistance <= Vector3.Distance(sight.lastSeenPosition, path[path.Count - 1])
                     )
                 ))
                 pathJob = RequestNewPath();
@@ -176,22 +187,23 @@ namespace MPCore
             Component moveTarget = FindTarget();
             Vector3 moveDestination = GetMoveDestination(moveTarget);
 
-            nextTargetTime = Time.time + 10f;
-            pathPosition = 0;
+            // These should be done on callback
+            nextTargetTime = Time.time + 30f;
+            pathPosition = 0; 
 
             if (!moveTarget || !satisfactionDistances.TryGetValue(moveTarget.GetType(), out targetSatisfactionDistance))
                 targetSatisfactionDistance = 0.5f;
 
-            return Navigator.RequestPath(transform.position, moveDestination, path, body.cap.height / 2f);
+            return Navigator.RequestPath(pathCursor, moveDestination, path);
         }
 
         private Vector3 GetMoveDestination(Component _)
         {
             if (moveTarget is Character character && character
             && 0.5f >= Time.time - sight.lastSeen
-            && weapons.heldWeapon)
+            && weapons.currentWeapon)
             {
-                Vector3 rand = UnityEngine.Random.insideUnitSphere * weapons.heldWeapon.preferredCombatDistance;
+                Vector3 rand = UnityEngine.Random.insideUnitSphere * weapons.currentWeapon.preferredCombatDistance;
 
                 if (Physics.Raycast(character.transform.position, rand, out RaycastHit hit, rand.magnitude, layerMask, QueryTriggerInteraction.Ignore))
                     return hit.point;
@@ -204,29 +216,40 @@ namespace MPCore
                 return Navigator.RandomPoint(body.cap.height / 2);
         }
 
-        private static bool TryMax(float p, ref float priority) => priority != p && (priority = Mathf.Max(p, priority)) == p;
-
+        private static readonly HashSet<string> storedInventoryTEMP = new HashSet<string>();
         private Component FindTarget(HashSet<Type> types = null)
         {
             (Component bestTarget, float bestPriority) sightTarget = default;
             (Component bestTarget, float bestPriority) omniTarget = default;
 
+            storedInventoryTEMP.Clear();
+            foreach (Inventory i in character.inventory)
+                storedInventoryTEMP.Add(i.resourcePath);
+
             foreach (Component candidate in AiInterestPoints.interestPoints)
                 if (candidate && candidate != this.character && (types == null || types.Contains(candidate.GetType())))
                     if (candidate is Character && IsTargetVisible(candidate, viewAngle, out _))
                     {
-                        float priority = 100f - Vector3.Distance(transform.position, candidate.transform.position);
+                        float priority = 1f / Vector3.Distance(transform.position, candidate.transform.position);
 
-                        if (TryMax(priority, ref sightTarget.bestPriority))
-                            sightTarget.bestTarget = candidate;
+                        if (priority > sightTarget.bestPriority)
+                            sightTarget = (candidate, priority);
                     }
                     else if (candidate is InventoryObject io)
-                        if (io.inventory is HealthPickup && character.Health < 100 && character.Health != 0)
+                        if (io.inventory is HealthPickup hp && character.health != null && character.health.value < character.health.maxValue * hp.percentOfMax)
                         {
-                            float priority = (100f - character.Health) * 5f - Vector3.Distance(transform.position, candidate.transform.position);
+                            float healthPriority = 1f - character.health.value / character.health.maxValue * hp.percentOfMax;
+                            float priority = healthPriority * 0.5f / Vector3.Distance(transform.position, candidate.transform.position);
 
-                            if (TryMax(priority, ref omniTarget.bestPriority))
-                                omniTarget.bestTarget = io;
+                            if (priority > omniTarget.bestPriority)
+                                omniTarget = (candidate, priority);
+                        }
+                        else if(io.inventory is Weapon w && !storedInventoryTEMP.Contains(w.resourcePath))
+                        {
+                            float priority = 0.5f / Vector3.Distance(transform.position, candidate.transform.position);
+
+                            if (priority > omniTarget.bestPriority)
+                                omniTarget = (candidate, priority);
                         }
 
             if (sightTarget.bestTarget)
@@ -272,7 +295,8 @@ namespace MPCore
         private Vector2 OnMouseMove(float dt)
         {
             float tick = Time.frameCount + id;
-            // Set look direction
+
+            // Get look direction
             if (0.5f >= Time.time - sight.lastSeen && sight.target is Character character)
             {
                 if (character.TryGetComponent(out CharacterBody body))
@@ -285,62 +309,76 @@ namespace MPCore
             else if (1.5f >= Time.time - sight.lastSeen)
                 sight.focalPoint = sight.lastSeenPosition;
             else if (path.Count > 0)
-                sight.focalPoint = Navigator.GetPositionOnPath(path, pathPosition, 5f) + body.transform.up * body.cap.height / 2f;
+                sight.focalPoint = Navigator.GetPositionOnPath(path, pathPosition, 5f) + body.transform.up * body.cap.height;
             else
                 sight.focalPoint = transform.TransformPoint(transform.forward * 1000f);
 
-            // Velocity Prediction
-            Vector3 velocity = Vector3.zero;
+            // Shared values
+            float targetDistance = Vector3.Distance(this.body.cameraSlot.position, sight.focalPoint);
+            Vector3 targetVelocity = Vector3.zero;
 
             if (sight.target is Component component)
                 if (component.TryGetComponent(out IGravityUser gu))
-                    velocity = gu.Velocity;
+                    targetVelocity = gu.Velocity;
                 else if (component.TryGetComponent(out Collider collider))
                     if (collider.attachedRigidbody is Rigidbody rb)
-                        velocity = rb.velocity;
-
-            float distance = Vector3.Distance(this.body.cameraSlot.position, sight.focalPoint);
-            float projectileInterceptTime = distance / projectileSpeed;
-            Vector3 predictOffset = velocity * projectileInterceptTime;
-            sight.focalPoint += predictOffset;
-
-            // Convert point to direction
-            sight.lookDirection = sight.focalPoint - body.cameraSlot.position;
+                        targetVelocity = rb.velocity;
 
             // Weapon Switch
-            if (tick % 120 == 0)
+            if (tick % 120 == 0
+                && sight.target is Character)
             {
                 (Weapon weapon, float priority) switchWeapon = (null, float.MaxValue);
 
                 foreach (Inventory i in this.character.inventory)
                     if (i is Weapon w)
                     {
-                        float dist = Mathf.Abs(w.preferredCombatDistance - distance);
+                        float dist = Mathf.Abs(w.preferredCombatDistance - targetDistance);
 
                         if (dist < switchWeapon.priority)
                             switchWeapon = (w, dist);
                     }
 
-                if (switchWeapon.weapon
-                    && switchWeapon.weapon.projectilePrimary
-                    && switchWeapon.weapon.projectilePrimary.TryGetComponent(out Projectile p))
+                weapons.DrawWeapon(switchWeapon.weapon);
+            }
+
+            // Recalculate predicted projectile speed
+            if (tick % 30 == 0)
+                if (weapons.currentWeapon
+                    && weapons.currentWeapon.projectilePrimary
+                    && weapons.currentWeapon.projectilePrimary.TryGetComponent(out Projectile p))
                     projectileSpeed = p.shared.exitSpeed;
                 else
                     projectileSpeed = float.MaxValue * 0.5f;
 
-                weapons.DrawWeapon(switchWeapon.weapon);
+            // Extrapolate Velocity
+            if (tick % 1 == 0)
+            {
+                projectileOffset = targetVelocity * targetDistance / projectileSpeed;
+                projectileOffset += UnityEngine.Random.insideUnitSphere * (1f - velocityExtrapolation) * projectileOffset.magnitude;
             }
+
+            // Recalculate Accuracy
+            if(tick % 60 == 0)
+            {
+                float velocityScale = Mathf.Clamp01(Vector3.ProjectOnPlane(targetVelocity - body.Velocity * 0.5f, body.cameraSlot.forward).magnitude / body.defaultSprintSpeed);
+                accuracyOffset = UnityEngine.Random.insideUnitSphere * (1f - accuracy) * velocityScale;
+            }
+
+            sight.focalPoint += projectileOffset;
+            sight.focalPoint += accuracyOffset * Mathf.Min(maxInaccuracyDistance, targetDistance);
+
+            // Get Look Direction
+            sight.lookDirection = sight.focalPoint - body.cameraSlot.position;
 
             // Combat
             if (tick % 30 == 0
                 && hostile
-                && weapons.heldWeapon
+                && weapons.currentWeapon
                 && sight.target is Character
-                && weapons.heldWeapon.validFireAngle >= Vector3.Angle(sight.lookDirection, this.body.cameraSlot.forward)
-                && weapons.heldWeapon.engagementRange >= Vector3.Distance(sight.focalPoint, this.body.cameraSlot.position))
+                && weapons.currentWeapon.validFireAngle >= Vector3.Angle(sight.lookDirection, this.body.cameraSlot.forward)
+                && weapons.currentWeapon.engagementRange >= Vector3.Distance(sight.focalPoint, this.body.cameraSlot.position))
                 input.Press("Fire", 0.5f);
-
-            
 
             // MouseLook
             Vector3 lookDirX = Vector3.ProjectOnPlane(sight.lookDirection, body.transform.up);
@@ -358,16 +396,12 @@ namespace MPCore
 
         private void MoveAlongPath()
         {
-            pathPosition = Navigator.GetCoordinatesOnPath(path, transform.position, pathPosition, out float off);
-            moveDest = Navigator.GetPositionOnPath(path, pathPosition, Mathf.Max(1.5f, 2f - off));
-            if (GetComponentInChildren<SphereCollider>() is var col && col)
-                col.transform.position = moveDest;
-            if (GetComponentInChildren<BoxCollider>() is var box && box)
-                box.transform.position = Navigator.GetPositionOnPath(path, pathPosition);
-            Vector3 direction = Vector3.ProjectOnPlane(moveDest - transform.position, transform.up);
+            pathPosition = Navigator.GetCoordinatesOnPath(path, pathCursor, pathPosition, out float offPathDistance);
+            pathDestination = Navigator.GetPositionOnPath(path, pathPosition, Mathf.Max(1f, 1.5f - offPathDistance));
+
+            Vector3 direction = Vector3.ProjectOnPlane(pathDestination - pathCursor, transform.up);
             float fAngle = Vector3.Angle(transform.forward, direction);
             float rAngle = Vector3.Angle(transform.right, direction);
-            //float distance = Vector3.Distance(transform.position, moveTarget.transform.position);
 
             if (fAngle < 67.5f)
                 input.Press("Forward");
@@ -384,7 +418,7 @@ namespace MPCore
 
             if (body.currentState == CharacterBody.MoveState.Grounded)
             {
-                float upAngle = Vector3.Angle(transform.up, moveDest - transform.position);
+                float upAngle = Vector3.Angle(transform.up, pathDestination - pathCursor);
 
                 if (upAngle < 40
                     || Physics.SphereCast(transform.position, body.cap.radius * 0.5f, transform.forward, out _, body.cap.radius * 2))
@@ -394,12 +428,15 @@ namespace MPCore
                     input.Press("Forward", 0.25f);
                 }
             }
+
+            if (offPathDistance > 2f)
+                RequestNewPath();
         }
 
-        private void OnHit(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction)
+        private void OnHit(DamageTicket ticket)
         {
-            touch.instigator = instigator;
-            touch.direction = direction;
+            touch.instigator = ticket.instigator;
+            touch.direction = ticket.momentum;
             touch.time = Time.time;
         }
 
@@ -410,10 +447,12 @@ namespace MPCore
         }
 
         [ConsoleCommand("posess", "Toggle AI for players")]
-        public void Posess()
+        public string Posess()
         {
             if(character.isPlayer)
                 enabled = !enabled;
+
+            return character.isPlayer ? enabled ? "Surrendered control" : "Control restored" : null;
         }
     }
 }

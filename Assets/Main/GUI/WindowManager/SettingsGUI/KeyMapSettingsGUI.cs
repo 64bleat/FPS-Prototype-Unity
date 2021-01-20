@@ -39,7 +39,7 @@ namespace MPGUI
                 GUIBoolButton bb = button.GetComponent<GUIBoolButton>();
                 bb.description.text = "Always Sprint";
                 bb.SetValue(kbl.alwaysRun);
-                bb.OnValueChange += b => kbl.alwaysRun = b;
+                bb.OnValueChange.AddListener( b => kbl.alwaysRun = b);
             }
 
             buttonSet.AddTitle("Values");
@@ -50,7 +50,7 @@ namespace MPGUI
                 GUIFloatButton b = button.GetComponentInChildren<GUIFloatButton>();
                 b.description.text = val.name;
                 b.SetValue(val.value);
-                b.OnValueChange += v => val.value = v;
+                b.OnValueChange.AddListener(v => val.value = v);
             }
 
             // Key Input Buttons

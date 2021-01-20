@@ -1,19 +1,26 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using MPCore;
 
 namespace MPGUI
 {
+    [RequireComponent(typeof(GUIIntButton))]
     public class BotmatchInfoGUI : MonoBehaviour
     {
-        public GUIIntButton botCountButton;
         public BotmatchGameInfo botmatchInfo;
 
         private void Awake()
         {
-            botCountButton.SetValue(botmatchInfo.botCount);
-            botCountButton.OnValueChange += v => botmatchInfo.botCount = v;
+            if (TryGetComponent(out GUIIntButton button))
+            {
+                button.valueName.SetText(botmatchInfo.botCount.ToString());
+                button.description.SetText("Bot Count");
+                button.value = botmatchInfo.botCount;
+            }
+        }
+
+        public void SetBotCount(int value)
+        {
+            botmatchInfo.botCount = value;
         }
     }
 }

@@ -39,7 +39,7 @@ namespace MPCore
             TryGetComponent(out sphere);
             TryGetComponent(out body);
             
-            OnHit += Hit;
+            //OnHit += Hit;
         }
 
         private void OnEnable()
@@ -72,7 +72,11 @@ namespace MPCore
                         travelDistance += hit.distance;
                         position += body.Velocity.normalized * hit.distance;
                         sdt -= hit.distance / body.Velocity.magnitude;
-                        OnHit?.Invoke(hit);
+                        //OnHit?.Invoke(hit);
+                        Hit(new MyRaycastHit(){
+                            collider = hit.collider,
+                            point = hit.point,
+                            normal = hit.normal});
 
                         if (!gameObject || !gameObject.activeSelf)
                             return;
@@ -99,7 +103,7 @@ namespace MPCore
                 transform.localScale *= 1f - 10 * dt;
 
                 if (transform.localScale.x < 0.2f)
-                    GameObjectPool.DestroyMember(gameObject);
+                    GameObjectPool.Return(gameObject);
             }
 
             // Visual offset effect
@@ -107,14 +111,21 @@ namespace MPCore
                 visuals.localPosition -= Vector3.ClampMagnitude(visuals.localPosition, Mathf.Min(visuals.localPosition.magnitude, dt / 0.5f));
         }
 
-        private void Hit(RaycastHit hit)
+        private struct MyRaycastHit
+        {
+            public Collider collider;
+            public Vector3 point;
+            public Vector3 normal;
+        }
+
+        private void Hit(MyRaycastHit hit)
         {
             // OnHit += Momentum Transfer
             Vector3 hitVelocity = this.body.Velocity;
             Vector3 momentum;
             float momentumMag = shared.hitMomentumTransfer;
 
-            if (hit.collider.transform.TryGetComponentInParent(out Character character))
+            if (hit.collider.TryGetComponentInParent(out Character _))
                 momentumMag *= shared.characterHitMomentumScale;
 
             momentum = (this.body.Velocity - Vector3.ProjectOnPlane(this.body.Velocity, hit.normal) * (1 - shared.hitFrictionFactor)).normalized * momentumMag;
@@ -140,63 +151,82 @@ namespace MPCore
             if (visuals)
                 visuals.localPosition = Vector3.zero;
 
-            if (hit.collider.TryGetComponent(out CharacterBody body) && body.shotEffect
-                && GameObjectPool.TryGetPool(body.shotEffect.gameObject, 100, out GameObjectPool pool))
-            {
-                GameObject b = pool.Spawn(hit.point, Random.rotation);
+            // Hit Effects
+            HitEffect hitEffect = default;
+            SurfaceType surfaceType;
 
-                if (b.TryGetComponent(out Rigidbody prb))
-                    prb.velocity = Vector3.RotateTowards(Vector3.ClampMagnitude(this.body.Velocity, 10), Random.insideUnitSphere, Random.value * 45f, 0);
-            }
-            else if (shared.wallHitParticle && this.body.Velocity.sqrMagnitude > 1)
-            {
-                pool = GameObjectPool.GetPool(shared.wallHitParticle.gameObject, 400);
-                GameObject p = pool.Spawn(transform.position, transform.rotation);
+            if (hit.collider.TryGetComponent(out SurfaceFlagObject surface))
+                surfaceType = surface.surfaceType;
+            else
+                surfaceType = null;
 
-
-                if (p.TryGetComponent(out Rigidbody prb))
-                    prb.velocity = this.body.Velocity;
-
-                // Move particle color
-                //Transform pt = p.transform;
-                //int childCount = p.transform.childCount;
-
-                //for (int i = 0; i < childCount; i++)
-                //    if (pt.GetChild(i).TryGetComponent(out MeshRenderer mr))
-                //        mr.SetPropertyBlock(mpb);
-            }
-
-            // OnHit += Character Hit
-            if (hit.collider.TryGetComponentInParent(out character))
-                CharacterHit(character, shared.hitDamage, hitVelocity);
-            if (ricochet)
-            {
-                if (!hasHitWall)
+            foreach(HitEffect surfaceEffect in shared.hitEffects)
+                if(surfaceEffect.surfaceType == surfaceType)
                 {
-                    int overlapCount = Physics.OverlapSphereNonAlloc(transform.position, sphere.radius, cBuffer, playerMask);
-
-                    while (overlapCount-- > 0)
-                        if (cBuffer[overlapCount].TryGetComponent(out Character ch))
-                            CharacterHit(ch, shared.hitDamage, hitVelocity);
-
-                    hasHitWall = true;
+                    hitEffect = surfaceEffect;
+                    break;
                 }
 
-                float hitDot = Vector3.Dot(this.body.Velocity.normalized, hit.normal);
 
-                if (hitDot < 0)
-                    this.body.Velocity = Vector3.Reflect(this.body.Velocity * Mathf.Lerp(shared.bounceScaleMax, shared.bounceScaleMin, -hitDot), hit.normal);
+            Vector3 direction = Vector3.ProjectOnPlane(Random.insideUnitSphere, hit.normal);
+            Quaternion rotation = Quaternion.LookRotation(direction, hit.normal);
 
-                this.body.Velocity = Vector3.RotateTowards(this.body.Velocity, Random.onUnitSphere, shared.bounceAngle * Mathf.Deg2Rad * Random.value, 0);
+            if (hitEffect.effect)
+            {
+                GameObjectPool p = GameObjectPool.GetPool(hitEffect.effect, 100);
+                p.Spawn(hit.point, rotation);
             }
-            else
-                GameObjectPool.DestroyMember(gameObject);
+
+            if (hitEffect.hitMark)
+            {
+                GameObjectPool p = GameObjectPool.GetPool(hitEffect.hitMark, 100);
+                p.Spawn(hit.point, rotation, hit.collider.transform);
+            }
+
+            if (hit.collider.TryGetComponentInParent(out Character character))
+                character.Damage(shared.hitDamage, gameObject, instigator, shared.damageType, hitVelocity);
+
+            switch (hitEffect.hitBehaviour)
+            {
+                case HitEffect.ProjectileHitBehaviour.Destroy:
+                    GameObjectPool.Return(gameObject);
+                    break;
+                case HitEffect.ProjectileHitBehaviour.Reflect:
+                    float hitDot = Vector3.Dot(this.body.Velocity.normalized, hit.normal);
+
+                    if (hitDot < 0)
+                        this.body.Velocity = Vector3.Reflect(this.body.Velocity * Mathf.Lerp(shared.bounceScaleMax, shared.bounceScaleMin, -hitDot), hit.normal);
+
+                    this.body.Velocity = Vector3.RotateTowards(this.body.Velocity, Random.onUnitSphere, shared.bounceAngle * Mathf.Deg2Rad * Random.value, 0);
+
+                    if (!hasHitWall)
+                    {
+                        hasHitWall = true;
+                        int overlapCount = Physics.OverlapSphereNonAlloc(transform.position, sphere.radius, cBuffer, playerMask);
+
+                        for (int i = 0; i < overlapCount; i++)
+                            if (cBuffer[i].TryGetComponent(out Character ch))
+                            {
+                                ch.TryGetComponent(out hit.collider);
+                                hit.normal = -this.body.Velocity.normalized;
+                                Hit(hit);
+                            }
+                    }
+
+                    break;
+                case HitEffect.ProjectileHitBehaviour.Stick:
+                    break;
+                case HitEffect.ProjectileHitBehaviour.Nothing:
+                    break;
+                case HitEffect.ProjectileHitBehaviour.Explode:
+                    break;
+            }
         }
 
         public virtual void CharacterHit(Character target, int damage, Vector3 direction)
         { 
             target.Damage(damage, gameObject, instigator, shared.damageType, direction);
-            GameObjectPool.DestroyMember(gameObject);
+            GameObjectPool.Return(gameObject);
         }
 
         /// <summary>

@@ -1,17 +1,18 @@
 ﻿using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class GUIBoolButton : MonoBehaviour
 {
     public bool value;
     public TextMeshProUGUI description;
     public TextMeshProUGUI valueName;
-    public Action<bool> OnValueChange;
+    public UnityEvent<bool> OnValueChange;
 
-    private void Awake()
+    private void OnValidate()
     {
-        SetValue(value);
+        valueName.SetText(value.ToString());
     }
 
     public void SetValue(bool b)

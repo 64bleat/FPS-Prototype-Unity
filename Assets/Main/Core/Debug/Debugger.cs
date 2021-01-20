@@ -8,9 +8,11 @@ namespace MPCore
         public static bool enabled = false;
 
         [ConsoleCommand("debug", "Enter debug mode")]
-        public static void ToggleDebugger()
+        public static string ToggleDebugger()
         {
             enabled = !enabled;
+
+            return $"Debug mode {(enabled ? "enabled" : "disabled")}";
         }
     }
 }

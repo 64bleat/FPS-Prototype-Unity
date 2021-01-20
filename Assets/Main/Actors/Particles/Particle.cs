@@ -20,7 +20,7 @@ namespace MPCore
             transform.localScale = Vector3.one * 1f * Mathf.Max(0, life / lifeTime);
 
             if (life <= 0)
-                GameObjectPool.DestroyMember(gameObject);
+                GameObjectPool.Return(gameObject);
         }
     }
 }

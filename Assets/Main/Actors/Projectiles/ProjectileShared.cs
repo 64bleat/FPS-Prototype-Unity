@@ -30,6 +30,18 @@ namespace MPCore
         public float bounceAngle = 2f;
         public int hitsPerFrame = 10;
         [Header("Effects")]
-        public Particle wallHitParticle;
+        public HitEffect[] hitEffects;
+    }
+
+    [System.Serializable]
+    public struct HitEffect
+    {
+        public enum ProjectileHitBehaviour { Destroy, Explode, Reflect, Stick, Nothing }
+
+        public SurfaceType surfaceType;
+        public GameObject effect;
+        public GameObject hitMark;
+        public AudioClip hitSound;
+        public ProjectileHitBehaviour hitBehaviour;
     }
 }

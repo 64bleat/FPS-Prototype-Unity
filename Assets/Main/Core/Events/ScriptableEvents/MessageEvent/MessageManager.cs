@@ -20,6 +20,11 @@ namespace MPCore
             onMessageRecieve.Remove(SetText);
         }
 
+        public void Message(string message)
+        {
+            SetText(new MessageEventParameters() { message = message });
+        }
+
         private void SetText(MessageEventParameters message)
         {
             GameObject c = Instantiate(template, transform);

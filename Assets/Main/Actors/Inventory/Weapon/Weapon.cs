@@ -20,9 +20,9 @@ namespace MPCore
 
         public override bool OnDrop(GameObject owner, Vector3 position, Quaternion rotation)
         {
-            if(owner.TryGetComponentInChildren(out WeaponSwitcher ws))
-                if (Equals(ws.heldWeapon))
-                    ws.SelectBestWeapon(this);
+            if (owner.TryGetComponentInChildren(out WeaponSwitcher ws))
+                if (this == ws.currentWeapon)
+                    ws.DrawNextBestWeapon();
 
             return base.OnDrop(owner, position, rotation);
         }
@@ -33,7 +33,7 @@ namespace MPCore
 
             if(baseGood)
                 if(owner.TryGetComponentInChildren(out WeaponSwitcher ws))
-                    if (!ws.heldWeapon)
+                    if (!ws.currentWeapon)
                         ws.DrawWeapon(this);
 
             return baseGood;

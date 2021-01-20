@@ -1,7 +1,7 @@
 ﻿using MPCore;
-using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace MPGUI
 {
@@ -10,45 +10,41 @@ namespace MPGUI
         public int value;
         public TextMeshProUGUI description;
         public TextMeshProUGUI valueName;
-        public Action<int> OnValueChange;
+        public UnityEvent<int> OnValueChange;
 
-        private bool awaitingInput = false;
         private string inputString;
 
-        private void Awake()
+        private void OnValidate()
         {
-            SetValue(value);
+            valueName.SetText(value.ToString());
         }
 
         private void OnDisable()
         {
             inputString = "";
-            Deselect();
+            valueName.SetText(value.ToString());
         }
 
         private void Update()
         {
-            if (awaitingInput)
+            if (Input.GetKeyDown(KeyCode.Escape))
             {
-                if (Input.GetKeyDown(KeyCode.Escape))
-                {
-                    inputString = "";
-                    Deselect();
-                }
-                else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-                    Deselect();
-                else
-                {
-                    if (!Input.inputString.Contains("\b"))
-                        inputString += Input.inputString;
-                    else if (inputString.Length > 0)
-                        inputString = inputString.Substring(0, inputString.Length - 1);
+                inputString = "";
+                Deselect();
+            }
+            else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+                Deselect();
+            else
+            {
+                if (!Input.inputString.Contains("\b"))
+                    inputString += Input.inputString;
+                else if (inputString.Length > 0)
+                    inputString = inputString.Substring(0, inputString.Length - 1);
 
-                    string text = inputString;
-                    text += (int)(Time.unscaledTime * 3) % 2 == 0 ? " " : "|";
+                string text = inputString;
+                text += (int)(Time.unscaledTime * 3) % 2 == 0 ? " " : "|";
 
-                    valueName.SetText(text);
-                }
+                valueName.SetText(text);
             }
         }
 
@@ -68,6 +64,8 @@ namespace MPGUI
             if (GetComponent<GUISelectableEvents>() is var selector && selector)
                 foreach (GUIInputManager ginput in GetComponentsInParent<GUIInputManager>())
                     ginput.Deselect(selector);
+
+            enabled = false;
         }
 
         public void BeginReassignment()
@@ -76,7 +74,7 @@ namespace MPGUI
                 input.enabled = false;
 
             inputString = value.ToString();
-            awaitingInput = true;
+            enabled = true;
         }
 
         public void CommitReassignment()
@@ -89,7 +87,7 @@ namespace MPGUI
             else
                 SetValue(value);
 
-            awaitingInput = false;
+            enabled = false;
         }
     }
 }

@@ -94,7 +94,9 @@ namespace Serialization
                     else
                         Debug.LogWarning($"Resource error: missing {res.resourcePath}");
 
-                character.SetAsCurrentPlayer(isPlayer);
+                //SceneXML.OnSceneSerializedAwake += RegisterCharacter;
+                character.isPlayer = isPlayer;
+                character.RegisterCharacter();
             }
 
             return this;

@@ -1,15 +1,15 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Serialization;
-using UnityEngine.UI;
-using System.Xml.Serialization;
-using System.Xml.Schema;
 using MPGUI;
+using Serialization;
+using System;
+using System.Collections.Generic;
+using System.Xml.Serialization;
+using UnityEngine;
+using UnityEngine.Audio;
+using UnityEngine.UI;
 
 namespace MPCore
 {
-    [System.Serializable]
+    [Serializable]
     [XMLSurrogate(typeof(SettingsSerializationData))]
     public class SettingsSerializationData : XMLSurrogate
     {
@@ -19,6 +19,9 @@ namespace MPCore
         [XmlArray("Keys")]
         [XmlArrayItem(typeof(KeyBindXml), ElementName = "Bind")]
         public List<KeyBindXml> keyBinds = new List<KeyBindXml>();
+
+        [NonSerialized] private Dictionary<string, string> valueMap;
+        [NonSerialized] private Dictionary<string, KeyCode[]> keys;
 
         public struct KVP
         {
@@ -60,27 +63,30 @@ namespace MPCore
             return this;
         }
 
-        public override XMLSurrogate Deserialize(dynamic o)
+        public void InitializeDeserializationDictionary()
         {
-            Dictionary<string, string> values = new Dictionary<string, string>();
-            Dictionary<string, KeyCode[]> keys = new Dictionary<string, KeyCode[]>();
+            valueMap = new Dictionary<string, string>();
+            keys = new Dictionary<string, KeyCode[]>();
 
             foreach (var kvp in this.values)
-                values.Add(kvp.key, kvp.value);
+                valueMap.Add(kvp.key, kvp.value);
 
             foreach (KeyBindXml kbx in this.keyBinds)
                 keys.Add(kbx.name, kbx.keys);
+        }
 
+        public override XMLSurrogate Deserialize(dynamic o)
+        {
             if(o is CanvasScaler cs)
             {
-                if (values.TryGetValue("scaleFactor", out string intstr))
+                if (valueMap.TryGetValue("scaleFactor", out string intstr))
                     if (int.TryParse(intstr, out int intval))
                         cs.scaleFactor = intval;
             }
             else if(o is KeyMapSettingsGUI kms)
             {
                 foreach (ScriptFloat sf in kms.values)
-                    if (values.TryGetValue(sf.name, out string floatstr))
+                    if (valueMap.TryGetValue(sf.name, out string floatstr))
                         if (float.TryParse(floatstr, out float floatval))
                             sf.value = floatval;
 
@@ -90,6 +96,21 @@ namespace MPCore
             }
 
             return this;
+        }
+
+        public void Serialize(AudioMixer mixer, string[] floatParameters)
+        {
+            foreach (string paramName in floatParameters)
+                if (mixer.GetFloat(paramName, out float value))
+                    values.Add(new KVP(paramName, value.ToString()));
+        }
+
+        public void Deserialize(AudioMixer mixer, string[] floatParameters)
+        {
+            foreach (string paramName in floatParameters)
+                if (valueMap.TryGetValue(paramName, out string valueText)
+                    && float.TryParse(valueText, out float value))
+                    mixer.SetFloat(paramName, value);
         }
     }
 }

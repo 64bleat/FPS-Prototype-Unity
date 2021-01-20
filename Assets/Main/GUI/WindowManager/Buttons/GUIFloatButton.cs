@@ -1,87 +1,86 @@
 ﻿using MPCore;
-using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace MPGUI
 {
     public class GUIFloatButton : MonoBehaviour
     {
         public float value;
+        public string displayFormat = "F2";
         public TextMeshProUGUI description;
         public TextMeshProUGUI valueName;
-        public Action<float> OnValueChange;
+        public UnityEvent<float> OnValueChange;
 
-        private bool awaitingInput = false;
         private string inputString;
 
-        private void Awake()
+        private void OnValidate()
         {
-            SetValue(value);
+            valueName.SetText(value.ToString(displayFormat));
         }
 
         private void OnDisable()
         {
             inputString = "";
-            Deselect();
+            valueName.SetText(value.ToString(displayFormat));
         }
 
         private void Update()
         {
-            if (awaitingInput)
+            if (Input.GetKeyDown(KeyCode.Escape))
             {
-                if (Input.GetKeyDown(KeyCode.Escape))
-                {
-                    inputString = "";
-                    Deselect();
-                }
-                else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-                    Deselect();
-                else
-                {
-                    if (!Input.inputString.Contains("\b"))
-                        inputString += Input.inputString;
-                    else if (inputString.Length > 0)
-                        inputString = inputString.Substring(0, inputString.Length - 1);
+                inputString = "";
+                Deselect();
+            }
+            else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+                Deselect();
+            else
+            {
+                if (!Input.inputString.Contains("\b"))
+                    inputString += Input.inputString;
+                else if (inputString.Length > 0)
+                    inputString = inputString.Substring(0, inputString.Length - 1);
 
-                    string text = inputString;
-                    text += (int)(Time.unscaledTime * 3) % 2 == 0 ? " " : "|";
+                string text = inputString;
+                text += (int)(Time.unscaledTime * 3) % 2 == 0 ? " " : "|";
 
-                    valueName.SetText(text);
-                }
+                valueName.SetText(text);
             }
         }
 
-        public void SetValue(float f)
+        public void SetValue(float newValue)
         {
             float oldVal = value;
 
-            value = f;
-            valueName.SetText(f.ToString());
+            value = newValue;
+            valueName.SetText(value.ToString(displayFormat));
 
-            if (f != oldVal)
-                OnValueChange?.Invoke(f);
+            if (newValue != oldVal)
+                OnValueChange?.Invoke(newValue);
         }
 
         private void Deselect()
         {
-            if(GetComponent<GUISelectableEvents>() is var selector && selector)
+            if(TryGetComponent(out GUISelectableEvents selector))
                 foreach (GUIInputManager ginput in GetComponentsInParent<GUIInputManager>())
                     ginput.Deselect(selector);
+
+            enabled = false;
         }
 
         public void BeginReassignment()
         {
-            if (GetComponentInParent<InputManager>() is var input && input)
+            if (gameObject.TryGetComponentInParent(out InputManager input))
                 input.enabled = false;
 
             inputString = value.ToString();
-            awaitingInput = true;
+            enabled = true;
         }
 
         public void CommitReassignment()
         {
-            if (GetComponentInParent<InputManager>() is var input && input)
+            if(gameObject.TryGetComponentInParent(out InputManager input))
                 input.enabled = true;
 
             if (float.TryParse(inputString, out float f))
@@ -89,7 +88,7 @@ namespace MPGUI
             else
                 SetValue(value);
 
-            awaitingInput = false;
+            enabled = false;
         }
     }
 }

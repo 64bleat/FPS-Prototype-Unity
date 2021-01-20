@@ -1,7 +1,9 @@
-﻿using MPGUI;
-using MPConsole;
+﻿using MPConsole;
+using MPGUI;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Console = MPConsole.Console;
 
 namespace MPCore
 {
@@ -17,20 +19,17 @@ namespace MPCore
         public StringEvent onDisplayHealth;
         public DeathEvent onDeath;
         public ObjectEvent onCharacterSpawn;
+        public MessageEvent pickupMessager;
 
-        public delegate void SetPlayer(bool isPlayer);
-        public delegate void CharacterHit(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction);
+        // Events
+        public event Action<bool> OnPlayerSet;
+        public event Action<DamageTicket> OnHit;
 
-        public event SetPlayer OnPlayerSet;
-        public event CharacterHit OnHit;
+        // Runtime
+        [NonSerialized] public CharacterInfo characterInfo;
+        [NonSerialized] public ResourceValue health;
 
-        [HideInInspector] public CharacterInfo characterInfo;
-
-        private ResourceValue health;
-        private (GameObject instigator, float time) lastAttacker;
-        private (CharacterInfo instigator, float taime) lastAttackedBy;
-
-        public int Health => health?.value ?? 0;
+        private (CharacterInfo instigator, float time) lastAttackedBy;
 
         private void OnEnable()
         {
@@ -43,7 +42,7 @@ namespace MPCore
         private void OnDisable()
         {
             AiInterestPoints.interestPoints.Remove(this);
-            Console.RemoveInstance(this);
+            Console.RemoveInstance(this);            
         }
 
         public void GetHealthResource()
@@ -56,25 +55,33 @@ namespace MPCore
                 }
         }
 
-        public void SetAsCurrentPlayer(bool isPlayer)
+        public void RegisterCharacter()
         {
-            this.isPlayer = isPlayer;
-
-            if (isPlayer && onDisplayHealth)
-                onDisplayHealth.Invoke(health.value.ToString());
-
-            if (onCharacterSpawn)
-                onCharacterSpawn.Invoke(this);
-
             GetHealthResource();
 
             OnPlayerSet?.Invoke(isPlayer);
+            onCharacterSpawn.Invoke(gameObject);
+
+            if (isPlayer)
+                onDisplayHealth.Invoke(health.value.ToString());
         }
 
         public int Damage(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction)
         {
+            DamageTicket ticket = new DamageTicket()
+            {
+                damage = damage,
+                damageType = damageType,
+                instigator = instigator,
+                victim = characterInfo,
+                instigatorBody = conduit,
+                victimBody = gameObject,
+                normal = direction,
+                momentum = direction,
+                point = transform.position
+            };
 
-            OnHit?.Invoke(damage, conduit, instigator, damageType, direction);
+            OnHit?.Invoke(ticket);
 
             if (health != null)
             {
@@ -119,56 +126,72 @@ namespace MPCore
 
         public void Kill(CharacterInfo instigator, GameObject conduit, DamageType damageType)
         {
-           // if (TryGetComponent(out CharacterBody body))
+            // Spawn Dead Body
+            if (TryGetComponent(out CharacterBody body) &&body.deadBody)
             {
-                // Spawn Dead Body
-                if (TryGetComponent(out CharacterBody body) &&body.deadBody)
+                GameObject db = Instantiate(body.deadBody, body.cameraAnchor.position, body.cameraAnchor.rotation, null);
+
+                if(db.TryGetComponent(out Rigidbody rb))
                 {
-                    GameObject db = Instantiate(body.deadBody, body.cameraAnchor.position, body.cameraAnchor.rotation, null);
-
-                    if(db.TryGetComponent(out Rigidbody rb))
-                    {
-                        rb.velocity = body.Velocity;
-                        rb.mass = body.defaultMass;
-                    }
-
-                    if (isPlayer)
-                        CameraManager.target = db;
-
-                    Destroy(db, 10);
+                    rb.velocity = body.Velocity;
+                    rb.mass = body.defaultMass;
                 }
 
-                // Drop Inventory
-                foreach (Inventory i in inventory.ToArray())
-                    if (i.dropOnDeath)
-                        i.TryDrop(gameObject, transform.position, transform.rotation, default, out _);
+                if (isPlayer)
+                    CameraManager.target = db;
 
-                // Finished off by
-                if (lastAttackedBy.instigator && Time.time - lastAttackedBy.taime < 3f)
-                    instigator = lastAttackedBy.instigator;
-
-                //Create Death Ticket
-                DeathEventParameters ticket;
-                ticket.conduit = conduit;
-                ticket.damageType = damageType;
-                ticket.instigator = instigator;
-                ticket.victim = characterInfo;
-
-                if (onDeath)
-                    onDeath.Invoke(ticket);
+                Destroy(db, 10);
             }
 
+            // Drop Inventory
+            foreach (Inventory i in inventory)
+                if (i.dropOnDeath)
+                    i.TryDrop(gameObject, transform.position, transform.rotation, default, out _);
+
+            // Finished off by
+            if (lastAttackedBy.instigator && Time.time - lastAttackedBy.time < 3f)
+                instigator = lastAttackedBy.instigator;
+
+            //Create Death Ticket
+            DeathEventParameters ticket;
+            ticket.conduit = conduit;
+            ticket.damageType = damageType;
+            ticket.instigator = instigator;
+            ticket.victim = characterInfo;
+
+            if (onDeath)
+                onDeath.Invoke(ticket);
+
+            characterInfo = null;
             Destroy(gameObject);
         }
 
         [ConsoleCommand("god", "Toggle god mode on players")]
-        public void ToggleGodMode()
+        public string ToggleGodMode()
         {
             if (isPlayer)
                 if (health != default)
                     health = default;
                 else
                     GetHealthResource();
+
+            if (isPlayer)
+                return health != default ? "God mode disabled" : "God mode enabled";
+            else
+                return null;
         }
+    }
+
+    public struct DamageTicket
+    {
+        public int damage;
+        public DamageType damageType;
+        public CharacterInfo instigator;
+        public CharacterInfo victim;
+        public GameObject instigatorBody;
+        public GameObject victimBody;
+        public Vector3 momentum;
+        public Vector3 point;
+        public Vector3 normal;
     }
 }

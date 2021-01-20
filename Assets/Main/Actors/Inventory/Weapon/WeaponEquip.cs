@@ -14,6 +14,7 @@ namespace MPCore
 
         [HideInInspector] public GameObject owner;
 
+        private ParticleSystem muzzleFlash;
         private Weapon weapon;
         private GameObjectPool primProjPool;
         private CharacterBody body;
@@ -50,6 +51,7 @@ namespace MPCore
             body = GetComponentInParent<CharacterBody>();
             input = GetComponentInParent<InputManager>();
             character = GetComponentInParent<Character>();
+            muzzleFlash = GetComponentInChildren<ParticleSystem>();
 
             layerMask = LayerMask.GetMask(layermask);
 
@@ -170,7 +172,7 @@ namespace MPCore
         //IDLE=================================================================
         private void SwitchToFire()
         {
-            if (state.IsCurrentState("Idle"))
+            if (state.IsCurrentState("Idle") && state.StateTime >= weapon.refireRatePrimary)
                 state.SwitchTo("Firing");
         }
 
@@ -179,8 +181,11 @@ namespace MPCore
         {
             //GameObjectPool projectilePool = GameObjectPool.GetPool(weapon.projectilePrimary, 100);
 
-            if (audioSource)
+            if (gameObject && gameObject.activeSelf && audioSource)
                 audioSource.Play();
+
+            if (muzzleFlash)
+                muzzleFlash.Play();
 
             if (recoil) 
                 recoil.AddForce(new Vector3(0, 0, -3f));
@@ -190,7 +195,7 @@ namespace MPCore
 
         public void FiringUpdate()
         {
-            if (state.StateTime >= weapon.refireRatePrimary)
+            //if (state.StateTime >= weapon.refireRatePrimary)
                 state.SwitchTo("Idle");
         }
 

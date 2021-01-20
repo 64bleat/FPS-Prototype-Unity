@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using MPCore;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MPWorld
@@ -8,6 +9,7 @@ namespace MPWorld
     [DisallowMultipleComponent]
     public class SurfaceFlagObject : MonoBehaviour
     {
+        public SurfaceType surfaceType;
         public List<SurfaceFlags> _SurfaceFlags;
         public List<SurfaceFlag> surfaceFlags;
     }

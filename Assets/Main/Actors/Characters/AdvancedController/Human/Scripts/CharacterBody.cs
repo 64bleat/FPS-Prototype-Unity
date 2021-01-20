@@ -90,6 +90,11 @@ namespace MPCore
         [NonSerialized] public MoveState currentState;
         [NonSerialized] private readonly StateMachine crouchState = new StateMachine();
 
+        // Events
+        public event Action JumpCallback;
+        public event Action WalljumpCallback;
+        public event Action GroundMoveCallback;
+
         // PROPERTIES
         public Transform WeaponHand => leftHanded
             ? leftHand : rightHand;
@@ -226,13 +231,15 @@ namespace MPCore
             /*  MOVE DIRECTION ................................................
                 Pressing the move keys takes you in different directions based
                 on move state and collisions.                                */
-
             if (currentState == MoveState.Grounded)
                 moveDir = Vector3.Cross(transform.right * input.Forward - transform.forward * input.Right, cb.FloorNormal).normalized;
             else if (cb.Normal.sqrMagnitude == 0)
                 moveDir = Quaternion.FromToRotation(-transform.up, Gravity) * (transform.forward * input.Forward + transform.right * input.Right).normalized;
             else
                 moveDir = Quaternion.FromToRotation(-transform.up, falseGravity) * (transform.forward * input.Forward + transform.right * input.Right).normalized;
+
+            if (currentState == MoveState.Grounded /*&& moveDir.sqrMagnitude > 0.5f*/)
+                GroundMoveCallback?.Invoke();
 
             /*  FALSE GRAVITY & WALL WALKING ..................................
                 FalseGravity is used for orientation and "falling" while
@@ -336,6 +343,8 @@ namespace MPCore
                         currentState = MoveState.Airborne;
                         input.jumpTimer.Restart();
                         cb.AddForce((relativeVel - desiredVel) * Mass * 2);
+
+                        JumpCallback?.Invoke();
                     }
                 }
             }
@@ -397,6 +406,8 @@ namespace MPCore
                         Velocity = cb.LimitMomentum(dVel, iVel, defaultMaxKickVelocity) + cb.Velocity;
                         input.jumpTimer.Restart();
                         cb.AddForce((iVel - Velocity) * defaultMass * 2);
+
+                        WalljumpCallback?.Invoke();
                     }
                 }
 

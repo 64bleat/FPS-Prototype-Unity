@@ -10,6 +10,7 @@ namespace MPCore
     public struct PathRequest : IJob
     {
         public Guid guid;
+        public bool pathValid;
         public Vector3 startPosition;
         public Vector3 endPosition;
         public float height;
@@ -78,6 +79,12 @@ namespace MPCore
         {
             Vector3 localClampedStart = NearestPointOnMesh(startPosition, out int startTriangle);
             Vector3 localClampedEnd = NearestPointOnMesh(endPosition, out int endTriangle);
+
+            pathValid = endTriangle >= 0;
+
+            if (!pathValid)
+                return;
+
             ComputeTriangleFlow(endTriangle);
             ComputePath(localClampedStart, startTriangle, localClampedEnd);
         }
@@ -97,7 +104,7 @@ namespace MPCore
         {
             Vector3 localPosition = mesh.world2Local.MultiplyPoint(worldPosition);
             Vector3 meshPosition = Vector3.zero;
-            float distance = float.PositiveInfinity;
+            float distance = float.MaxValue;
             Triangle triangle = default;
 
             nearestTriangle = -1;
@@ -217,30 +224,32 @@ namespace MPCore
             while (flow[index] != -1)
             {
                 int neighbor = flow[index];
-                int v1 = mesh.triangles[neighbor];
-                int v2 = mesh.triangles[neighbor - neighbor % 3 + (neighbor + 1) % 3];
+                int vL = mesh.triangles[neighbor];
+                int vR = mesh.triangles[neighbor - neighbor % 3 + (neighbor + 1) % 3];
                 Vector3 heightOffset = mesh.normals[neighbor / 3].normalized * height;
-                Vector3 leftPoint = mesh.vertices[v1] + heightOffset;
-                Vector3 rightPoint = mesh.vertices[v2] + heightOffset;
+                Vector3 leftPoint = mesh.vertices[vL] + heightOffset;
+                Vector3 rightPoint = mesh.vertices[vR] + heightOffset;
                 Vector3 bendPoint = slidePath[bendIndeces.Peek()];
                 PathNode node = new PathNode(leftPoint, rightPoint - leftPoint);
 
                 // Pull on the path until a bend is found
-                if (node.SlideAndCollide(bendPoint, localEnd, out PathNode newNode))
+                if (PathNode.SlideAndCollide(bendPoint, localEnd, ref node))
                 {
-                    node = newNode;
-
                     for (int j = slidePath.Length - 1; j > 0; j--)
                     {
                         if (j == bendIndeces.Peek())
                             bendIndeces.Pop();
 
-                        if (slidePath[j].SlideAndCollide(slidePath[bendIndeces.Peek()], node, out PathNode newJ))
+                        PathNode jNode = slidePath[j];
+
+                        if (PathNode.SlideAndCollide(slidePath[bendIndeces.Peek()], node, ref jNode))
                         {
-                            slidePath[j] = newJ;
+                            slidePath[j] = jNode;
                             bendIndeces.Push(j);
                             break;
                         }
+                        else
+                            slidePath[j] = jNode;
                     }
 
                     bendIndeces.Push(slidePath.Length);
@@ -251,18 +260,21 @@ namespace MPCore
                 index = neighbor - neighbor % 3;
             }
 
-            path.Clear();
-            path.Add(startPosition);
-
-            foreach (Vector3 sp in slidePath)
+            if (pathValid)
             {
-                Vector3 worldPoint = mesh.local2World.MultiplyPoint(sp);
+                path.Clear();
+                path.Add(startPosition);
 
-                if (worldPoint != path[path.Length - 1])
-                    path.Add(worldPoint);
+                foreach (Vector3 sp in slidePath)
+                {
+                    Vector3 worldPoint = mesh.local2World.MultiplyPoint(sp);
+
+                    if (worldPoint != path[path.Length - 1])
+                        path.Add(worldPoint);
+                }
+
+                path.Add(mesh.local2World.MultiplyPoint(localEnd + mesh.normals[index / 3].normalized * height));
             }
-
-            path.Add(mesh.local2World.MultiplyPoint(localEnd + mesh.normals[index / 3].normalized * height));
         }
     }
 }

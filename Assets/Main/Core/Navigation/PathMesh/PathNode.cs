@@ -21,22 +21,21 @@ namespace MPCore
 
         /// <summary> Gets the closest point on the line segment, to the line between a and b. </summary>
         /// <returns> true if the line must bend to reach the closest point. </returns>
-        public bool SlideAndCollide(Vector3 point0, Vector3 point1, out PathNode recalc)
+        public static bool SlideAndCollide(Vector3 point0, Vector3 point1, ref PathNode recalc)
         {
-            Vector3 La = point0 - left;
-            Vector3 Lb = point1 - left;
-            Vector3 pNormal = path.normalized;
+            Vector3 La = point0 - recalc.left;
+            Vector3 Lb = point1 - recalc.left;
+            Vector3 pNormal = recalc.path.normalized;
             float magOnA = Vector3.Dot(La, pNormal);
             float magOnB = Vector3.Dot(Lb, pNormal);
             float magOffA = Mathf.Sqrt(La.sqrMagnitude - Mathf.Pow(magOnA, 2));
             float magOffB = Mathf.Sqrt(Lb.sqrMagnitude - Mathf.Pow(magOnB, 2));
-            float factor = Mathf.Lerp(magOnA, magOnB, magOffA / (magOffA + magOffB)) / path.magnitude;
+            float factor = Mathf.Lerp(magOnA, magOnB, magOffA / (magOffA + magOffB)) / recalc.path.magnitude;
 
-            recalc = new PathNode(left, path);
-            recalc.lerpClamp = lerpClamp;
-            recalc.lerpt = Mathf.Clamp(factor, lerpClamp, 1f - lerpClamp);
+            recalc = new PathNode(recalc.left, recalc.path);
+            recalc.lerpt = Mathf.Clamp(factor, recalc.lerpClamp, 1f - recalc.lerpClamp);
 
-            return factor < lerpClamp || factor > 1f - lerpClamp;
+            return factor < recalc.lerpClamp || factor > 1f - recalc.lerpClamp;
         }
 
         /// <summary> get the current position of the point. </summary>

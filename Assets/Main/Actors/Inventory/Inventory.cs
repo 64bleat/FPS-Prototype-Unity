@@ -10,9 +10,7 @@ namespace MPCore
     {
         [Header("Inventory")]
         public GameObject sceneObjectPrefab;
-        
         public string displayName;
-
         public int count = 1;
         public int maxCount = 1;
         public bool staticReference = false;
@@ -23,33 +21,23 @@ namespace MPCore
         public bool dropOnDeath = true;
         public float droppedLifeTime = 30f;
         public AudioClip pickupSound;
-
-        [GUITableValue("Count")]
-        public string Count => maxCount > 1 ? $"{count}/{maxCount}" : "";
-        [GUITableValue("Name")]
-        public string Name => displayName;
-
-        [GUIContextMenuOption("Test Void")]
-        public void InventoryTestMethod()
-        {
-            Debug.Log($"Testing {name}");
-        }
+        public bool isCopy = false;
 
         /// <summary> Pickup the item and call OnPickup, returns true if pickup was a success. </summary>
-        public bool TryPickup(Character character)
+        public bool TryPickup(Character character, bool verbose = true)
         {
             if (character && character.inventory != null)
             {
-                // Destroy on Pickup
+                // Pickup DestroyOnPickup
                 if (destroyOnPickup)
-                    return OnPickup(character.gameObject);
+                    return this.OnPickupInternal(character, this, verbose);
 
-                // Modify existing inventory item
+                // Pickup Duplicate
                 foreach (Inventory item in character.inventory)
                     if (item.displayName.Equals(displayName))
                         if (item.count >= item.maxCount)
                             return false;
-                        else if (OnPickup(character.gameObject))
+                        else if(this.OnPickupInternal(character, this, verbose))
                         {
                             item.count = Mathf.Min(item.maxCount, item.count + count);
                             return true;
@@ -57,23 +45,33 @@ namespace MPCore
                         else
                             return false;
 
-                // Add new item to inventory
-                Inventory instance = staticReference ? this : Instantiate(this);
+                // Pickup New
+                bool isStatic = staticReference || isCopy;
+                Inventory instance;
 
-                if (instance.OnPickup(character.gameObject))
+                if (isStatic)
+                    instance = this;
+                else
+                {
+                    instance = Instantiate(this);
+                    instance.isCopy = true;
+                }
+
+                if(instance.OnPickupInternal(character, instance, verbose))
                 {
                     character.inventory.Add(instance);
 
                     return true;
                 }
-                else if (!staticReference)
+                else if (instance != this)
                     Destroy(instance);
             }
 
             return false;
         }
 
-        /// <summary> Drop the item and call OnDrop. returns true if drop was a success. </summary>
+        /// <summary> Try to drop an inventory item </summary>
+        /// <returns> true if the item was successfully dropped </returns>
         public bool TryDrop(GameObject owner, Vector3 position, Quaternion rotation, RaycastHit dropPoint, out GameObject droppedObject)
         {
             droppedObject = null;
@@ -112,19 +110,33 @@ namespace MPCore
             return destroyOnDrop || droppedObject;
         }
 
-        /// <summary> Child-defined code for picking up an item </summary>
-        /// <param name="pickedBy"> The active gameObject that is trying to pick this item up </param>
-        /// <returns> true when the item is ready to be picked up </returns>
-        public virtual bool OnPickup(GameObject pickedBy)
+        private bool OnPickupInternal(Character picker, Inventory item, bool verbose)
+        {
+            bool valid = OnPickup(picker.gameObject);
+
+            if (picker.isPlayer && picker.pickupMessager && verbose && valid)
+                picker.pickupMessager.Invoke(new MessageEventParameters() { message = $"Acquired {item.displayName}" });
+
+            return valid;
+        }
+
+        /// <summary> Child-defined code for approving pick-ups </summary>
+        /// <remarks> OnPickup is essentially the OnEnable of Inventory.
+        /// It is called before the item is copied for pickup. </remarks>
+        /// <param name="picker"> The active gameObject that is trying to pick this item up </param>
+        /// <returns> true when the pick-up is approved </returns>
+        public virtual bool OnPickup(GameObject picker)
         {
             return true;
         }
 
-        /// <summary> Child-defined code for dropping an item </summary>
+        /// <summary> Child-defined code for approving drops </summary>
+        /// <remarks> OnDrop is essentially the OnDestroy of Inventory.
+        /// It is called before the item is dropped. </remarks>
         /// <param name="owner"></param>
         /// <param name="position"></param>
         /// <param name="rotation"></param>
-        /// <returns></returns>
+        /// <returns> true when the drop is approved </returns>
         public virtual bool OnDrop(GameObject owner, Vector3 position, Quaternion rotation)
         {
             return true;

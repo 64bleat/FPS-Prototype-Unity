@@ -5,31 +5,15 @@ using MPConsole;
 using Serialization;
 using UnityEngine.UI;
 using MPGUI;
+using UnityEngine.Audio;
 
 namespace MPCore
 {
     //[ContainsConsoleCommands]
     public class SettingsManager : MonoBehaviour
     {
-        //private void Awake()
-        //{
-        //    Console.RegisterInstance(this);
-        //}
-
-        //private void OnDestroy()
-        //{
-        //    Console.RemoveInstance(this);
-        //}
-
-        //[ConsoleCommand("s")]
-        //public string TestSave()
-        //{
-        //    string ret = "\n--- SAVE SETTINGS TEST ---\n";
-
-        //    ret += XMLSerialization.SaveToString(SerializeSettings());
-
-        //    return ret;
-        //}
+        public AudioMixer mixer;
+        public string[] mixerFloatParameters;
 
         public void SaveSettings()
         {
@@ -47,7 +31,6 @@ namespace MPCore
         private SettingsSerializationData SerializeSettings()
         {
             SettingsSerializationData data = new SettingsSerializationData();
-
             CanvasScaler cs = gameObject.GetComponentInChildren<CanvasScaler>(true);
             KeyMapSettingsGUI kms = gameObject.GetComponentInChildren<KeyMapSettingsGUI>(true);
 
@@ -55,6 +38,8 @@ namespace MPCore
                 data.Serialize(cs);
             if (kms)
                 data.Serialize(kms);
+            if (mixer)
+                data.Serialize(mixer, mixerFloatParameters);
 
             return data;
         }
@@ -64,10 +49,14 @@ namespace MPCore
             CanvasScaler cs = gameObject.GetComponentInChildren<CanvasScaler>(true);
             KeyMapSettingsGUI kms = gameObject.GetComponentInChildren<KeyMapSettingsGUI>(true);
 
+            data.InitializeDeserializationDictionary();
+
             if (cs)
                 data.Deserialize(cs);
             if (kms)
                 data.Deserialize(kms);
+            if (mixer)
+                data.Deserialize(mixer, mixerFloatParameters);
         }
     }
 }
