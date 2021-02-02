@@ -10,12 +10,14 @@ namespace MPCore
         public Weapon currentWeapon;
         public Weapon lastWeapon;
         public RectTransform emptyCrosshair;
+        public WeaponSlotEvents events;
 
         private Character character;
         private CharacterBody body;
         private CharacterEventManager gui;
         private GameObject currentWeaponEquip;
         private int currentWeaponSlot;
+        private Inventory selected;
 
         private void Awake()
         {
@@ -38,6 +40,10 @@ namespace MPCore
                 input.Bind("WeaponSlot8", () => DrawWeapon(8), this);
                 input.Bind("WeaponSlot9", () => DrawWeapon(9), this);
                 input.Bind("WeaponSlot0", () => DrawWeapon(0), this);
+                input.Bind("ItemActivate", ToggleSelectedActivatable, this);
+                input.Bind("ItemNext", NextActivatable, this);
+                input.Bind("ItemPrevious", PreviousActivatable, this);
+                input.OnMouseScrollVertical += DrawScroll;
             }
         }
 
@@ -61,6 +67,96 @@ namespace MPCore
         {
             if(isPlayer && currentWeapon)
                 gui.hud.OnSetCrosshair.Invoke(currentWeapon.crosshair);
+        }
+
+        public void NextActivatable()
+        {
+            SelectActivatable(true);
+        }
+
+        private void PreviousActivatable()
+        {
+            SelectActivatable(false);
+        }
+
+        private void SelectActivatable(bool forward)
+        {
+            int count = character.inventory.Count;
+            int start;
+            Inventory next = null;
+
+            if (selected)
+                start = character.inventory.IndexOf(selected) + (forward ? 1 : -1);
+            else
+                start = 0;
+
+            for (int i = 0; i < count; i++)
+            {
+                Inventory item;
+
+                if (forward)
+                    item = character.inventory[(start + i) % count];
+                else
+                    item = character.inventory[(start + count - i) % count];
+
+                if (item.activatable)
+                {
+                    next = item;
+                    break;
+                }
+            }
+
+            if (selected && character.isPlayer)
+                events.OnActivatableDeselect?.Invoke(selected);
+
+            if (next)
+            {
+                selected = next;
+
+                if(character.isPlayer)
+                    events.OnActivatableSelect?.Invoke(next);
+            }
+        }
+
+        public void ToggleSelectedActivatable()
+        {
+            if (selected)
+            {
+                selected.SetActive(character.gameObject, !selected.active);
+
+                if (character.isPlayer)
+                    events.OnActivatableToggle?.Invoke(selected);
+            }
+        }
+
+        private void DrawScroll(float scroll)
+        {
+            int count = character.inventory.Count;
+            Weapon next = null;
+            Weapon loop = null;
+
+            for (int i = 0; i < count; i++)
+                if (character.inventory[i] is Weapon w)
+                    if (scroll > 0)
+                    {
+                        if (w.weaponSlot > currentWeapon.weaponSlot && (!next || w.weaponSlot < next.weaponSlot))
+                            next = w;
+                        else if (w.weaponSlot < currentWeapon.weaponSlot && (!loop || w.weaponSlot < loop.weaponSlot))
+                            loop = w;
+                    }
+                    else if (scroll < 0)
+                    {
+                        if (w.weaponSlot < currentWeapon.weaponSlot && (!next || w.weaponSlot > next.weaponSlot))
+                            next = w;
+                        else if (w.weaponSlot > currentWeapon.weaponSlot && (!loop || w.weaponSlot > loop.weaponSlot))
+                            loop = w;
+                    }
+
+            if (!next)
+                next = loop;
+
+            if (next)
+                DrawWeapon(next);
         }
 
         /// <summary> Draw an automatically picked weapon </summary>
@@ -152,7 +248,10 @@ namespace MPCore
                 currentWeaponSlot = weapon.weaponSlot;
 
                 if (character.isPlayer)
+                {
                     gui.hud.OnSetCrosshair.Invoke(weapon.crosshair);
+                    events.OnWeaponSelect?.Invoke(weapon.weaponSlot);
+                }
             }
             else
             {
@@ -160,7 +259,10 @@ namespace MPCore
                 currentWeaponSlot = -1;
 
                 if (character.isPlayer)
+                {
                     gui.hud.OnSetCrosshair.Invoke(emptyCrosshair);
+                    events.OnWeaponSelect?.Invoke(-1);
+                }
             }
 
             currentWeapon = weapon;

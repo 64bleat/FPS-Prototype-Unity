@@ -16,12 +16,11 @@ namespace MPCore
         public List<Inventory> randomSpawnInventory;
         public CharacterInfo playerInfo;
         public BotmatchGameInfo botmatchInfo;
-
-        [Header("References")]
+        public Scoreboard scoreboard;
+        public DamageType respawnDamageType;
         public ObjectEvent characterSpawnChannel;
         public MessageEvent onShortMessage;
         public DeathEvent onDeath;
-        public DamageType respawnDamageType;
 
         private CharacterInfo loadedPlayerInfo;
         private readonly List<CharacterInfo> loadedBotInfo = new List<CharacterInfo>();
@@ -44,8 +43,10 @@ namespace MPCore
             Console.RegisterInstance(this);
             PauseManager.Add(OnPauseUnPause);
 
+            scoreboard.Clear();
+
             // Register player instance
-            loadedPlayerInfo = Instantiate(playerInfo);
+            RegisterPlayer();
 
             // Register bot instances
             if (botmatchInfo)
@@ -82,12 +83,19 @@ namespace MPCore
             }
         }
 
+        private void RegisterPlayer()
+        {
+            loadedPlayerInfo = playerInfo.TempClone();//Instantiate(playerInfo);
+
+            scoreboard.AddCharacter(loadedPlayerInfo);
+        }
+
         private void RegisterBot()
         {
             int i = loadedBotInfo.Count;
             int repeat = i / botmatchInfo.botRoster.Length;
             CharacterInfo template = botmatchInfo.botRoster[i % botmatchInfo.botRoster.Length];
-            CharacterInfo botInfo = Instantiate(template);
+            CharacterInfo botInfo = template.TempClone();//Instantiate(template);
 
             if (repeat > 0)
             {
@@ -95,6 +103,7 @@ namespace MPCore
                 botInfo.displayName = $"{botInfo.displayName} {repeat}";
             }
 
+            scoreboard.AddCharacter(botInfo);
             loadedBotInfo.Add(botInfo);
             deadBots.Enqueue(botInfo);
         }
@@ -152,24 +161,45 @@ namespace MPCore
             }
 
             // Display Death HUD Notifications
+            MessageEventParameters message = default;
+
             try
-            {
+            { 
                 if (death.victim == loadedPlayerInfo)
                 {
                     if (death.victim == death.instigator)
-                        onShortMessage.Invoke("F");
+                        message.message = "F";
                     else
-                        onShortMessage.Invoke($"You were killed by {death.instigator.displayName}");
+                        message.message = $"You were killed by {death.instigator.displayName}";
+
+                    message.color = Color.black;
+                    message.imageColor = Color.white;
                 }
                 else if (death.instigator == loadedPlayerInfo)
                 {
-                    onShortMessage.Invoke($"You killed {death.victim.displayName}");
+                    message.message = $"You killed {death.victim.displayName}";
+                    message.color = Color.black;
+                    message.imageColor = Color.white;
+                }
+                else
+                {
+                    message.message = $"{death.instigator.displayName} killed {death.victim.displayName}";
+                    message.color = Color.grey;
+                    message.imageColor = new Color(0f, 0f, 0f, 0.25f);
                 }
             }
             catch (Exception)
             {
                 // Non-Crucial. Just too many null-checks.
             }
+            finally
+            {
+                if(!message.Equals(default))
+                    onShortMessage.Invoke(message);
+            }
+
+            // Register to scoreboard.
+            scoreboard.AddKill(death.instigator, death.victim);
         }
 
         /// <summary> Called when the player dies </summary>
@@ -216,10 +246,10 @@ namespace MPCore
                         character.RegisterCharacter();
 
                         foreach (Inventory inv in spawnInventory)
-                            inv.TryPickup(character, verbose: false);
+                            inv.TryPickup(character, out _);
 
                         if (randomSpawnInventory.Count > 0)
-                            randomSpawnInventory[Random.Range(0, Mathf.Max(0, randomSpawnInventory.Count))].TryPickup(character, verbose: false);
+                            randomSpawnInventory[Random.Range(0, Mathf.Max(0, randomSpawnInventory.Count))].TryPickup(character, out _);
 
                         if (spawnPoint.TryGetComponentInParent(out PortaSpawn spawnPs))
                             spawnPs.TransferStuff(character);

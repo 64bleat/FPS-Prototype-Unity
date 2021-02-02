@@ -6,7 +6,7 @@ namespace MPCore
     {
         public float interactDistance = 3f;
 
-        private GameObject body;
+        private GameObject owner;
         private TargetInfo target;
         private Character character;
         private int layerMask;
@@ -16,7 +16,7 @@ namespace MPCore
             InputManager input = GetComponentInParent<InputManager>();
 
             character = GetComponentInParent<Character>();
-            body = character ? character.gameObject : gameObject;
+            owner = character.gameObject;
             layerMask = LayerMask.GetMask("Default", "Physical", "Interactable");
 
             input.Bind("Interact", OnInteractStart, this, KeyPressType.Down);
@@ -48,7 +48,7 @@ namespace MPCore
             {
                 hit.point = transform.position + transform.forward * interactDistance;
                 hit.distance = interactDistance;
-                hit.normal = body.transform.up;
+                hit.normal = owner.transform.up;
             }
 
             return new TargetInfo(hit);
@@ -58,17 +58,17 @@ namespace MPCore
         {
             target = GetTarget();
 
-            target?.interactable?.OnInteractStart(body, target.hit);
+            target?.interactable?.OnInteractStart(owner, target.hit);
         }
 
         private void OnInteractHold()
         {
-            target?.interactable?.OnInteractHold(body, GetTarget().hit);
+            target?.interactable?.OnInteractHold(owner, GetTarget().hit);
         }
 
         private void OnInteractEnd()
         {
-            target?.interactable?.OnInteractEnd(body, GetTarget().hit);
+            target?.interactable?.OnInteractEnd(owner, GetTarget().hit);
             target = null; 
         }
 
@@ -78,10 +78,10 @@ namespace MPCore
             {
                 TargetInfo t = GetTarget();
                 Vector3 position = t.hit.point;
-                Quaternion rotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(t.hit.point - transform.position, t.hit.normal), body.transform.up);
+                Quaternion rotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(t.hit.point - transform.position, t.hit.normal), owner.transform.up);
                 int index = character.inventory.Count - 1;
 
-                InventoryManager.Drop(character.inventory, index, position, rotation, body.gameObject, t.hit);
+                InventoryManager.Drop(character.inventory, index, position, rotation, owner, t.hit);
             }
         }
     }

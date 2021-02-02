@@ -35,5 +35,7 @@ namespace MPCore
     public struct MessageEventParameters
     {
         public string message;
+        public Color color;
+        public Color imageColor;
     }
 }

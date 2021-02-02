@@ -7,20 +7,16 @@ namespace MPCore
 {
     public class WallJumpBoots : Inventory
     {
-        public override bool OnPickup(GameObject owner)
+        public override void OnActivate(GameObject owner)
         {
-            if (owner.GetComponent<CharacterBody>() is var cb && cb)
-                cb.wallJump = this;
-
-            return cb;
+            if (owner.TryGetComponent(out CharacterBody body))
+                body.wallJump = this;
         }
 
-        public override bool OnDrop(GameObject owner, Vector3 position, Quaternion rotation)
+        public override void OnDeactivate(GameObject owner)
         {
-            if (owner.GetComponent<CharacterBody>() is var cb && cb)
-                cb.wallJump = null;
-
-            return true;
+            if (owner.TryGetComponent(out CharacterBody body))
+                body.wallJump = null;
         }
 
         public void OnWallJump()

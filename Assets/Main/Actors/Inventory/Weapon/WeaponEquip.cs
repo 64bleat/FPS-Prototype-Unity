@@ -1,50 +1,36 @@
-﻿using MPConsole;
-using MPGUI;
-using MPCore;
+﻿using MPGUI;
 using UnityEngine;
+using System;
 
 namespace MPCore
 {
     public class WeaponEquip : MonoBehaviour
     {
-       
         public Transform firePoint;
         public AudioClip fireSound;
         public LineRenderer ropePrefab;
 
-        [HideInInspector] public GameObject owner;
+        [NonSerialized] public GameObject owner;
 
         private ParticleSystem muzzleFlash;
         private Weapon weapon;
-        private GameObjectPool primProjPool;
+        private GameObjectPool projectilePool;
         private CharacterBody body;
         private Character character;
         private InputManager input;
         protected AudioSource audioSource;
         private ImpactJiggler recoil;
-        private LineRenderer rope;
-        private readonly StateMachine state = new StateMachine();
+        private float fireWait;
         private static int layerMask;
         private static readonly string[] layermask = new string[]{
             "Default", "Physical", "Player"};
-
-        //Grapple
-        public Transform grappleTransform;
-        private Collider grappleCollider;
-        public Vector3 grapplePoint;
-        private const float maxGrappleDistance = 25f;
-        private const float reelSpeedMax = 5f;
-        private const float reelSpeedAccel = 6f;
-        private float reelSpeed = 0;
-        private float grappleDistance;
 
         private void Awake()
         {
             if (TryGetComponent(out InventoryItem inv))
                 weapon = inv.item as Weapon;
 
-            primProjPool = GameObjectPool.GetPool(weapon.projectilePrimary, 100);
-
+            projectilePool = GameObjectPool.GetPool(weapon.projectilePrimary, 100);
             audioSource = GetComponent<AudioSource>();
             recoil = GetComponentInParent<ImpactJiggler>();
             owner = GetComponentInParent<Character>().gameObject;
@@ -55,51 +41,98 @@ namespace MPCore
 
             layerMask = LayerMask.GetMask(layermask);
 
-            state.Add(new State("Idle"));
-            state.Add(new State("Firing", start: FiringBegin, update: FiringUpdate));
-
-            PauseManager.Add(OnPauseUnPause);
+            PauseManager.Add(OnPause);
         }
 
         private void OnEnable()
         {
-            input.Bind("AltFire", Grapple, this, KeyPressType.Down);
-            input.Bind("AltFire", GrappleRelease, this, KeyPressType.Up);
-            input.Bind("Fire", SwitchToFire, this, KeyPressType.Held);
+            input.Bind("Fire", TryFire, this, KeyPressType.Held);
 
-            state.Initialize("Idle");
+            fireWait = weapon.refireRatePrimary;
         }
 
         private void OnDisable()
         {
-            input.Unbind("AltFire", Grapple);
-            input.Unbind("AltFire", GrappleRelease);
-            input.Unbind("Fire", SwitchToFire);
+            input.Unbind("Fire", TryFire);
         }
 
         private void OnDestroy()
         {
-            PauseManager.Remove(OnPauseUnPause);
+            PauseManager.Remove(OnPause);
         }
 
-        private void OnPauseUnPause(bool paused)
+        private void OnPause(bool paused)
         {
             enabled = !paused;
         }
 
         private void Update()
         {
-            state.Update();
+            fireWait -= Time.deltaTime;
         }
 
-        private void FixedUpdate()
+        public void TryFire()
         {
-            GrappleUpdate();
-            state.FixedUpdate();
+            if (fireWait <= 0)
+                Fire();
+        }
+
+        public void Fire()
+        {
+            if (audioSource)
+                audioSource.Play();
+
+            if (muzzleFlash)
+                muzzleFlash.Play();
+
+            if (recoil) 
+                recoil.AddForce(new Vector3(0, 0, -3f));
+
+            ProjectileFire(projectilePool);
+
+            fireWait = weapon.refireRatePrimary;
+        }
+
+        /// <summary> Weapon fires a projectile </summary>
+        /// <param name="projectilePool"> projectiles are pooled to avoid instantiation </param>
+        public void ProjectileFire(GameObjectPool projectilePool)
+        {
+            Vector3 point = GetFirePoint();
+
+            Projectile.Fire(projectilePool, point, body.cameraSlot.rotation, firePoint, owner, character.characterInfo, body.lastPlatformVelocity);
+        }
+
+        /// <summary> Ensures projectiles don't shoot through close walls </summary>
+        private Vector3 GetFirePoint()
+        {
+            float distance = body.cap.radius;
+
+            if (Physics.Raycast(
+                origin: body.cameraSlot.position,
+                direction: body.cameraSlot.forward,
+                hitInfo: out RaycastHit hit,
+                maxDistance: distance,
+                layerMask: layerMask,
+                queryTriggerInteraction: QueryTriggerInteraction.Ignore))
+                distance = hit.distance;
+
+            distance -= body.cap.radius * 0.25f;
+
+            return body.cameraSlot.transform.position + body.cameraSlot.transform.forward * distance;
         }
 
         // GRAPPLE TEST
-        private void Grapple()
+
+        //Grapple
+        //public Transform grappleTransform;
+        //private Collider grappleCollider;
+        //public Vector3 grapplePoint;
+        //private const float maxGrappleDistance = 25f;
+        //private const float reelSpeedMax = 5f;
+        //private const float reelSpeedAccel = 6f;
+        //private float reelSpeed = 0;
+        //private float grappleDistance;
+        /*private void Grapple()
         {
             if (Physics.Raycast(body.cameraSlot.position, body.cameraSlot.forward, out RaycastHit hit, maxGrappleDistance, layerMask, QueryTriggerInteraction.Ignore))
             {
@@ -168,66 +201,7 @@ namespace MPCore
             if(rope)
                 Destroy(rope.gameObject);
         }
+        */
 
-        //IDLE=================================================================
-        private void SwitchToFire()
-        {
-            if (state.IsCurrentState("Idle") && state.StateTime >= weapon.refireRatePrimary)
-                state.SwitchTo("Firing");
-        }
-
-        //FIRING===============================================================
-        public void FiringBegin()
-        {
-            //GameObjectPool projectilePool = GameObjectPool.GetPool(weapon.projectilePrimary, 100);
-
-            if (gameObject && gameObject.activeSelf && audioSource)
-                audioSource.Play();
-
-            if (muzzleFlash)
-                muzzleFlash.Play();
-
-            if (recoil) 
-                recoil.AddForce(new Vector3(0, 0, -3f));
-
-            ProjectileFire(primProjPool);
-        }
-
-        public void FiringUpdate()
-        {
-            //if (state.StateTime >= weapon.refireRatePrimary)
-                state.SwitchTo("Idle");
-        }
-
-        public void FiringEnd() { }
-
-        //ALTFIRING============================================================
-
-        public void AltFiringBegin() { }
-
-        public void AltFiringUpdate() { }
-
-        public void AltFiringEnd() { }
-
-        /// <summary> Weapon fires a projectile </summary>
-        /// <param name="projectilePool"> projectiles are pooled to avoid instantiation </param>
-        public void ProjectileFire(GameObjectPool projectilePool)
-        {
-            float distance = body.cap.radius * 2f;
-
-            if (Physics.Raycast(
-                origin: body.cameraSlot.position,
-                direction: body.cameraSlot.forward,
-                hitInfo: out RaycastHit hit,
-                maxDistance: distance,
-                layerMask: layerMask,
-                queryTriggerInteraction: QueryTriggerInteraction.Ignore))
-                distance = hit.distance;
-
-            distance -= body.cap.radius * 0.25f;
-            Vector3 point = body.cameraSlot.transform.position + body.cameraSlot.transform.forward * distance;
-
-            Projectile.Fire(projectilePool, point, body.cameraSlot.rotation, firePoint, owner, character.characterInfo, body.lastPlatformVelocity);
-        }
     }
 }

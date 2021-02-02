@@ -33,6 +33,8 @@ namespace MPCore
         private static readonly List<BotPress> botPressStart = new List<BotPress>();
         private static readonly List<KeyListener> removeKL = new List<KeyListener>();
 
+        public Action<float> OnMouseScrollVertical;
+
         public delegate Vector2 MouseUpdateDelegate(float dt);
         public event MouseUpdateDelegate OnMouseMove;
 
@@ -114,7 +116,7 @@ namespace MPCore
                     foreach (KeyListener listener in value)
                         if (!listener.owner)
                             removeKL.Add(listener);
-                        else if (listener.owner.gameObject.activeInHierarchy)
+                        else if (listener.owner.gameObject)//.activeInHierarchy)
                             if (listener.pressType == KeyPressType.Down && isDown)
                                 actionDownSet.Add(listener.action);
                             else if (listener.pressType == KeyPressType.Held && isHeld)
@@ -164,8 +166,15 @@ namespace MPCore
             //foreach (BotMouse bot in removeBP)
             //    botMouse.Remove(bot);
 
+            // Mosue Delta
             botMouseDelta = Vector2.zero;
             botMouseDelta += OnMouseMove?.Invoke(Time.deltaTime) ?? Vector2.zero;
+
+            // Mouse Scroll
+            Vector2 scroll = Input.mouseScrollDelta;
+
+            if (scroll.y != 0)
+                OnMouseScrollVertical?.Invoke(scroll.y);
 
             //removeBP.Clear();
             actionDownSet.Clear();

@@ -65,8 +65,6 @@ namespace MPConsole
         {
             fullLogText = entryMessage;
             logText.SetText(GetViewableLog(fullLogText));
-
-            //fullLogText = logText.text;
         }
 
         private void OnDestroy()

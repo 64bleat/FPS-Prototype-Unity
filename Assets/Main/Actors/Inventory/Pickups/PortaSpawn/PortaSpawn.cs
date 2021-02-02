@@ -23,7 +23,7 @@ namespace MPCore
         public void TransferStuff(Character character)
         {
             foreach (Inventory i in savedStuff)
-                i.TryPickup(character);
+                i.TryPickup(character, out _);
         }
 
         public override void OnDropped(GameObject dropper)

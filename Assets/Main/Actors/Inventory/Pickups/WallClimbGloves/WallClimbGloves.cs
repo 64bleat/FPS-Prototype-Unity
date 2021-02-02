@@ -1,7 +1,4 @@
-﻿using MPCore;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MPCore
 {
@@ -9,20 +6,16 @@ namespace MPCore
     {
         public bool onlyActivateOnCrouch = true;
 
-        public override bool OnPickup(GameObject owner)
+        public override void OnActivate(GameObject owner)
         {
-            if (owner.GetComponent<CharacterBody>() is var cb && cb)
-                cb.wallClimb = this;
-
-            return cb;
+            if(owner.TryGetComponent(out CharacterBody body))
+                body.wallClimb = this;
         }
 
-        public override bool OnDrop(GameObject owner, Vector3 position, Quaternion rotation)
+        public override void OnDeactivate(GameObject owner)
         {
-            if (owner.GetComponent<CharacterBody>() is var cb && cb)
-                cb.wallClimb = null;
-
-            return true;
+            if (owner.TryGetComponent(out CharacterBody body))
+                body.wallClimb = null;
         }
     }
 }

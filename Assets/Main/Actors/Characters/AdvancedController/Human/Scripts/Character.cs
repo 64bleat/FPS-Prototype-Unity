@@ -20,6 +20,7 @@ namespace MPCore
         public DeathEvent onDeath;
         public ObjectEvent onCharacterSpawn;
         public MessageEvent pickupMessager;
+        public WeaponSlotEvents inventoryEvents;
 
         // Events
         public event Action<bool> OnPlayerSet;
@@ -177,6 +178,27 @@ namespace MPCore
 
             if (isPlayer)
                 return health != default ? "God mode disabled" : "God mode enabled";
+            else
+                return null;
+        }
+
+        [ConsoleCommand("pickup")]
+        public string PickUp(string path)
+        {
+            if (isPlayer)
+            {
+                Inventory resource = Resources.Load<Inventory>(path);
+
+                if (resource)
+                {
+                    if (InventoryManager.PickUp(this, resource))
+                        return $"Picked up {resource.name}";
+                    else
+                        return $"Could not pick up {resource.name}";
+                }
+                else
+                    return $"Could not find resource {path}";
+            }
             else
                 return null;
         }

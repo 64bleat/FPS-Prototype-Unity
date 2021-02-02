@@ -22,34 +22,16 @@ namespace MPCore
         public float droppedLifeTime = 30f;
         public AudioClip pickupSound;
         public bool isCopy = false;
+        public bool activatable = false;
+        public bool active = false;
 
         /// <summary> Pickup the item and call OnPickup, returns true if pickup was a success. </summary>
-        public bool TryPickup(Character character, bool verbose = true)
+        public bool TryPickup(Character character, out Inventory instance)
         {
             if (character && character.inventory != null)
             {
-                // Pickup DestroyOnPickup
-                if (destroyOnPickup)
-                    return this.OnPickupInternal(character, this, verbose);
-
-                // Pickup Duplicate
-                foreach (Inventory item in character.inventory)
-                    if (item.displayName.Equals(displayName))
-                        if (item.count >= item.maxCount)
-                            return false;
-                        else if(this.OnPickupInternal(character, this, verbose))
-                        {
-                            item.count = Mathf.Min(item.maxCount, item.count + count);
-                            return true;
-                        }
-                        else
-                            return false;
-
-                // Pickup New
-                bool isStatic = staticReference || isCopy;
-                Inventory instance;
-
-                if (isStatic)
+                // Set instance
+                if (destroyOnPickup || staticReference || isCopy)
                     instance = this;
                 else
                 {
@@ -57,7 +39,24 @@ namespace MPCore
                     instance.isCopy = true;
                 }
 
-                if(instance.OnPickupInternal(character, instance, verbose))
+                // Pickup DestroyOnPickup
+                if (destroyOnPickup)
+                    return instance.OnPickupInternal(character);
+
+                // Pickup Duplicate
+                foreach (Inventory item in character.inventory)
+                    if (item.displayName.Equals(displayName))
+                        if (item.count >= item.maxCount)
+                            return false;
+                        else if (instance.OnPickupInternal(character))
+                        {
+                            item.count = Mathf.Min(item.maxCount, item.count + count);
+                            return true;
+                        }
+                        else
+                            return false;
+
+                if (instance.OnPickupInternal(character))
                 {
                     character.inventory.Add(instance);
 
@@ -66,6 +65,8 @@ namespace MPCore
                 else if (instance != this)
                     Destroy(instance);
             }
+            else
+                instance = null;
 
             return false;
         }
@@ -74,11 +75,18 @@ namespace MPCore
         /// <returns> true if the item was successfully dropped </returns>
         public bool TryDrop(GameObject owner, Vector3 position, Quaternion rotation, RaycastHit dropPoint, out GameObject droppedObject)
         {
-            droppedObject = null;
-
             if (OnDrop(owner, position, rotation) && !destroyOnDrop && sceneObjectPrefab)
             {
+                // Deactivate if Active
+                SetActive(owner, false);
+
                 droppedObject = Instantiate(sceneObjectPrefab, position, rotation);
+
+                // Remove In HUD
+                if(activatable && owner.TryGetComponent(out Character character) && character.isPlayer)
+                {
+                    character.inventoryEvents.OnActivatableDrop?.Invoke(this);
+                }
 
                 // Inventory Transfer to Dropped Object
                 if (droppedObject.GetComponent<InventoryObject>() is var io && io)
@@ -106,16 +114,29 @@ namespace MPCore
                     && droppedObject.GetComponent<Collider>() is var collider && collider)
                     droppedObject.transform.position += collider.transform.position - collider.ClosestPoint(collider.transform.position - dropPoint.normal * 100);
             }
+            else
+                droppedObject = null;
 
             return destroyOnDrop || droppedObject;
         }
 
-        private bool OnPickupInternal(Character picker, Inventory item, bool verbose)
+        private bool OnPickupInternal(Character character)
         {
-            bool valid = OnPickup(picker.gameObject);
+            bool valid = OnPickup(character.gameObject);
 
-            if (picker.isPlayer && picker.pickupMessager && verbose && valid)
-                picker.pickupMessager.Invoke(new MessageEventParameters() { message = $"Acquired {item.displayName}" });
+            // Activatables
+            if (activatable && active)
+                OnActivate(character.gameObject);
+
+            // Display Pickup Message
+            if (character.isPlayer)
+            {
+                if (character.pickupMessager && valid)
+                    character.pickupMessager.Invoke(new MessageEventParameters() { message = $"Acquired {displayName}" });
+
+                if (activatable)
+                    character.inventoryEvents.OnActivatablePickup?.Invoke(this);
+            }
 
             return valid;
         }
@@ -140,6 +161,27 @@ namespace MPCore
         public virtual bool OnDrop(GameObject owner, Vector3 position, Quaternion rotation)
         {
             return true;
+        }
+
+        public bool SetActive(GameObject owner, bool active)
+        {
+            if (this.active != active)
+                if (active)
+                    OnActivate(owner);
+                else
+                    OnDeactivate(owner);
+
+            return this.active = active;
+        }
+
+        public virtual void OnActivate(GameObject owner)
+        {
+
+        }
+
+        public virtual void OnDeactivate(GameObject owner)
+        {
+
         }
     }
 }

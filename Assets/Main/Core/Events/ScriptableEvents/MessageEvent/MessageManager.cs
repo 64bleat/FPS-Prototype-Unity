@@ -1,5 +1,6 @@
 ﻿using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MPCore
 {
@@ -27,14 +28,21 @@ namespace MPCore
 
         private void SetText(MessageEventParameters message)
         {
-            GameObject c = Instantiate(template, transform);
-            TextMeshProUGUI t = c.GetComponentInChildren<TextMeshProUGUI>();
+            GameObject go = Instantiate(template, transform);
 
-            t.text = message.message;
-            c.SetActive(true);
+            if (go.TryGetComponentInChildren(out Image image))
+                image.color = message.imageColor;
+
+            if(go.TryGetComponentInChildren(out TextMeshProUGUI text))
+            {
+                text.SetText(message.message);
+                text.color = message.color;
+            }
+
+            go.SetActive(true);
 
             if (lifeSpan > 0)
-                Destroy(c, lifeSpan);
+                Destroy(go, lifeSpan);
         }
     }
 }

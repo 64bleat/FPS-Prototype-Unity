@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using MPCore;
 
 namespace MPCore
 {
@@ -9,8 +7,10 @@ namespace MPCore
     {
         public static bool PickUp(Character character, Inventory item)
         {
-            if (character && item && item.TryPickup(character))
+            if (character && item && item.TryPickup(character, out _))
+            {
                 return true;
+            }
             else
                 return false;
         }
@@ -19,15 +19,20 @@ namespace MPCore
         {
             GameObject droppedObject = null;
 
-            if(index >= 0 && index < list.Count)
-                if(list[index].TryDrop(owner, position, rotation, hit, out droppedObject))
+            if (index >= 0 && index < list.Count)
+            {
+                Inventory item = list[index];
+
+                if (item.TryDrop(owner, position, rotation, hit, out droppedObject))
                 {
                     // REMOVAL MUST HAPPEN BEFORE DROP IS SPAWNED. OTHERWISE IT JUST DOUBLES THE COUNT
                     list.RemoveAt(index);
 
-                    if (droppedObject.GetComponent<InventoryObject>() is var io && io)
+                    // Attach inventory item to dropped GameObject
+                    if (droppedObject.TryGetComponent(out InventoryObject io))
                         io.OnDropped(owner);
                 }
+            }
 
             return droppedObject;
         }

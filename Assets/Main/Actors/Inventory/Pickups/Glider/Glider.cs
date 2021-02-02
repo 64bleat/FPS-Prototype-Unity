@@ -1,32 +1,33 @@
-﻿using MPCore;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MPCore
 {
     public class Glider : Inventory
     {
-        [SerializeField] public float defaultGlideAngle = 60f;
-        [SerializeField] public float defaultSpeedToLift = 9f;
-        [SerializeField] public float defaultDrag = 2.5f;
-        [SerializeField] public float defaultJetAccel = 0f;
-        [SerializeField] public float defaultJetSpeed = 200f;
+        public float defaultGlideAngle = 60f;
+        public float defaultSpeedToLift = 9f;
+        public float defaultDrag = 2.5f;
+        public float defaultJetAccel = 0f;
+        public float defaultJetSpeed = 200f;
 
-        public override bool OnPickup(GameObject owner)
+        public override void OnActivate(GameObject owner)
         {
-            if (owner.GetComponent<CharacterBody>() is var cb && cb)
-                cb.glider = this;
+            if (owner.TryGetComponent(out CharacterBody body))
+            {
+                if (body.glider)
+                    body.glider.SetActive(owner, false);
 
-            return cb;
+                body.glider = this;
+                active = true;
+            }
         }
 
-        public override bool OnDrop(GameObject owner, Vector3 position, Quaternion rotation)
+        public override void OnDeactivate(GameObject owner)
         {
-            if (owner.GetComponent<CharacterBody>() is var cb && cb)
-                cb.glider = null;
+            if (owner.TryGetComponent(out CharacterBody body))
+                body.glider = null;
 
-            return true;
+            active = false;
         }
 
         public void OnGlide(CharacterBody cb, Vector3 zoneVelocity)

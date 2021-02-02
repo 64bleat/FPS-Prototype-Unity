@@ -19,9 +19,14 @@ namespace MPCore
         [Header("Damage")]
         public DamageType damageType;
         public int hitDamage = 10;
+        public float selfDamageScale = 1f;
+        public int explosionDamage = 60;
+        public float explosionRadius = 1f;
+        public GameObject explosionEffect;
         [Header("Physics")]
         public float gravityFactor = 0;
         public float hitMomentumTransfer = 15;
+        public float explosionMomentum = 50f;
         public float characterHitMomentumScale = 1f;
         public float minimumTransferMass = 15f;
         public float hitFrictionFactor = 0.5f;

@@ -7,6 +7,7 @@ namespace MPCore
         public enum WeaponHolder { RightHand, LeftHand, Center, Camera}
 
         [Header("Weapon")]
+        public string shortName;
         public RectTransform crosshair;
         public GameObject firstPersonPrefab;
         public int weaponSlot = 1;
@@ -20,23 +21,35 @@ namespace MPCore
 
         public override bool OnDrop(GameObject owner, Vector3 position, Quaternion rotation)
         {
-            if (owner.TryGetComponentInChildren(out WeaponSwitcher ws))
+            bool basePass = base.OnDrop(owner, position, rotation);
+
+            if(basePass && owner.TryGetComponentInChildren(out WeaponSwitcher ws))
+            {
                 if (this == ws.currentWeapon)
                     ws.DrawNextBestWeapon();
 
-            return base.OnDrop(owner, position, rotation);
+                if (owner.TryGetComponentInChildren(out Character character) && character.isPlayer)
+                    ws.events.DropWeapon(this);
+            }
+
+            return basePass;
         }
 
         public override bool OnPickup(GameObject owner)
         {
-            bool baseGood = base.OnPickup(owner);
+            bool basePass = base.OnPickup(owner);
 
-            if(baseGood)
-                if(owner.TryGetComponentInChildren(out WeaponSwitcher ws))
+            if (basePass)
+                if (owner.TryGetComponentInChildren(out WeaponSwitcher ws))
+                {
                     if (!ws.currentWeapon)
                         ws.DrawWeapon(this);
 
-            return baseGood;
+                    if(owner.TryGetComponentInChildren(out Character character) && character.isPlayer)
+                        ws.events.PickupWeapon(this);
+                }
+
+            return basePass;
         }
     }
 }

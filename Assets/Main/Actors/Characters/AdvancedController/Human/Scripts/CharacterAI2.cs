@@ -199,19 +199,22 @@ namespace MPCore
 
         private Vector3 GetMoveDestination(Component _)
         {
-            if (moveTarget is Character character && character
+            if (moveTarget is Character target && target
             && 0.5f >= Time.time - sight.lastSeen
             && weapons.currentWeapon)
             {
-                Vector3 rand = UnityEngine.Random.insideUnitSphere * weapons.currentWeapon.preferredCombatDistance;
+                Vector3 randPosition = UnityEngine.Random.insideUnitSphere * weapons.currentWeapon.preferredCombatDistance;
 
-                if (Physics.Raycast(character.transform.position, rand, out RaycastHit hit, rand.magnitude, layerMask, QueryTriggerInteraction.Ignore))
+                // Prevent Random Position from Jumping Rooms
+                if (Physics.Raycast(target.transform.position, randPosition, out RaycastHit hit, randPosition.magnitude, layerMask, QueryTriggerInteraction.Ignore))
                     return hit.point;
                 else
-                    return character.transform.position + rand;
+                    return target.transform.position + randPosition;
             }
             else if (moveTarget is Component component && component)
                 return component.transform.position;
+            else if (Time.time - sight.lastSeen < 200f)
+                return sight.lastSeenPosition + UnityEngine.Random.insideUnitSphere * Mathf.Clamp(Time.time - sight.lastSeen, 0, 3f);
             else
                 return Navigator.RandomPoint(body.cap.height / 2);
         }

@@ -4,5 +4,5 @@ using UnityEngine;
 
 public static class AiInterestPoints
 {
-    public static readonly HashSet<Component> interestPoints = new HashSet<Component>();
+    public static readonly List<Component> interestPoints = new List<Component>();
 }
