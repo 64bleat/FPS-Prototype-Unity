@@ -39,7 +39,7 @@ namespace MPCore
             if (kms)
                 data.Serialize(kms);
             if (mixer)
-                data.Serialize(mixer, mixerFloatParameters);
+                data.SerializeMixer(mixer, mixerFloatParameters);
 
             return data;
         }
@@ -56,7 +56,7 @@ namespace MPCore
             if (kms)
                 data.Deserialize(kms);
             if (mixer)
-                data.Deserialize(mixer, mixerFloatParameters);
+                data.DeserializeMixer(mixer, mixerFloatParameters);
         }
     }
 }

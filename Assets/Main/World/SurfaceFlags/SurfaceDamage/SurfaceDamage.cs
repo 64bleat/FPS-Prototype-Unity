@@ -8,36 +8,42 @@ namespace MPWorld
     {
         public int damage;
         public float damageDuration = 0.5f;
+        public float repelForce = 5f;
         public DamageType damageType;
+        public GameObject hitEffect;
 
         private readonly Dictionary<GameObject, float> damageTimes = new Dictionary<GameObject, float>();
 
-        public override void OnTouch(GameObject target, Collision hit)
+        public override void OnTouch(GameObject instigator, CBCollision hit)
         {
-            if (target && target.GetComponent<Character>() is var character && character)
+            if (instigator.TryGetComponent(out CharacterBody body))
             {
-                GameObject surface = hit?.gameObject ?? null;
-                CharacterInfo instigator;
+                body.Velocity += (hit.normal - body.cameraSlot.forward) * repelForce;
+                body.currentState = CharacterBody.MoveState.Airborne;
+            }
 
-                if (surface && surface.TryGetComponent(out Character ch) && ch.characterInfo)
-                    instigator = ch.characterInfo;
-                else
-                    instigator = null;
+            if (instigator.TryGetComponent(out Character character))
+            {
+                GameObject surface = hit.gameObject;
+                Vector3 normal = hit.normal;
 
-                if (damageTimes.TryGetValue(target, out float lastDamageTime))
+                if (damageTimes.TryGetValue(instigator, out float lastDamageTime))
                 {
                     if (Time.time - lastDamageTime >= damageDuration)
                     {
-                        damageTimes.Remove(target);
-                        character.Damage(damage, surface, instigator, damageType, hit.GetContact(0).normal);
-                        damageTimes.Add(target, Time.time);
+                        damageTimes.Remove(instigator);
+                        character.Damage(damage, hit.gameObject, character.characterInfo, damageType, normal);
+                        damageTimes.Add(instigator, Time.time);
                     }
                 }
                 else
                 {
-                    character.Damage(damage, surface, instigator, damageType, hit.GetContact(0).normal);
-                    damageTimes.Add(target, Time.time);
+                    character.Damage(damage, surface, character.characterInfo, damageType, normal);
+                    damageTimes.Add(instigator, Time.time);
                 }
+
+                if (GameObjectPool.TryGetPool(hitEffect, 1, out GameObjectPool pool))
+                    pool.Spawn(hit.point);
             }
         }
     }

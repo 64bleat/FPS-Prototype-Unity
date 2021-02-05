@@ -83,7 +83,7 @@ namespace MPCore
                 if (collision.gameObject)
                     if (collision.gameObject.TryGetComponent(out SurfaceFlagObject sfo))
                         foreach (SurfaceFlag flag in sfo.surfaceFlags)
-                            flag.OnTouch(transform.gameObject, null);
+                            flag.OnTouch(transform.gameObject, collision);
 
                 if (collision.collider.gameObject.TryGetComponent(out ITouchable it))
                     it.OnTouch(transform.gameObject, null);

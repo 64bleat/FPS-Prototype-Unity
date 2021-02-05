@@ -3,7 +3,6 @@ using MPWorld;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Console = MPConsole.Console;
 using Random = UnityEngine.Random;
 
@@ -11,7 +10,7 @@ namespace MPCore
 {
     [ContainsConsoleCommands]
     public class MovePersonGame : Game
-    {
+    {   
         public List<Inventory> spawnInventory;
         public List<Inventory> randomSpawnInventory;
         public CharacterInfo playerInfo;
@@ -33,16 +32,16 @@ namespace MPCore
 
         private void Awake()
         {
+            // References
             input = GetComponentInParent<InputManager>();
 
-            if (characterSpawnChannel)
-                characterSpawnChannel.Add(OnCharacterSpawned);
-            if (onDeath)
-                onDeath.Add(OnCharacterDied);
+            characterSpawnChannel.Add(OnCharacterSpawned);
+            onDeath.Add(OnCharacterDied);
 
             Console.RegisterInstance(this);
             PauseManager.Add(OnPauseUnPause);
 
+            // Clear Scoreboard data
             scoreboard.Clear();
 
             // Register player instance
@@ -56,8 +55,11 @@ namespace MPCore
 
         private void Start()
         {
+            // Spawn player on GameStart
             if (!currentPlayer)
                 Spawn(loadedPlayerInfo);
+            else
+                Debug.Log("FAILED");
         }
 
         private void OnDestroy()
@@ -75,17 +77,20 @@ namespace MPCore
         {
             if (botmatchInfo)
             {
+                // Bot count may change at any time
                 while (loadedBotInfo.Count < botmatchInfo.botCount)
                     RegisterBot();
 
+                // Attempt to spawn one bot per frame
                 if (liveBots.Count < botmatchInfo.botCount)
-                    Spawn(deadBots.Dequeue());
+                    if (Spawn(deadBots.Peek()))
+                        deadBots.Dequeue();
             }
         }
 
         private void RegisterPlayer()
         {
-            loadedPlayerInfo = playerInfo.TempClone();//Instantiate(playerInfo);
+            loadedPlayerInfo = playerInfo.TempClone();
 
             scoreboard.AddCharacter(loadedPlayerInfo);
         }
@@ -95,8 +100,9 @@ namespace MPCore
             int i = loadedBotInfo.Count;
             int repeat = i / botmatchInfo.botRoster.Length;
             CharacterInfo template = botmatchInfo.botRoster[i % botmatchInfo.botRoster.Length];
-            CharacterInfo botInfo = template.TempClone();//Instantiate(template);
+            CharacterInfo botInfo = template.TempClone();
 
+            // Create a numbered name for duplicate characters
             if (repeat > 0)
             {
                 botInfo.name = $"{botInfo.name} {repeat}";
@@ -162,6 +168,7 @@ namespace MPCore
 
             // Display Death HUD Notifications
             MessageEventParameters message = default;
+            message.color = Color.black;
 
             try
             { 
@@ -211,31 +218,35 @@ namespace MPCore
         /// <summary> Called when the player is ready to spawn </summary>
         private void PlayerDeadEnd()
         {
-            input.Unbind("Fire", PlayerDeadEnd);
-            Spawn(loadedPlayerInfo);
+            if(Spawn(loadedPlayerInfo))
+                input.Unbind("Fire", PlayerDeadEnd);
         }
 
         /// <summary> Spawn a character into the game. </summary>
         /// <param name="characterInfo"> Character to be assigned to the instantiated body </param>
-        private void Spawn(CharacterInfo characterInfo)
+        private bool Spawn(CharacterInfo characterInfo)
         {
             if (loadedPlayerInfo && loadedPlayerInfo.bodyType)
             {
-                GameObject spawnPoint = PortaSpawn.stack.Count != 0 ? PortaSpawn.stack.Peek() : SpawnPoint.GetSpawnPoint().gameObject;
-                bool isPlayer = characterInfo == loadedPlayerInfo;
+                SpawnPoint spawn = SpawnPoint.GetRandomSpawnPoint();
+                //GameObject spawnPoint = PortaSpawn.stack.Count != 0 ? PortaSpawn.stack.Peek() : spawn ? spawn.gameObject : null;
 
-                if (currentPlayer && isPlayer)
-                    if (currentPlayer.TryGetComponent(out Character ch))
-                    {
-                        ch.Kill(ch.characterInfo, gameObject, respawnDamageType);
-                        input.Unbind("Fire", PlayerDeadEnd);
-                    }
-                    else
-                        Destroy(currentPlayer);
-
-                if (spawnPoint)
+                if (spawn)
                 {
-                    GameObject playerNew = Instantiate(loadedPlayerInfo.bodyType.gameObject, spawnPoint.transform.position, spawnPoint.transform.rotation);
+                    bool isPlayer = characterInfo == loadedPlayerInfo;
+
+                    // Kill if the character is aready in play
+                    if (currentPlayer && isPlayer)
+                        if (currentPlayer.TryGetComponent(out Character ch))
+                        {
+                            ch.Kill(ch.characterInfo, gameObject, respawnDamageType);
+                            input.Unbind("Fire", PlayerDeadEnd);
+                        }
+                        else
+                            Destroy(currentPlayer);
+
+
+                    GameObject playerNew = Instantiate(loadedPlayerInfo.bodyType.gameObject, spawn.transform.position, spawn.transform.rotation);
 
                     playerNew.name = characterInfo.displayName;
 
@@ -251,19 +262,24 @@ namespace MPCore
                         if (randomSpawnInventory.Count > 0)
                             randomSpawnInventory[Random.Range(0, Mathf.Max(0, randomSpawnInventory.Count))].TryPickup(character, out _);
 
-                        if (spawnPoint.TryGetComponentInParent(out PortaSpawn spawnPs))
+                        if (spawn.TryGetComponentInParent(out PortaSpawn spawnPs))
                             spawnPs.TransferStuff(character);
                     }
 
+                    // Match SpawnPoint Velocity
                     if(playerNew.TryGetComponentInChildren(out IGravityUser playerGU))
-                        if (spawnPoint.TryGetComponentInParent(out Rigidbody spawnRb))
+                        if (spawn.TryGetComponentInParent(out Rigidbody spawnRb))
                             playerGU.Velocity = spawnRb.GetPointVelocity(playerNew.transform.position);
-                        else if (spawnPoint.TryGetComponentInParent(out IGravityUser spawnGu))
+                        else if (spawn.TryGetComponentInParent(out IGravityUser spawnGu))
                             playerGU.Velocity = spawnGu.Velocity;
+
+                    spawn.lastSpawnTime = Time.time;
+
+                    return true;
                 }
-                else
-                    Debug.LogWarning("No spawn point found!");
             }
+
+            return false;
         }
 
         [ConsoleCommand("respawn", "Respawns the player")]

@@ -20,7 +20,7 @@ namespace MPCore
         {
             Resources.UnloadUnusedAssets();
             PauseManager.Remove(GameTime.OnPauseUnPause);
-            PauseManager.Reset();
+            //PauseManager.Reset();
         }
     }
 }

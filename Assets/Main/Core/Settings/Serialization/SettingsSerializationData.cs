@@ -98,14 +98,14 @@ namespace MPCore
             return this;
         }
 
-        public void Serialize(AudioMixer mixer, string[] floatParameters)
+        public void SerializeMixer(AudioMixer mixer, string[] floatParameters)
         {
             foreach (string paramName in floatParameters)
                 if (mixer.GetFloat(paramName, out float value))
                     values.Add(new KVP(paramName, value.ToString()));
         }
 
-        public void Deserialize(AudioMixer mixer, string[] floatParameters)
+        public void DeserializeMixer(AudioMixer mixer, string[] floatParameters)
         {
             foreach (string paramName in floatParameters)
                 if (valueMap.TryGetValue(paramName, out string valueText)

@@ -18,7 +18,6 @@ namespace MPCore
         public bool enableCrouch = true;
         public bool enableJump = true;
         [Header("Modules")]
-        public Glider glider;
         public WallJumpBoots wallJump;
         public WallClimbGloves wallClimb;
         [Header("Movement")]
@@ -72,8 +71,9 @@ namespace MPCore
         [NonSerialized] public CharacterSound characterSound;
         [NonSerialized] public CollisionBuffer cb;
         [NonSerialized] public CapsuleCollider cap;
-        [NonSerialized] private CharacterInput input;
-        [NonSerialized] private Character character;
+        [NonSerialized] public CharacterInput input;
+        [NonSerialized] public Character character;
+        [NonSerialized] public CharacterVoice voice;
         [NonSerialized] private CharacterCamera characterCamera;
         private CharacterEventManager events;
         [NonSerialized] public Vector3 moveDir = Vector3.zero;
@@ -86,14 +86,17 @@ namespace MPCore
         [NonSerialized] public float lookX = 0;
         [NonSerialized] public float lookY = 0;
         [NonSerialized] public float stepOffset;
-        private int layerMask;
+        [NonSerialized] public int layerMask;
         [NonSerialized] public MoveState currentState;
         [NonSerialized] private readonly StateMachine crouchState = new StateMachine();
-
+        [NonSerialized] public Vector3 zoneVelocity;
         // Events
         public event Action JumpCallback;
         public event Action WalljumpCallback;
         public event Action GroundMoveCallback;
+        public event Action<CharacterBody> OnGlide;
+        public event Action<CharacterBody> OnWallJump;
+
 
         // PROPERTIES
         public Transform WeaponHand => leftHanded
@@ -117,6 +120,7 @@ namespace MPCore
             characterCamera = GetComponentInChildren<CharacterCamera>();
             characterSound = GetComponent<CharacterSound>();
             input = GetComponent<CharacterInput>();
+            voice = GetComponentInChildren<CharacterVoice>();
             TryGetComponent(out events);
 
             // CharacterController
@@ -194,29 +198,12 @@ namespace MPCore
             //}
             if (character.isPlayer)
                 CameraManager.ManualUpdatePos();
-
-            // Set Speed text to total or horizontal velocity.
-            if (character.isPlayer)
-                SetSpeedText();
         }
 
         private void FixedUpdate()
         {
             cb.Clear();
-            Gravity = GravityZone.GetVolumeGravity(cap, GravityZones, out Vector3 zoneVelocity);
-
-            //if(GetComponentInChildren<SparkleCannon>() is var weap && weap && weap.grappleTransform)
-            //{
-            //    Vector3 direction = (weap.grappleTransform.TransformPoint(weap.grapplePoint) - cameraAnchor.position);
-
-            //    if (direction.magnitude > 2f)
-            //    {
-            //        direction = direction.normalized;
-            //        float verticalFactor = Vector3.Dot(direction, Gravity.normalized);
-            //        Velocity += direction * Time.fixedDeltaTime * Gravity.magnitude * (1f - verticalFactor) * 1.5f;
-            //        Velocity -= Velocity.normalized * Time.fixedDeltaTime * Mathf.Max(0, -verticalFactor) * 3f;
-            //    }
-            //}
+            Gravity = GravityZone.GetVolumeGravity(cap, GravityZones, out zoneVelocity);
 
             crouchState.FixedUpdate();
             Move();
@@ -344,7 +331,7 @@ namespace MPCore
                         input.jumpTimer.Restart();
                         cb.AddForce((relativeVel - desiredVel) * Mass * 2);
 
-                        JumpCallback?.Invoke();
+                        voice.PlayJump();
                     }
                 }
             }
@@ -373,63 +360,14 @@ namespace MPCore
                 gVel += Gravity * Time.fixedDeltaTime;
                 Velocity = hVel + gVel + zoneVelocity;
 
-                /* WALL JUMP...................................................
-                   Wall jumps essentially bounce the character off collided
-                   objects with a little extra vertical speed. A couple 
-                   raycasts are taken to find nearby colliders, so the 
-                   character does not have to be touching walls to perform a
-                   successfull jump.                                         */
+                if (input.Jump)
+                    OnWallJump?.Invoke(this);
 
-                //TODO: When I find out what's wrong, Move this block to wallJump.OnWallJump()
-
-                if (wallJump && input.Jump)
-                {
-                    if (cb.IsEmpty)
-                    {
-                        Vector3 origin = transform.position - transform.up * (cap.height * 0.5f - cap.radius);
-
-                        if ((Physics.SphereCast(origin, cap.radius * 0.9f, moveDir, out RaycastHit hit, cap.radius * 1.5f, layerMask, QueryTriggerInteraction.Ignore)
-                            || Physics.SphereCast(origin, cap.radius * 0.9f, -moveDir, out hit, cap.radius * 1.5f, layerMask, QueryTriggerInteraction.Ignore))
-                            && !hit.collider.transform.IsChildOf(transform))
-                            cb.AddHit(new CBCollision(hit, Velocity));
-                    }
-
-                    if (!cb.IsEmpty)
-                    {
-                        float jumpSpeed = Mathf.Sqrt(2f * 9.81f * JumpHeight);
-                        Vector3 iVel = Velocity - cb.Velocity;
-                        Vector3 dVel = Vector3.ProjectOnPlane(Velocity, cb.Normal)
-                            - Gravity.normalized * jumpSpeed * 0.3f
-                            + Vector3.Reflect(iVel, cb.Normal).normalized * jumpSpeed * 0.3f
-                            + cb.Normal * jumpSpeed * 1.2f;
-
-                        Velocity = cb.LimitMomentum(dVel, iVel, defaultMaxKickVelocity) + cb.Velocity;
-                        input.jumpTimer.Restart();
-                        cb.AddForce((iVel - Velocity) * defaultMass * 2);
-
-                        WalljumpCallback?.Invoke();
-                    }
-                }
-
-                // Glider
-                if (glider && input.Glide)
-                    glider.OnGlide(this, zoneVelocity);
+                if (input.Glide)
+                    OnGlide?.Invoke(this);
             }
 
-            // Finish up.
             lastPlatformVelocity = cb.PlatformVelocity;
-        }
-
-        private void SetSpeedText()
-        {
-            int speed;
-
-            if (glider)
-                speed = (int)Mathf.Round(Velocity.magnitude * 10);
-            else
-                speed = (int)Mathf.Round(Vector3.ProjectOnPlane(Velocity, transform.up).magnitude * 10);
-
-            events.onSpeedSet.Invoke(speed.ToString());
         }
 
         private void GroundDetection()
@@ -505,8 +443,7 @@ namespace MPCore
             if (conduit && conduit.TryGetComponent(out Character ch) && ch.characterInfo)
                 instigator = ch.characterInfo;
             else
-                instigator = null;
-
+                instigator = character.characterInfo;
 
             if (squeeze > cap.radius)
                 character.Damage((int)(squeeze * 200), conduit,  instigator, impactDamageType, dir);
@@ -555,10 +492,10 @@ namespace MPCore
             int damage = (int)(Mathf.Pow(impactSpeed - defaultMaxSafeImpactSpeed, 1.5f) * 2.5f);
             CharacterInfo instigator;
 
-            if (hit.gameObject && hit.gameObject.TryGetComponent(out Character ch) && ch.characterInfo)
+            if (hit.gameObject.TryGetComponent(out Character ch) && ch.characterInfo)
                 instigator = ch.characterInfo;
             else
-                instigator = null;
+                instigator = character.characterInfo;
 
             if (damage > 5)
                 character.Damage(damage, hit.gameObject, instigator, impactDamageType, hit.normal);

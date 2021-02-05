@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using MPCore;
+using UnityEngine;
 
 namespace MPWorld
 {
@@ -26,13 +27,16 @@ namespace MPWorld
 
         private void OnTriggerStay(Collider other)
         {
-            if (Time.time - awakeTime < onTime)
+            if (onTime <= 0 || Time.time - awakeTime < onTime)
             {
                 IGravityUser thing = other.gameObject.GetComponent<IGravityUser>();
                 Rigidbody rb = other.gameObject.GetComponent<Rigidbody>();
 
                 Vector3 startVel = attachedRigidbody ? attachedRigidbody.GetPointVelocity(transform.position) : Vector3.zero;
                 startVel += transform.up * ejectSpeed;
+
+                if (other.TryGetComponent(out CharacterBody body))
+                    body.currentState = CharacterBody.MoveState.Airborne;
 
                 if (thing != null)
                     thing.Velocity = startVel;

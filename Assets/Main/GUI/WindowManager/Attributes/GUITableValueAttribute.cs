@@ -6,10 +6,10 @@
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public class GUITableValueAttribute : Attribute
 {
-    public string column;
+    public string columnName;
 
     public GUITableValueAttribute(string columnName)
     {
-        column = columnName;
+        this.columnName = columnName;
     }
 }

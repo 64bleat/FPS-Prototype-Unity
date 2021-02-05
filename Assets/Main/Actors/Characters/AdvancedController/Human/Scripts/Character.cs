@@ -29,8 +29,19 @@ namespace MPCore
         // Runtime
         [NonSerialized] public CharacterInfo characterInfo;
         [NonSerialized] public ResourceValue health;
+        [NonSerialized] public CharacterBody body;
 
         private (CharacterInfo instigator, float time) lastAttackedBy;
+
+        private void Awake()
+        {
+            TryGetComponent(out body);
+
+            // Don't store direct references to Inventory resources 
+            for (int i = 0; i < inventory.Count; i++)
+                if (!inventory[i].staticReference)
+                    inventory[i] = Instantiate(inventory[i]);
+        }
 
         private void OnEnable()
         {
@@ -64,7 +75,7 @@ namespace MPCore
             onCharacterSpawn.Invoke(gameObject);
 
             if (isPlayer)
-                onDisplayHealth.Invoke(health.value.ToString());
+                onDisplayHealth.Invoke($"{health.value,3}");
         }
 
         public int Damage(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction)
@@ -94,7 +105,7 @@ namespace MPCore
                 health.value = Mathf.Min(health.maxValue, health.value - damage);
 
                 if (isPlayer && health.value != initialValue && onDisplayHealth)
-                    onDisplayHealth.Invoke(health.value.ToString());
+                    onDisplayHealth.Invoke($"{health.value,3}");
 
                 if (initialValue > 0 && health.value <= 0)
                     Kill(instigator, conduit, damageType);
@@ -114,7 +125,7 @@ namespace MPCore
                 health.value = Mathf.Min(health.maxValue, health.value + value);
 
                 if (isPlayer && health.value != initialValue && onDisplayHealth)
-                    onDisplayHealth.Invoke(health.value.ToString());
+                    onDisplayHealth.Invoke($"{health.value, 3}");
 
                 if (initialValue > 0 && health.value <= 0)
                     Kill(instigator, conduit, null);
@@ -128,7 +139,7 @@ namespace MPCore
         public void Kill(CharacterInfo instigator, GameObject conduit, DamageType damageType)
         {
             // Spawn Dead Body
-            if (TryGetComponent(out CharacterBody body) &&body.deadBody)
+            if (body.deadBody)
             {
                 GameObject db = Instantiate(body.deadBody, body.cameraAnchor.position, body.cameraAnchor.rotation, null);
 

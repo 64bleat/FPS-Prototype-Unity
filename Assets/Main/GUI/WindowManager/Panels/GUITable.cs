@@ -5,12 +5,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using System.Linq;
+using MPCore;
 
 namespace MPGUI
 {
     public class GUITable : MonoBehaviour, IGUIClickable
     {
         private enum SelectMode { Single, Add, Invert, Remove }
+
+        public readonly List<ContextMethod> universalMethods = new List<ContextMethod>();
 
         [SerializeField] private Color defaultBackgroundColor = new Color(1, 1, 1, 0);
         [SerializeField] private Color defaultTextColor = new Color(0, 0, 0, 1);
@@ -23,6 +26,13 @@ namespace MPGUI
         [SerializeField] private GameObject contextMenuTemplate = null;
         [SerializeField] private ColumnInfo[] columns = null;
 
+        public struct ContextMethod
+        {
+            public string name;
+            public Action<dynamic> action;
+            public Type type;
+        }
+
         private readonly Dictionary<GameObject, object> tableRowItems = new Dictionary<GameObject, object>();
         private readonly HashSet<GameObject> selection = new HashSet<GameObject>();
 
@@ -33,10 +43,10 @@ namespace MPGUI
             public float width;
         }
 
-        public void GenerateTable(object[] items)
+        public void GenerateTable(dynamic[] entries)
         {
-            float totalWidth = 0;
-            float totalHeight = 0;
+            float tableWidth = 0;
+            float tableHeight = 0;
 
             // Clear data
             tableRowItems.Clear();
@@ -57,68 +67,73 @@ namespace MPGUI
             itemFieldTemplate.SetActive(false);
             columnTemplate.SetActive(false);
 
-            //Spawn new columns
-            foreach (ColumnInfo c in columns)
+            //Table Columns
+            foreach (ColumnInfo info in columns)
             {
-                GameObject go = Instantiate(columnTemplate, columnTemplate.transform.parent);
-                TextMeshProUGUI text = go.GetComponentInChildren<TextMeshProUGUI>();
-                RectTransform rt = go.transform as RectTransform;
+                GameObject column = Instantiate(columnTemplate, columnTemplate.transform.parent);
+                RectTransform columnRect = column.transform as RectTransform;
+                TextMeshProUGUI text = column.GetComponentInChildren<TextMeshProUGUI>();
 
-                text.text = c.name;
-                rt.offsetMax = new Vector2(rt.offsetMin.x + c.width, rt.offsetMax.y);
-                totalWidth += rt.rect.width;
-                go.SetActive(true);
+                text.SetText(info.name);
+                columnRect.offsetMax = new Vector2(columnRect.offsetMin.x + info.width, columnRect.offsetMax.y);
+                tableWidth += columnRect.rect.width;
+                column.SetActive(true);
             }
 
-            //Required columns
-            HashSet<string> columnHash = new HashSet<string>();
+            //Table Schema
+            HashSet<string> schema = new HashSet<string>();
             foreach (ColumnInfo c in columns)
-                columnHash.Add(c.name);
+                schema.Add(c.name);
 
-            //Spawn new items
-            if (items != null)
-                foreach (object item in items)
+            //Table Rows
+            if (entries != null)
+            {
+                Dictionary<string, string> rowValues = new Dictionary<string, string>();
+                Type tableValue = typeof(GUITableValueAttribute);
+
+                foreach (dynamic entry in entries)
                 {
-                    GameObject go = Instantiate(itemTemplate, itemTemplate.transform.parent);
-                    RectTransform rtrans = go.transform as RectTransform;
-                    Dictionary<string, string> rowValues = new Dictionary<string, string>();
+                    GameObject row = Instantiate(itemTemplate, itemTemplate.transform.parent);
+                    RectTransform rowRect = row.transform as RectTransform;
 
-                    foreach (FieldInfo field in item.GetType().GetFields())
-                        if (field.GetCustomAttribute(typeof(GUITableValueAttribute)) is GUITableValueAttribute attribute
-                            && columnHash.Contains(attribute.column)
-                            && !rowValues.ContainsKey(attribute.column))
-                            rowValues.Add(attribute.column, field.GetValue(item) as string ?? "");
+                    foreach (FieldInfo field in entry.GetType().GetFields())
+                        if (field.GetCustomAttribute(tableValue) is GUITableValueAttribute attribute
+                            && schema.Contains(attribute.columnName)
+                            && !rowValues.ContainsKey(attribute.columnName))
+                            rowValues.Add(attribute.columnName, field.GetValue(entry)?.ToString() ?? "ERROR");
 
-                    foreach (PropertyInfo property in item.GetType().GetProperties())
-                        if (property.GetCustomAttribute(typeof(GUITableValueAttribute)) is GUITableValueAttribute attribute
-                            && columnHash.Contains(attribute.column)
-                            && !rowValues.ContainsKey(attribute.column))
-                            rowValues.Add(attribute.column, property.GetValue(item) as string ?? "");
+                    foreach (PropertyInfo property in entry.GetType().GetProperties())
+                        if (property.GetCustomAttribute(tableValue) is GUITableValueAttribute attribute
+                            && schema.Contains(attribute.columnName)
+                            && !rowValues.ContainsKey(attribute.columnName))
+                            rowValues.Add(attribute.columnName, property.GetValue(entry)?.ToString() ?? "ERROR");
 
-                    foreach (ColumnInfo c in columns)
+                    foreach (ColumnInfo column in columns)
                     {
-                        GameObject f = Instantiate(itemFieldTemplate, go.transform);
+                        GameObject f = Instantiate(itemFieldTemplate, row.transform);
                         TextMeshProUGUI text = f.GetComponentInChildren<TextMeshProUGUI>();
                         RectTransform rt = f.transform as RectTransform;
 
-                        if (rowValues.TryGetValue(c.name, out string value))
+                        if (rowValues.TryGetValue(column.name, out string value))
                             text.SetText(value);
                         else
-                            text.SetText("");
+                            text.SetText("XXX");
 
-                        rt.offsetMax = new Vector2(rt.offsetMin.x + c.width, rt.offsetMax.y);
+                        rt.offsetMax = new Vector2(rt.offsetMin.x + column.width, rt.offsetMax.y);
                         f.SetActive(true);
                     }
 
-                    rtrans.offsetMax = new Vector2(rtrans.offsetMin.x + totalWidth, rtrans.offsetMax.y);
-                    totalHeight += rtrans.rect.height;
-                    tableRowItems.Add(go, item);
-                    go.SetActive(true);
+                    rowRect.offsetMax = new Vector2(rowRect.offsetMin.x + tableWidth, rowRect.offsetMax.y);
+                    tableHeight += rowRect.rect.height;
+                    tableRowItems.Add(row, entry);
+                    row.SetActive(true);
+                    rowValues.Clear();
                 }
+            }
 
             //set table width
-            itemWindow.offsetMax = new Vector2(itemWindow.offsetMin.x + totalWidth, itemWindow.offsetMax.y);
-            itemWindow.offsetMin = new Vector2(itemWindow.offsetMin.x, itemWindow.offsetMax.y - totalHeight);
+            itemWindow.offsetMax = new Vector2(itemWindow.offsetMin.x + tableWidth, itemWindow.offsetMax.y);
+            itemWindow.offsetMin = new Vector2(itemWindow.offsetMin.x, itemWindow.offsetMax.y - tableHeight);
         }
 
         private void Select(GameObject item, SelectMode mode)
@@ -193,6 +208,9 @@ namespace MPGUI
                     GUIWindow window = GetComponentInParent<GUIWindow>();
                     GameObject contextMenu = Instantiate(contextMenuTemplate, mouse.downInfo.screenPosition, transform.rotation, window.transform.parent);
                     GUIButtonSet buttonSet = contextMenu.GetComponentInChildren<GUIButtonSet>();
+
+                    foreach (var entry in universalMethods)
+                        buttonSet.AddButton(entry.name, () => entry.action.Invoke(item));
 
                     foreach (var entry in contextMenuEntries)
                         buttonSet.AddButton(entry.name, () => entry.method.Invoke(entry.instance, null));

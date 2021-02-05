@@ -1,16 +1,16 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace MPCore
 {
     public class PauseManager
     {
-        public delegate void Paused(bool paused);
+        private static readonly HashSet<Object> pauseRequests = new HashSet<Object>();
+        private static event Action<bool> OnPauseUnPause;
 
         public static bool IsPaused { get; private set; } = false;
-
-        private static readonly HashSet<Object> pauseRequests = new HashSet<Object>();
-        private static event Paused OnPauseUnPause;
 
         public static void Reset()
         {
@@ -33,13 +33,13 @@ namespace MPCore
             return !IsPaused;
         }
 
-        public static void Add(Paused onPauseUnPause)
+        public static void Add(Action<bool> onPauseUnPause)
         {
             OnPauseUnPause += onPauseUnPause;
             onPauseUnPause.Invoke(IsPaused);
         }
 
-        public static void Remove(Paused onPauseUnPause)
+        public static void Remove(Action<bool> onPauseUnPause)
         {
             OnPauseUnPause -= onPauseUnPause;
         }

@@ -37,17 +37,17 @@ namespace MPCore
             character.OnHit += OnHurt;
         }
 
-        private void OnEnable()
-        {
-            body.JumpCallback += PlayJump;
-            body.WalljumpCallback += PlayJump;
-        }
+        //private void OnEnable()
+        //{
+        //    //body.JumpCallback += PlayJump;
+        //    //body.WalljumpCallback += PlayJump;
+        //}
 
-        private void OnDisable()
-        {
-            body.JumpCallback -= PlayJump;
-            body.WalljumpCallback -= PlayJump;
-        }
+        //private void OnDisable()
+        //{
+        //    //body.JumpCallback -= PlayJump;
+        //    //body.WalljumpCallback -= PlayJump;
+        //}
 
         private void OnDestroy()
         {
@@ -88,7 +88,7 @@ namespace MPCore
             damageAccumulation = 0;
         }
 
-        private void PlayJump()
+        public void PlayJump()
         {
             voice.volume = jumpVolume;
             voice.clip = jumpSound;

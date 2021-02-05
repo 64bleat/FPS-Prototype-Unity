@@ -1,4 +1,5 @@
 ﻿using MPGUI;
+using System;
 using UnityEngine;
 
 namespace MPCore
@@ -8,42 +9,38 @@ namespace MPCore
     /// </summary>
     public class CharacterCamera : MonoBehaviour
     {
-        [HideInInspector] public float stepOffset = 0f;
+        public float stepDampTime = 0.1f;
+
+        [NonSerialized] public float stepOffset = 0f;
 
         private CharacterBody body;
+        private Character character;
 
         private void Awake()
         {
-            Character character = GetComponentInParent<Character>();
-
-            if (character)
-                character.OnPlayerSet += OnPlayerSet;
-
+            character = GetComponentInParent<Character>();
             body = GetComponentInParent<CharacterBody>();
 
+            character.OnPlayerSet += OnPlayerSet;
             PauseManager.Add(OnPause);
         }
 
         private void OnDestroy()
         {
-            Character character = GetComponentInParent<Character>();
-
-            if (character)
-                character.OnPlayerSet -= OnPlayerSet;
-
+            character.OnPlayerSet -= OnPlayerSet;
             PauseManager.Remove(OnPause);
+        }
+        private float velocity = 0f;
+
+        private void FixedUpdate()
+        {
+            stepOffset = Mathf.SmoothDamp(stepOffset, 0f, ref velocity, stepDampTime, float.MaxValue, Time.fixedDeltaTime);
+            transform.localPosition = transform.InverseTransformDirection(body.transform.up) * stepOffset;
         }
 
         private void OnPause(bool pause)
         {
             enabled = !pause;
-        }
-
-        private void FixedUpdate()
-        {
-            stepOffset = Mathf.Lerp(stepOffset, 0f, Mathf.Min(1, 12f * Time.fixedDeltaTime));
-
-            transform.localPosition = transform.InverseTransformDirection(body.transform.up) * stepOffset;
         }
 
         private void OnPlayerSet(bool isPlayer)

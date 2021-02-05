@@ -14,25 +14,33 @@ namespace MPCore
         {
             if (owner.TryGetComponent(out CharacterBody body))
             {
-                if (body.glider)
-                    body.glider.SetActive(owner, false);
+                body.OnGlide += OnGlideNew;
 
-                body.glider = this;
-                active = true;
+                //if (body.glider)
+                //    body.glider.SetActive(owner, false);
+
+                //body.glider = this;
             }
         }
 
         public override void OnDeactivate(GameObject owner)
         {
-            if (owner.TryGetComponent(out CharacterBody body))
-                body.glider = null;
 
-            active = false;
+            if (owner.TryGetComponent(out CharacterBody body))
+            {
+                body.OnGlide -= OnGlideNew;
+                //body.glider = null;
+            }
+        }
+
+        public void OnGlideNew(CharacterBody body)
+        {
+            OnGlide(body, Vector3.zero);
         }
 
         public void OnGlide(CharacterBody cb, Vector3 zoneVelocity)
         {
-            cb.Velocity -= zoneVelocity;
+            cb.Velocity -= cb.zoneVelocity;
             float speedFactor = Mathf.Clamp01((cb.Velocity.magnitude - defaultSpeedToLift) / defaultSpeedToLift);
 
             cb.Velocity = Vector3.RotateTowards(cb.Velocity, cb.cameraAnchor.forward, defaultGlideAngle * Mathf.Deg2Rad * Time.fixedDeltaTime * speedFactor, 0f);
@@ -40,7 +48,7 @@ namespace MPCore
 
             if (Vector3.Project(cb.Velocity, cb.cameraAnchor.forward).magnitude < defaultJetSpeed)
                 cb.Velocity += cb.cameraAnchor.forward * defaultJetAccel * Time.fixedDeltaTime;
-            cb.Velocity += zoneVelocity;
+            cb.Velocity += cb.zoneVelocity;
         }
     }
 }

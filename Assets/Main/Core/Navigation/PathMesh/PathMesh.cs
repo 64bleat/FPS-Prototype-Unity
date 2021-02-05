@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Unity.Jobs;
 using UnityEngine;
+using UnityEngine.ProBuilder;
 
 namespace MPCore
 {
@@ -18,6 +19,9 @@ namespace MPCore
         private void Awake()
         {
             threadMesh = new SplayedMesh(GetComponent<MeshFilter>().mesh, transform);
+
+            if (TryGetComponent(out MeshRenderer render))
+                render.enabled = false;
         }
 
         private void OnEnable()
@@ -85,6 +89,15 @@ namespace MPCore
 
             openJobs.Remove(job.guid);
             availableJobs.Push(job);
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (TryGetComponent(out MeshRenderer mr))
+            {
+                
+    
+            }
         }
     }
 }

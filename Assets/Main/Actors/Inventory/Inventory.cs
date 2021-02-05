@@ -10,7 +10,9 @@ namespace MPCore
     {
         [Header("Inventory")]
         public GameObject sceneObjectPrefab;
+        [GUITableValue("Name")]
         public string displayName;
+        [GUITableValue("Count")]
         public int count = 1;
         public int maxCount = 1;
         public bool staticReference = false;
@@ -24,6 +26,15 @@ namespace MPCore
         public bool isCopy = false;
         public bool activatable = false;
         public bool active = false;
+
+        [GUITableValue("Id")]
+        public string ID => GetInstanceID().ToString();
+
+        [GUIContextMenuOption("TestLog")]
+        public void TestLog()
+        {
+            Debug.Log($"{displayName} performed a test log at {Time.time}");
+        }
 
         /// <summary> Pickup the item and call OnPickup, returns true if pickup was a success. </summary>
         public bool TryPickup(Character character, out Inventory instance)

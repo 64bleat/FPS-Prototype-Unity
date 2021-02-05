@@ -25,13 +25,13 @@ namespace MPCore
             input.Bind("Drop", OnDrop, this, KeyPressType.Down);
         }
 
-        private class TargetInfo
+        private struct TargetInfo
         {
             public RaycastHit hit;
             public Collider collider;
             public GameObject gameObject;
             public IInteractable interactable;
-            public float startTime = Time.time;
+            public float startTime;
 
             public TargetInfo(RaycastHit hit)
             {
@@ -39,10 +39,11 @@ namespace MPCore
                 collider = hit.collider;
                 gameObject = collider ? collider.gameObject : null;
                 interactable = gameObject ? gameObject.GetComponent<IInteractable>() : null;
+                startTime = Time.time;
             }
         }
 
-        private TargetInfo GetTarget()
+        private TargetInfo GetInteractPosition()
         {
             if (!Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, interactDistance, layerMask))
             {
@@ -56,27 +57,27 @@ namespace MPCore
 
         private void OnInteractStart()
         {
-            target = GetTarget();
+            target = GetInteractPosition();
 
-            target?.interactable?.OnInteractStart(owner, target.hit);
+            target.interactable?.OnInteractStart(owner, target.hit);
         }
 
         private void OnInteractHold()
         {
-            target?.interactable?.OnInteractHold(owner, GetTarget().hit);
+            target.interactable?.OnInteractHold(owner, GetInteractPosition().hit);
         }
 
         private void OnInteractEnd()
         {
-            target?.interactable?.OnInteractEnd(owner, GetTarget().hit);
-            target = null; 
+            target.interactable?.OnInteractEnd(owner, GetInteractPosition().hit);
+            target = default; 
         }
 
         private void OnDrop()
         {
             if(character && character.inventory.Count > 0)
             {
-                TargetInfo t = GetTarget();
+                TargetInfo t = GetInteractPosition();
                 Vector3 position = t.hit.point;
                 Quaternion rotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(t.hit.point - transform.position, t.hit.normal), owner.transform.up);
                 int index = character.inventory.Count - 1;
