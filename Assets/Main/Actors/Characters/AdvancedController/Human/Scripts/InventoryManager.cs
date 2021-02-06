@@ -1,57 +1,21 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿//using System.Collections.Generic;
+//using UnityEngine;
 
-namespace MPCore
-{
-    public static class InventoryManager
-    {
-        public static bool PickUp(Character character, Inventory item)
-        {
-            if (character && item && item.TryPickup(character, out _))
-            {
-                return true;
-            }
-            else
-                return false;
-        }
+//namespace MPCore
+//{
+//    [System.Obsolete("Use InventoryContainer Directly!!!")]
+//    public static class InventoryManager
+//    {
+//        public static void Remove(List<Inventory> list, Inventory inventoryType, int count)
+//        {
+//            if(list != null && inventoryType != null && count > 0
+//                && list.Find((i) => i.displayName.Equals(inventoryType.displayName)) is var item && item)
+//            {
+//                item.count -= count;
 
-        public static GameObject Drop(List<Inventory> list, int index, Vector3 position, Quaternion rotation, GameObject owner, RaycastHit hit)
-        {
-            GameObject droppedObject = null;
-
-            if (index >= 0 && index < list.Count)
-            {
-                Inventory item = list[index];
-
-                if (item.TryDrop(owner, position, rotation, hit, out droppedObject))
-                {
-                    // REMOVAL MUST HAPPEN BEFORE DROP IS SPAWNED. OTHERWISE IT JUST DOUBLES THE COUNT
-                    list.RemoveAt(index);
-
-                    // Attach inventory item to dropped GameObject
-                    if (droppedObject.TryGetComponent(out InventoryObject io))
-                        io.OnDropped(owner);
-                }
-            }
-
-            return droppedObject;
-        }
-
-        public static Inventory Find(List<Inventory> list, Inventory item)
-        {
-            return list.Find((i) => i.displayName.Equals(item.displayName));
-        }
-
-        public static void Remove(List<Inventory> list, Inventory inventoryType, int count)
-        {
-            if(list != null && inventoryType != null && count > 0
-                && list.Find((i) => i.displayName.Equals(inventoryType.displayName)) is var item && item)
-            {
-                item.count -= count;
-
-                if (item.count <= 0)
-                    list.Remove(item);
-            }
-        }
-    }
-}
+//                if (item.count <= 0)
+//                    list.Remove(item);
+//            }
+//        }
+//    }
+//}

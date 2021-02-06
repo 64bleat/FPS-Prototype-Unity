@@ -1,11 +1,11 @@
-﻿using UnityEngine;
-using MPCore;
-using MPConsole;
+﻿using MPConsole;
+using UnityEngine;
 
 namespace MPCore
 {
     /// <summary> 
-    /// Handles a few static classes
+    /// Root is the primary gameobject that ought to be in every scene.
+    /// Singletons and global managers should be attached to the root prefab.
     /// </summary>
     public class Root : MonoBehaviour
     {

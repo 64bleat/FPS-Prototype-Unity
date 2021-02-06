@@ -63,9 +63,6 @@ namespace MPCore
         public GameObject deadBody;
         [Header("References")]
         public DamageType impactDamageType;
-        //public StringEvent onSpeedSet;
-        [Header("Effects")]
-        public Particle shotEffect;
 
         // NONSERIALIZED
         [NonSerialized] public CharacterSound characterSound;
@@ -75,6 +72,7 @@ namespace MPCore
         [NonSerialized] public Character character;
         [NonSerialized] public CharacterVoice voice;
         [NonSerialized] private CharacterCamera characterCamera;
+        private DamageEvent damageEvent;
         private CharacterEventManager events;
         [NonSerialized] public Vector3 moveDir = Vector3.zero;
         [NonSerialized] public Vector3 lastPlatformVelocity = Vector3.zero;
@@ -121,6 +119,7 @@ namespace MPCore
             characterSound = GetComponent<CharacterSound>();
             input = GetComponent<CharacterInput>();
             voice = GetComponentInChildren<CharacterVoice>();
+            TryGetComponent(out damageEvent);
             TryGetComponent(out events);
 
             // CharacterController
@@ -446,7 +445,7 @@ namespace MPCore
                 instigator = character.characterInfo;
 
             if (squeeze > cap.radius)
-                character.Damage((int)(squeeze * 200), conduit,  instigator, impactDamageType, dir);
+                damageEvent.Damage((int)(squeeze * 200), conduit,  instigator, impactDamageType, dir);
         }
 
         private void Move()
@@ -498,7 +497,7 @@ namespace MPCore
                 instigator = character.characterInfo;
 
             if (damage > 5)
-                character.Damage(damage, hit.gameObject, instigator, impactDamageType, hit.normal);
+                damageEvent.Damage(damage, hit.gameObject, instigator, impactDamageType, hit.normal);
 
             if (characterSound)
                 characterSound.PlayImpact(impactSpeed - 3f);

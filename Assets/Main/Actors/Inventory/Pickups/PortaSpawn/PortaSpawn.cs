@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MPCore
 {
     [RequireComponent(typeof(Rigidbody))]
-    public class PortaSpawn : InventoryObject
+    public class PortaSpawn : InventoryPickup
     {
         public static Stack<GameObject> stack = new Stack<GameObject>();
 
@@ -20,10 +20,10 @@ namespace MPCore
                                           select go);
         }
 
-        public void TransferStuff(Character character)
+        public void TransferStuff(InventoryContainer container)
         {
             foreach (Inventory i in savedStuff)
-                i.TryPickup(character, out _);
+                i.TryPickup(container, out _);
         }
 
         public override void OnDropped(GameObject dropper)
@@ -32,10 +32,8 @@ namespace MPCore
 
             if (dropper)
             {
-                Character c = dropper.GetComponent<Character>();
-
-                if (c)
-                    foreach (Inventory i in c./*info.*/inventory)
+                if (dropper.TryGetComponent(out InventoryContainer container))
+                    foreach (Inventory i in container.inventory)
                         savedStuff.Add(Instantiate(i));
 
                 stack.Push(spawnPoint.gameObject);

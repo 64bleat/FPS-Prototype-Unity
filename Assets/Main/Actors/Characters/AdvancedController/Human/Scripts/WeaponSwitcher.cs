@@ -12,6 +12,7 @@ namespace MPCore
         public RectTransform emptyCrosshair;
         public WeaponSlotEvents events;
 
+        private InventoryContainer container;
         private Character character;
         private CharacterBody body;
         private CharacterEventManager gui;
@@ -21,6 +22,7 @@ namespace MPCore
 
         private void Awake()
         {
+            TryGetComponent(out container);
             character = GetComponentInParent<Character>();
             character.TryGetComponent(out gui);
             character.TryGetComponent(out body);
@@ -81,12 +83,12 @@ namespace MPCore
 
         private void SelectActivatable(bool forward)
         {
-            int count = character.inventory.Count;
+            int count = container.inventory.Count;
             int start;
             Inventory next = null;
 
             if (selected)
-                start = character.inventory.IndexOf(selected) + (forward ? 1 : -1);
+                start = container.inventory.IndexOf(selected) + (forward ? 1 : -1);
             else
                 start = 0;
 
@@ -95,9 +97,9 @@ namespace MPCore
                 Inventory item;
 
                 if (forward)
-                    item = character.inventory[(start + i) % count];
+                    item = container.inventory[(start + i) % count];
                 else
-                    item = character.inventory[(start + count - i) % count];
+                    item = container.inventory[(start + count - i) % count];
 
                 if (item.activatable)
                 {
@@ -131,12 +133,12 @@ namespace MPCore
 
         private void DrawScroll(float scroll)
         {
-            int count = character.inventory.Count;
+            int count = container.inventory.Count;
             Weapon next = null;
             Weapon loop = null;
 
             for (int i = 0; i < count; i++)
-                if (character.inventory[i] is Weapon w)
+                if (container.inventory[i] is Weapon w)
                     if (scroll > 0)
                     {
                         if (w.weaponSlot > currentWeapon.weaponSlot && (!next || w.weaponSlot < next.weaponSlot))
@@ -164,7 +166,7 @@ namespace MPCore
         {
             (Weapon weapon, float priority) next = (null, float.NegativeInfinity);
 
-            foreach (Inventory item in character.inventory)
+            foreach (Inventory item in container.inventory)
                 if (item is Weapon weapon)
                     if (weapon.weaponSlot > next.priority)
                         next = (weapon, weapon.weaponSlot);
@@ -177,7 +179,7 @@ namespace MPCore
         {
             (Weapon weapon, float priority) next = (null, -1);
 
-            foreach (Inventory item in character.inventory)
+            foreach (Inventory item in container.inventory)
                 if (item is Weapon weapon && weapon != currentWeapon)
                     if (weapon.weaponSlot > next.priority)
                         next = (weapon, weapon.weaponSlot);
@@ -188,7 +190,7 @@ namespace MPCore
         /// <summary> Draw the previously drawn weapon if it exists </summary>
         public void DrawLastWeapon()
         {
-            if(lastWeapon && character.inventory.Contains(lastWeapon))
+            if(lastWeapon && container.inventory.Contains(lastWeapon))
                 DrawWeapon(lastWeapon);
         }
 
@@ -199,7 +201,7 @@ namespace MPCore
             {
                 Weapon nextWeapon = null;
 
-                foreach (Inventory item in character.inventory)
+                foreach (Inventory item in container.inventory)
                     if (item is Weapon weapon && weapon.weaponSlot == slot)
                         nextWeapon = weapon;
 

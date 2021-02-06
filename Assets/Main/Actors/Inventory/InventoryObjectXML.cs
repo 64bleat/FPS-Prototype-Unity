@@ -2,7 +2,7 @@
 
 namespace Serialization
 {
-    [XMLSurrogate(typeof(InventoryObject))]
+    [XMLSurrogate(typeof(InventoryPickup))]
     public class InventoryObjectXML : XMLSurrogate
     {
         public bool enableCountDown;
@@ -10,7 +10,7 @@ namespace Serialization
 
         public override XMLSurrogate Serialize(object o)
         {
-            InventoryObject i = o as InventoryObject;
+            InventoryPickup i = o as InventoryPickup;
 
             if(i)
             {
@@ -23,7 +23,7 @@ namespace Serialization
 
         public override XMLSurrogate Deserialize(object o)
         {
-            InventoryObject i = o as InventoryObject;
+            InventoryPickup i = o as InventoryPickup;
 
             if(i)
             {

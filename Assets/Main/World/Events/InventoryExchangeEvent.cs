@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using MPWorld;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -21,19 +22,19 @@ namespace MPCore
         public void OnInteractHold(GameObject other, RaycastHit hit) { }
         public void OnInteractStart(GameObject other, RaycastHit hit)
         {
-            if(other.GetComponentInChildren<Character>() is var character && character && character.inventory != null)
+            if(other.TryGetComponentInChildren(out InventoryContainer container))
             {
                 HashSet<ItemExchange> fulfilled = new HashSet<ItemExchange>();
 
                 foreach (ItemExchange exchange in itemExchange)
-                    if (InventoryManager.Find(character.inventory, exchange.item) is var item && item && item.count >= exchange.count)
+                    if (container.TryFind(exchange.item, out Inventory item) && item.count >= exchange.count)
                         fulfilled.Add(exchange);
 
                 if (fulfilled.Count == itemExchange.Count)
                 {
-                    if(consumeItems)
+                    if (consumeItems)
                         foreach (ItemExchange exchange in fulfilled)
-                            InventoryManager.Remove(character.inventory, exchange.item, exchange.count);
+                            container.Remove(exchange.item, exchange.count);
 
                     exchangeEvents.Invoke();
                 }

@@ -1,24 +1,7 @@
-﻿/******************************************************************************      
- * author: David Martinez Copyright 2020 all rights reserved
- * description: FloatLever is a throttle-style interactable
- *  that converts the relative position of a GameObject to a float value.
- * procedure: 
- *  1.  Add a collider to this GameObject that spans the breadth
- *      of leverMin and leverMax. When interacting with this, lever will be
- *      oriented to the interaction point on this collider.
- *  2.  For leverMin and LeverMax, add two empty GameObjects to represent 
- *      the max and min bounds of your lever. Your lever will slide between
- *      these two points.
- *  3.  Value will be calculated from the position of the lever between
- *      leverMax and leverMin.
- *  notes:
- *  -   Value is between 0 and 1.
- *  -   Setting Value will automatically set lever to the correct position.
- *****************************************************************************/
-using UnityEngine;
+﻿using UnityEngine;
 using MPCore;
 
-namespace MPCore
+namespace MPWorld
 { 
     public class FloatLever : MonoBehaviour, IInteractable, IFloatValue
     {

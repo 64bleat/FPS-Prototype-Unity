@@ -37,47 +37,43 @@ namespace MPCore
         }
 
         /// <summary> Pickup the item and call OnPickup, returns true if pickup was a success. </summary>
-        public bool TryPickup(Character character, out Inventory instance)
+        /// 
+        public bool TryPickup(InventoryContainer container, out Inventory instance)
         {
-            if (character && character.inventory != null)
-            {
-                // Set instance
-                if (destroyOnPickup || staticReference || isCopy)
-                    instance = this;
-                else
-                {
-                    instance = Instantiate(this);
-                    instance.isCopy = true;
-                }
-
-                // Pickup DestroyOnPickup
-                if (destroyOnPickup)
-                    return instance.OnPickupInternal(character);
-
-                // Pickup Duplicate
-                foreach (Inventory item in character.inventory)
-                    if (item.displayName.Equals(displayName))
-                        if (item.count >= item.maxCount)
-                            return false;
-                        else if (instance.OnPickupInternal(character))
-                        {
-                            item.count = Mathf.Min(item.maxCount, item.count + count);
-                            return true;
-                        }
-                        else
-                            return false;
-
-                if (instance.OnPickupInternal(character))
-                {
-                    character.inventory.Add(instance);
-
-                    return true;
-                }
-                else if (instance != this)
-                    Destroy(instance);
-            }
+            // Set instance
+            if (destroyOnPickup || staticReference || isCopy)
+                instance = this;
             else
-                instance = null;
+            {
+                instance = Instantiate(this);
+                instance.isCopy = true;
+            }
+
+            // Pickup DestroyOnPickup
+            if (destroyOnPickup)
+                return instance.OnPickupInternal(container);
+
+            // Pickup Duplicate
+            foreach (Inventory item in container.inventory)
+                if (item.displayName.Equals(displayName))
+                    if (item.count >= item.maxCount)
+                        return false;
+                    else if (instance.OnPickupInternal(container))
+                    {
+                        item.count = Mathf.Min(item.maxCount, item.count + count);
+                        return true;
+                    }
+                    else
+                        return false;
+
+            if (instance.OnPickupInternal(container))
+            {
+                container.inventory.Add(instance);
+
+                return true;
+            }
+            else if (instance != this)
+                Destroy(instance);
 
             return false;
         }
@@ -100,7 +96,7 @@ namespace MPCore
                 }
 
                 // Inventory Transfer to Dropped Object
-                if (droppedObject.GetComponent<InventoryObject>() is var io && io)
+                if (droppedObject.GetComponent<InventoryPickup>() is var io && io)
                 {
                     io.inventory = this;
                     io.countDownDestroy = droppedLifeTime > 0;
@@ -121,8 +117,7 @@ namespace MPCore
                 }
 
                 // Clipping prevention
-                if (dropPoint.collider
-                    && droppedObject.GetComponent<Collider>() is var collider && collider)
+                if(droppedObject.TryGetComponent(out Collider collider))
                     droppedObject.transform.position += collider.transform.position - collider.ClosestPoint(collider.transform.position - dropPoint.normal * 100);
             }
             else
@@ -131,16 +126,16 @@ namespace MPCore
             return destroyOnDrop || droppedObject;
         }
 
-        private bool OnPickupInternal(Character character)
+        private bool OnPickupInternal(InventoryContainer container)
         {
-            bool valid = OnPickup(character.gameObject);
+            bool valid = OnPickup(container.gameObject);
 
             // Activatables
             if (activatable && active)
-                OnActivate(character.gameObject);
+                OnActivate(container.gameObject);
 
             // Display Pickup Message
-            if (character.isPlayer)
+            if (container.TryGetComponent(out Character character) && character.isPlayer)
             {
                 if (character.pickupMessager && valid)
                     character.pickupMessager.Invoke(new MessageEventParameters() { message = $"Acquired {displayName}" });
@@ -196,3 +191,4 @@ namespace MPCore
         }
     }
 }
+ 

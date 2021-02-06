@@ -11,8 +11,8 @@ namespace MPCore
         public ProjectileShared shared;
         public Transform visuals;
 
-        public delegate void HitDelegate(RaycastHit hit);
-        public event HitDelegate OnHit;
+        //public delegate void HitDelegate(RaycastHit hit);
+        //public event HitDelegate OnHit;
 
         private CharacterInfo instigator;
         private GameObject owner;
@@ -213,8 +213,8 @@ namespace MPCore
                 p.Spawn(hit.point, rotation, hit.collider.transform);
             }
 
-            if (hit.collider.TryGetComponentInParent(out Character character))
-                character.Damage(shared.hitDamage, gameObject, instigator, shared.damageType, hitVelocity);
+            if (hit.collider.TryGetComponentInParent(out DamageEvent damageEvenht))
+                damageEvenht.Damage(shared.hitDamage, gameObject, instigator, shared.damageType, hitVelocity);
 
             switch (hitEffect.hitBehaviour)
             {
@@ -265,14 +265,14 @@ namespace MPCore
                     else
                         hit.point = transform.position - direction * distance;
 
-                    if (hit.collider.TryGetComponent(out Character victim))
+                    if (hit.collider.TryGetComponent(out DamageEvent damageEvent))
                     {
                         int damage = (int)(shared.explosionDamage * explodeFactor);
 
-                        if (victim.characterInfo == instigator)
+                        if(hit.collider.TryGetComponent(out Character character) && character.characterInfo == instigator)
                             damage = (int)(shared.selfDamageScale * damage);
 
-                        victim.Damage(damage, gameObject, instigator, shared.damageType, direction);
+                        damageEvent.Damage(damage, gameObject, instigator, shared.damageType, direction);
                     }
 
                     hit.normal = -direction;

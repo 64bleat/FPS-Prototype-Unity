@@ -1,0 +1,1002 @@
+fileFormatVersion: 2
+guid: 50bf43988caefd94590878ac3772565c
+ModelImporter:
+  serializedVersion: 20200
+  internalIDToNameTable:
+  - first:
+      74: 889407580073514488
+    second: BarrelShaft|Box01|Take 001|BaseLayer
+  - first:
+      74: -569937456745752296
+    second: BarrelShaft|Box02|Take 001|BaseLayer
+  - first:
+      74: -1690129196731589223
+    second: BarrelShaft|Box03|Take 001|BaseLayer
+  - first:
+      74: -6764085288611133386
+    second: BarrelShaft|Box04|Take 001|BaseLayer
+  - first:
+      74: 3357466983379351674
+    second: BarrelShaft|Box05|Take 001|BaseLayer
+  - first:
+      74: 3969982713872362136
+    second: BarrelShaft|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: 593060538942979923
+    second: BarrelShaft|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -4312277125564055742
+    second: BarrelShaft|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: 7245970871338816033
+    second: BarrelShaft|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: 4555721058326384207
+    second: BarrelShaft|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: 7017731800766181696
+    second: BarrelShaft|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: -4812581073687399359
+    second: BarrelShaft|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: 5023560283165901898
+    second: BarrelShaft|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: 3626545680395660231
+    second: BarrelShaft|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: -2546630259799185522
+    second: BarrelShaft|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: 6546909078618651795
+    second: BarrelShaft|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: 5533984021294543913
+    second: BarrelShaft|Object01|Take 001|BaseLayer
+  - first:
+      74: 5114052586681742130
+    second: BarrelShaft|Object02|Take 001|BaseLayer
+  - first:
+      74: 6269978465678320298
+    second: BarrelShaft|Object03|Take 001|BaseLayer
+  - first:
+      74: -5268364962250072679
+    second: BarrelShaft|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: 3565438182489066342
+    second: BarrelShaft|Tube01|Take 001|BaseLayer
+  - first:
+      74: -1745328125290612787
+    second: BarrelShaft|Tube02|Take 001|BaseLayer
+  - first:
+      74: 743791264681154373
+    second: BarrelShaft|Tube03|Take 001|BaseLayer
+  - first:
+      74: -6519017453940369198
+    second: BarrelShaft|Tube04|Take 001|BaseLayer
+  - first:
+      74: -2085645326068817133
+    second: BarrelShaft|Tube05|Take 001|BaseLayer
+  - first:
+      74: 4082974241762280360
+    second: PumpGuard|Box01|Take 001|BaseLayer
+  - first:
+      74: 5196839884586306658
+    second: PumpGuard|Box02|Take 001|BaseLayer
+  - first:
+      74: 1795730296702569017
+    second: PumpGuard|Box03|Take 001|BaseLayer
+  - first:
+      74: 8065703996797121472
+    second: PumpGuard|Box04|Take 001|BaseLayer
+  - first:
+      74: -972587592960330354
+    second: PumpGuard|Box05|Take 001|BaseLayer
+  - first:
+      74: -4881614214036516665
+    second: PumpGuard|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: 6163025170311699901
+    second: PumpGuard|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -8495921217460630768
+    second: PumpGuard|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: -3740541496557707215
+    second: PumpGuard|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: -250802851450417222
+    second: PumpGuard|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: 7908490533719783548
+    second: PumpGuard|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: 1803540605239829642
+    second: PumpGuard|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: 8173000725185380406
+    second: PumpGuard|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: 522747333559751804
+    second: PumpGuard|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: -6330920748794059210
+    second: PumpGuard|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: -4492192650283435266
+    second: PumpGuard|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: -6883943115920357870
+    second: PumpGuard|Object01|Take 001|BaseLayer
+  - first:
+      74: 5227553261746614994
+    second: PumpGuard|Object02|Take 001|BaseLayer
+  - first:
+      74: 4560390680624824954
+    second: PumpGuard|Object03|Take 001|BaseLayer
+  - first:
+      74: -1607783815054042963
+    second: PumpGuard|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: 7411679523278309276
+    second: PumpGuard|Tube01|Take 001|BaseLayer
+  - first:
+      74: 644887141175053872
+    second: PumpGuard|Tube02|Take 001|BaseLayer
+  - first:
+      74: -1927399278712461906
+    second: PumpGuard|Tube03|Take 001|BaseLayer
+  - first:
+      74: 1822563204981844520
+    second: PumpGuard|Tube04|Take 001|BaseLayer
+  - first:
+      74: -4396940762942958688
+    second: PumpGuard|Tube05|Take 001|BaseLayer
+  - first:
+      74: -6084188438677687242
+    second: PumpAction|Box01|Take 001|BaseLayer
+  - first:
+      74: 7466222042419508831
+    second: PumpAction|Box02|Take 001|BaseLayer
+  - first:
+      74: -5985525640421673668
+    second: PumpAction|Box03|Take 001|BaseLayer
+  - first:
+      74: 7664063175603058558
+    second: PumpAction|Box04|Take 001|BaseLayer
+  - first:
+      74: 5670996285010234802
+    second: PumpAction|Box05|Take 001|BaseLayer
+  - first:
+      74: -1840651743760728211
+    second: PumpAction|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: 5129083185396066613
+    second: PumpAction|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -8239791434393267671
+    second: PumpAction|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: 4094851884107367451
+    second: PumpAction|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: -428568406809810972
+    second: PumpAction|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: -4264856218382394760
+    second: PumpAction|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: -385975210170524583
+    second: PumpAction|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: -7126021441204567024
+    second: PumpAction|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: 1964943951384240196
+    second: PumpAction|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: -4512167934035201203
+    second: PumpAction|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: -6535499716695805877
+    second: PumpAction|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: -1420554635757581625
+    second: PumpAction|Object01|Take 001|BaseLayer
+  - first:
+      74: 2185016866010228706
+    second: PumpAction|Object02|Take 001|BaseLayer
+  - first:
+      74: 3063660516846087501
+    second: PumpAction|Object03|Take 001|BaseLayer
+  - first:
+      74: 7810272649545688066
+    second: PumpAction|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: -4533124190403479894
+    second: PumpAction|Tube01|Take 001|BaseLayer
+  - first:
+      74: -5793643622019263638
+    second: PumpAction|Tube02|Take 001|BaseLayer
+  - first:
+      74: 1820324729566277390
+    second: PumpAction|Tube03|Take 001|BaseLayer
+  - first:
+      74: 851018422819599902
+    second: PumpAction|Tube04|Take 001|BaseLayer
+  - first:
+      74: -3770616581311387685
+    second: PumpAction|Tube05|Take 001|BaseLayer
+  - first:
+      74: 5463778075076136617
+    second: PumpShaft|Box01|Take 001|BaseLayer
+  - first:
+      74: 7826192382233580066
+    second: PumpShaft|Box02|Take 001|BaseLayer
+  - first:
+      74: -5538525238472620664
+    second: PumpShaft|Box03|Take 001|BaseLayer
+  - first:
+      74: 4693266018709491320
+    second: PumpShaft|Box04|Take 001|BaseLayer
+  - first:
+      74: 8582392393474520071
+    second: PumpShaft|Box05|Take 001|BaseLayer
+  - first:
+      74: -2990699695452127823
+    second: PumpShaft|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: 3692546037168881074
+    second: PumpShaft|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -2433961398463643355
+    second: PumpShaft|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: 2402718729247792524
+    second: PumpShaft|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: 8974680459697376177
+    second: PumpShaft|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: 706745847802282947
+    second: PumpShaft|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: -2594142079095489614
+    second: PumpShaft|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: 3364208133481644462
+    second: PumpShaft|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: 2211374188425645877
+    second: PumpShaft|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: 6115259762269034542
+    second: PumpShaft|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: 1975621877175484842
+    second: PumpShaft|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: -5578121226985155072
+    second: PumpShaft|Object01|Take 001|BaseLayer
+  - first:
+      74: 1326558747863176603
+    second: PumpShaft|Object02|Take 001|BaseLayer
+  - first:
+      74: 4610387174448640456
+    second: PumpShaft|Object03|Take 001|BaseLayer
+  - first:
+      74: -5067078574835998029
+    second: PumpShaft|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: -4959439927498204589
+    second: PumpShaft|Tube01|Take 001|BaseLayer
+  - first:
+      74: -6637212045547459268
+    second: PumpShaft|Tube02|Take 001|BaseLayer
+  - first:
+      74: 5714700041464105450
+    second: PumpShaft|Tube03|Take 001|BaseLayer
+  - first:
+      74: -3768370233443622151
+    second: PumpShaft|Tube04|Take 001|BaseLayer
+  - first:
+      74: 8157976145374539064
+    second: PumpShaft|Tube05|Take 001|BaseLayer
+  - first:
+      74: -1110835057359750996
+    second: BodyLow|Box01|Take 001|BaseLayer
+  - first:
+      74: -8713869873688016296
+    second: BodyLow|Box02|Take 001|BaseLayer
+  - first:
+      74: -3249432017862872623
+    second: BodyLow|Box03|Take 001|BaseLayer
+  - first:
+      74: -521137261090704766
+    second: BodyLow|Box04|Take 001|BaseLayer
+  - first:
+      74: -241801037526875189
+    second: BodyLow|Box05|Take 001|BaseLayer
+  - first:
+      74: 9021300895014057296
+    second: BodyLow|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: 6538715601075972132
+    second: BodyLow|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -3107297855476081479
+    second: BodyLow|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: -8689889802728764963
+    second: BodyLow|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: -5712154664315294399
+    second: BodyLow|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: -4508972547058063747
+    second: BodyLow|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: -1214929057743751182
+    second: BodyLow|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: -7118576802695326546
+    second: BodyLow|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: -6465236729625159013
+    second: BodyLow|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: 5590396948397096649
+    second: BodyLow|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: -5402746834603446322
+    second: BodyLow|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: 7999929642593759372
+    second: BodyLow|Object01|Take 001|BaseLayer
+  - first:
+      74: -6649503112648637634
+    second: BodyLow|Object02|Take 001|BaseLayer
+  - first:
+      74: 4615710055122697571
+    second: BodyLow|Object03|Take 001|BaseLayer
+  - first:
+      74: 2016659973434534102
+    second: BodyLow|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: -8954782800885914631
+    second: BodyLow|Tube01|Take 001|BaseLayer
+  - first:
+      74: 5028346364046861836
+    second: BodyLow|Tube02|Take 001|BaseLayer
+  - first:
+      74: -7961697593377244655
+    second: BodyLow|Tube03|Take 001|BaseLayer
+  - first:
+      74: 8042940644901158325
+    second: BodyLow|Tube04|Take 001|BaseLayer
+  - first:
+      74: 1579952561575407116
+    second: BodyLow|Tube05|Take 001|BaseLayer
+  - first:
+      74: -3005642654044947043
+    second: Grip|Box01|Take 001|BaseLayer
+  - first:
+      74: -6975120655295639180
+    second: Grip|Box02|Take 001|BaseLayer
+  - first:
+      74: -3351307650533887806
+    second: Grip|Box03|Take 001|BaseLayer
+  - first:
+      74: -71794936461301017
+    second: Grip|Box04|Take 001|BaseLayer
+  - first:
+      74: -6618360066232142244
+    second: Grip|Box05|Take 001|BaseLayer
+  - first:
+      74: -5120681201462410564
+    second: Grip|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: -7563873298348047940
+    second: Grip|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -5394218668156645112
+    second: Grip|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: -2632691379113715576
+    second: Grip|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: 718451768530709959
+    second: Grip|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: 3460339318681076838
+    second: Grip|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: 2016770083457314426
+    second: Grip|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: 2379993043616291232
+    second: Grip|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: -394047666732166483
+    second: Grip|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: 5963659161596607563
+    second: Grip|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: 3240197273220153350
+    second: Grip|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: -4636596599956227504
+    second: Grip|Object01|Take 001|BaseLayer
+  - first:
+      74: -8400235029543171719
+    second: Grip|Object02|Take 001|BaseLayer
+  - first:
+      74: 6475724115527400713
+    second: Grip|Object03|Take 001|BaseLayer
+  - first:
+      74: 1092346770175491393
+    second: Grip|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: -3335794606321354634
+    second: Grip|Tube01|Take 001|BaseLayer
+  - first:
+      74: -1044804554687189094
+    second: Grip|Tube02|Take 001|BaseLayer
+  - first:
+      74: -5267775212026470121
+    second: Grip|Tube03|Take 001|BaseLayer
+  - first:
+      74: 2995293514246383361
+    second: Grip|Tube04|Take 001|BaseLayer
+  - first:
+      74: -6783192229461393615
+    second: Grip|Tube05|Take 001|BaseLayer
+  - first:
+      74: 1875712592180527101
+    second: BarrelAssembly|Box01|Take 001|BaseLayer
+  - first:
+      74: -485880650941866445
+    second: BarrelAssembly|Box02|Take 001|BaseLayer
+  - first:
+      74: -8470405237387464523
+    second: BarrelAssembly|Box03|Take 001|BaseLayer
+  - first:
+      74: -8058864078486316866
+    second: BarrelAssembly|Box04|Take 001|BaseLayer
+  - first:
+      74: 7915190352730240479
+    second: BarrelAssembly|Box05|Take 001|BaseLayer
+  - first:
+      74: -1467110360590795918
+    second: BarrelAssembly|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: 5843889752336602877
+    second: BarrelAssembly|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: 9187323025438726910
+    second: BarrelAssembly|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: 2654575362037165265
+    second: BarrelAssembly|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: -5181484525845624962
+    second: BarrelAssembly|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: -7874933333333433694
+    second: BarrelAssembly|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: -4363540173973255764
+    second: BarrelAssembly|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: -6590084186628950862
+    second: BarrelAssembly|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: -4871532505760705744
+    second: BarrelAssembly|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: 159857082659720131
+    second: BarrelAssembly|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: 8343485111010331817
+    second: BarrelAssembly|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: 3191363287033968292
+    second: BarrelAssembly|Object01|Take 001|BaseLayer
+  - first:
+      74: -8294429922515636693
+    second: BarrelAssembly|Object02|Take 001|BaseLayer
+  - first:
+      74: 8527411432368272536
+    second: BarrelAssembly|Object03|Take 001|BaseLayer
+  - first:
+      74: -8974523358492620426
+    second: BarrelAssembly|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: -5951209196102718954
+    second: BarrelAssembly|Tube01|Take 001|BaseLayer
+  - first:
+      74: -5106586002507760010
+    second: BarrelAssembly|Tube02|Take 001|BaseLayer
+  - first:
+      74: 8640697852916868766
+    second: BarrelAssembly|Tube03|Take 001|BaseLayer
+  - first:
+      74: 3446639144142190971
+    second: BarrelAssembly|Tube04|Take 001|BaseLayer
+  - first:
+      74: -611717526485657404
+    second: BarrelAssembly|Tube05|Take 001|BaseLayer
+  - first:
+      74: -3144090213933533889
+    second: Body|Box01|Take 001|BaseLayer
+  - first:
+      74: -2725946017930685845
+    second: Body|Box02|Take 001|BaseLayer
+  - first:
+      74: 7856172784717025566
+    second: Body|Box03|Take 001|BaseLayer
+  - first:
+      74: -2141999906666308290
+    second: Body|Box04|Take 001|BaseLayer
+  - first:
+      74: 9096850610350086820
+    second: Body|Box05|Take 001|BaseLayer
+  - first:
+      74: 2216243559349649083
+    second: Body|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: 537512409209070551
+    second: Body|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -4550325523137990455
+    second: Body|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: 8720847161634950059
+    second: Body|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: -5683714710967744867
+    second: Body|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: 3813271607268445415
+    second: Body|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: 6822626395649690869
+    second: Body|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: -5924953616735792601
+    second: Body|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: 2271126043769029096
+    second: Body|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: 6891987400698636529
+    second: Body|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: -3272253819781365172
+    second: Body|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: -2970693924547458152
+    second: Body|Object01|Take 001|BaseLayer
+  - first:
+      74: -1025232144358801125
+    second: Body|Object02|Take 001|BaseLayer
+  - first:
+      74: 8218112390220567328
+    second: Body|Object03|Take 001|BaseLayer
+  - first:
+      74: -6825456872957760092
+    second: Body|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: 180882388977070369
+    second: Body|Tube01|Take 001|BaseLayer
+  - first:
+      74: 6747527151662221683
+    second: Body|Tube02|Take 001|BaseLayer
+  - first:
+      74: -6948564620150381670
+    second: Body|Tube03|Take 001|BaseLayer
+  - first:
+      74: 2850130116003932905
+    second: Body|Tube04|Take 001|BaseLayer
+  - first:
+      74: -7323460081619642561
+    second: Body|Tube05|Take 001|BaseLayer
+  - first:
+      74: -6471425782094878532
+    second: BarrelLatch.005|Box01|Take 001|BaseLayer
+  - first:
+      74: 4140753524404451499
+    second: BarrelLatch.005|Box02|Take 001|BaseLayer
+  - first:
+      74: -2907001907575067913
+    second: BarrelLatch.005|Box03|Take 001|BaseLayer
+  - first:
+      74: 4128185558042030389
+    second: BarrelLatch.005|Box04|Take 001|BaseLayer
+  - first:
+      74: -711516650282832742
+    second: BarrelLatch.005|Box05|Take 001|BaseLayer
+  - first:
+      74: -2288063231664406860
+    second: BarrelLatch.005|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: 633896489185007413
+    second: BarrelLatch.005|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -5166711327209061795
+    second: BarrelLatch.005|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: -5121492405796691620
+    second: BarrelLatch.005|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: 2553332292117204781
+    second: BarrelLatch.005|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: 2426493163649703335
+    second: BarrelLatch.005|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: 4963172242471367908
+    second: BarrelLatch.005|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: 2963332171742810792
+    second: BarrelLatch.005|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: 2877407404898548828
+    second: BarrelLatch.005|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: 9018930709376592973
+    second: BarrelLatch.005|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: -2807460568171957021
+    second: BarrelLatch.005|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: -485758755615949037
+    second: BarrelLatch.005|Object01|Take 001|BaseLayer
+  - first:
+      74: 5524566648747917712
+    second: BarrelLatch.005|Object02|Take 001|BaseLayer
+  - first:
+      74: 5281370623365732420
+    second: BarrelLatch.005|Object03|Take 001|BaseLayer
+  - first:
+      74: 6883107160186532984
+    second: BarrelLatch.005|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: -5080044472119975389
+    second: BarrelLatch.005|Tube01|Take 001|BaseLayer
+  - first:
+      74: 3034636677379475798
+    second: BarrelLatch.005|Tube02|Take 001|BaseLayer
+  - first:
+      74: 8622695187691653142
+    second: BarrelLatch.005|Tube03|Take 001|BaseLayer
+  - first:
+      74: -6031076968913598996
+    second: BarrelLatch.005|Tube04|Take 001|BaseLayer
+  - first:
+      74: 462680505219199007
+    second: BarrelLatch.005|Tube05|Take 001|BaseLayer
+  - first:
+      74: 5160967701928441505
+    second: BarrelLatch.001|Box01|Take 001|BaseLayer
+  - first:
+      74: -3767864977582874535
+    second: BarrelLatch.001|Box02|Take 001|BaseLayer
+  - first:
+      74: -5894445007271528376
+    second: BarrelLatch.001|Box03|Take 001|BaseLayer
+  - first:
+      74: 7126177338902757930
+    second: BarrelLatch.001|Box04|Take 001|BaseLayer
+  - first:
+      74: 3251894828193145248
+    second: BarrelLatch.001|Box05|Take 001|BaseLayer
+  - first:
+      74: 2229218528999221549
+    second: BarrelLatch.001|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: 5298450487366703802
+    second: BarrelLatch.001|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -6182182459863606470
+    second: BarrelLatch.001|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: 400325322129183672
+    second: BarrelLatch.001|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: 4058123202941503223
+    second: BarrelLatch.001|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: 8518034671781475351
+    second: BarrelLatch.001|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: 941671812812514666
+    second: BarrelLatch.001|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: -1936284223215192029
+    second: BarrelLatch.001|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: -7444384314474739807
+    second: BarrelLatch.001|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: -3481945154645758286
+    second: BarrelLatch.001|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: 4696417208025851762
+    second: BarrelLatch.001|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: -6747592701870972142
+    second: BarrelLatch.001|Object01|Take 001|BaseLayer
+  - first:
+      74: 4830494505703400334
+    second: BarrelLatch.001|Object02|Take 001|BaseLayer
+  - first:
+      74: -9104834859000948134
+    second: BarrelLatch.001|Object03|Take 001|BaseLayer
+  - first:
+      74: -4900076633117159802
+    second: BarrelLatch.001|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: 8291642864544170495
+    second: BarrelLatch.001|Tube01|Take 001|BaseLayer
+  - first:
+      74: 1932110944510614379
+    second: BarrelLatch.001|Tube02|Take 001|BaseLayer
+  - first:
+      74: 43950555782000382
+    second: BarrelLatch.001|Tube03|Take 001|BaseLayer
+  - first:
+      74: -3053583440353833608
+    second: BarrelLatch.001|Tube04|Take 001|BaseLayer
+  - first:
+      74: -7673092665189814302
+    second: BarrelLatch.001|Tube05|Take 001|BaseLayer
+  - first:
+      74: 1697716668117131527
+    second: BarrelLatch.002|Box01|Take 001|BaseLayer
+  - first:
+      74: 5989241626652025997
+    second: BarrelLatch.002|Box02|Take 001|BaseLayer
+  - first:
+      74: 4266979708553226546
+    second: BarrelLatch.002|Box03|Take 001|BaseLayer
+  - first:
+      74: -8925391025610783321
+    second: BarrelLatch.002|Box04|Take 001|BaseLayer
+  - first:
+      74: 1049450924226268764
+    second: BarrelLatch.002|Box05|Take 001|BaseLayer
+  - first:
+      74: -235004365440978425
+    second: BarrelLatch.002|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: -6687826436526421310
+    second: BarrelLatch.002|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -5140591520904050921
+    second: BarrelLatch.002|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: 906717989907304414
+    second: BarrelLatch.002|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: -5777675403793869938
+    second: BarrelLatch.002|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: 4274041442915577814
+    second: BarrelLatch.002|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: 9209064233143312104
+    second: BarrelLatch.002|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: -8550834495736555679
+    second: BarrelLatch.002|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: -5835714369021803103
+    second: BarrelLatch.002|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: 2744369992259921762
+    second: BarrelLatch.002|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: -1353843531955435547
+    second: BarrelLatch.002|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: 6442883483652953068
+    second: BarrelLatch.002|Object01|Take 001|BaseLayer
+  - first:
+      74: 8757033797317494930
+    second: BarrelLatch.002|Object02|Take 001|BaseLayer
+  - first:
+      74: -6215761844208990907
+    second: BarrelLatch.002|Object03|Take 001|BaseLayer
+  - first:
+      74: 1344071371924540283
+    second: BarrelLatch.002|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: 6509743044243751609
+    second: BarrelLatch.002|Tube01|Take 001|BaseLayer
+  - first:
+      74: 1338417316457692647
+    second: BarrelLatch.002|Tube02|Take 001|BaseLayer
+  - first:
+      74: -7339864528076708144
+    second: BarrelLatch.002|Tube03|Take 001|BaseLayer
+  - first:
+      74: 8453480480597770994
+    second: BarrelLatch.002|Tube04|Take 001|BaseLayer
+  - first:
+      74: 1499423023167058150
+    second: BarrelLatch.002|Tube05|Take 001|BaseLayer
+  - first:
+      74: -7099834096369597103
+    second: BarrelLatch.003|Box01|Take 001|BaseLayer
+  - first:
+      74: 1658050433949930789
+    second: BarrelLatch.003|Box02|Take 001|BaseLayer
+  - first:
+      74: -6944169748895899444
+    second: BarrelLatch.003|Box03|Take 001|BaseLayer
+  - first:
+      74: -985218696129678667
+    second: BarrelLatch.003|Box04|Take 001|BaseLayer
+  - first:
+      74: 1458568656381689360
+    second: BarrelLatch.003|Box05|Take 001|BaseLayer
+  - first:
+      74: -4875142150272318785
+    second: BarrelLatch.003|Cylinder02|Take 001|BaseLayer
+  - first:
+      74: -1042724951128198591
+    second: BarrelLatch.003|Cylinder05|Take 001|BaseLayer
+  - first:
+      74: -4122626869459345926
+    second: BarrelLatch.003|Cylinder06|Take 001|BaseLayer
+  - first:
+      74: 2371032373791332813
+    second: BarrelLatch.003|Cylinder07|Take 001|BaseLayer
+  - first:
+      74: 5326208041090683503
+    second: BarrelLatch.003|Cylinder08|Take 001|BaseLayer
+  - first:
+      74: -7325990186754273418
+    second: BarrelLatch.003|Cylinder09|Take 001|BaseLayer
+  - first:
+      74: 2828034526454519454
+    second: BarrelLatch.003|Cylinder10|Take 001|BaseLayer
+  - first:
+      74: -7878224161803844908
+    second: BarrelLatch.003|Cylinder11|Take 001|BaseLayer
+  - first:
+      74: 5826473781971613641
+    second: BarrelLatch.003|Cylinder12|Take 001|BaseLayer
+  - first:
+      74: -1370852299511921033
+    second: BarrelLatch.003|Cylinder13|Take 001|BaseLayer
+  - first:
+      74: 6458314655183311708
+    second: BarrelLatch.003|Cylinder18|Take 001|BaseLayer
+  - first:
+      74: -4630666651508377409
+    second: BarrelLatch.003|Object01|Take 001|BaseLayer
+  - first:
+      74: 3333545988451562683
+    second: BarrelLatch.003|Object02|Take 001|BaseLayer
+  - first:
+      74: 429385663252087002
+    second: BarrelLatch.003|Object03|Take 001|BaseLayer
+  - first:
+      74: -3209543293603896682
+    second: BarrelLatch.003|PhotometricLight01|Take 001|BaseLayer
+  - first:
+      74: 7998847878045024246
+    second: BarrelLatch.003|Tube01|Take 001|BaseLayer
+  - first:
+      74: 6165237814800299326
+    second: BarrelLatch.003|Tube02|Take 001|BaseLayer
+  - first:
+      74: -8943938030078466859
+    second: BarrelLatch.003|Tube03|Take 001|BaseLayer
+  - first:
+      74: 8281270949321468361
+    second: BarrelLatch.003|Tube04|Take 001|BaseLayer
+  - first:
+      74: -4684571637779106283
+    second: BarrelLatch.003|Tube05|Take 001|BaseLayer
+  externalObjects: {}
+  materials:
+    materialImportMode: 0
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

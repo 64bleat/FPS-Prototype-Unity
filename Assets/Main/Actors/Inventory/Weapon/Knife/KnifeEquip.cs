@@ -1,3 +1,5 @@
+#pragma warning disable CS0108 // Member hides inherited member; missing new keyword
+
 using MPWorld;
 using UnityEngine;
 
@@ -74,8 +76,8 @@ namespace MPCore
                 else if (hit.collider.TryGetComponentInParent(out IGravityUser gu))
                     gu.Velocity += attackPoint.forward * attackForce / gu.Mass;
 
-                if (hit.collider.TryGetComponentInParent(out Character character))
-                    character.Damage(damage, gameObject, instigator, shared.damageType, attackPoint.forward);
+                if (hit.collider.TryGetComponentInParent(out DamageEvent damageEvent))
+                    damageEvent.Damage(damage, gameObject, instigator, shared.damageType, attackPoint.forward);
 
                 // COPYPASTA FROM PROJECTILE.CS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 HitEffect hitEffect = default;

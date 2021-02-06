@@ -1,12 +1,11 @@
-﻿/******************************************************************************      
- * author: David Martinez Copyright 2020 all rights reserved
- * description: A simple interactable that calls UnityEvents.
- *****************************************************************************/
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Events;
 
-namespace MPCore
+namespace MPWorld
 {
+    /// <summary>
+    /// Called when the gameObject is interacted with
+    /// </summary>
     public class InteractEvents : MonoBehaviour, IInteractable
     {
         public UnityEvent startEvents, stayEvents, endEvents;

@@ -10,10 +10,10 @@ namespace MPCore
     /// </summary>
     public class JobManager : MonoBehaviour
     {
-        private static readonly List<JobInfo> activeJobs = new List<JobInfo>();
-        private static readonly Stack<JobInfo> availableJobs = new Stack<JobInfo>();
+        private static readonly List<ActiveJob> activeJobs = new List<ActiveJob>();
+        private static readonly Stack<ActiveJob> availableJobs = new Stack<ActiveJob>();
 
-        private class JobInfo
+        private class ActiveJob
         {
             public JobHandle handle;
             public IJob job;
@@ -24,7 +24,7 @@ namespace MPCore
         private void OnDestroy()
         {
             // Finish all jobs on destroy
-            foreach (JobInfo job in activeJobs)
+            foreach (ActiveJob job in activeJobs)
             {
                 job.handle.Complete();
                 job.callback?.Invoke(job.job);
@@ -57,12 +57,12 @@ namespace MPCore
         /// </summary>
         public static JobHandle Schedule<T>(T job, Action<IJob> callback = null, JobHandle require = default) where T : struct, IJob
         {
-            JobInfo jobData;
+            ActiveJob jobData;
 
             if (availableJobs.Count > 0)
                 jobData = availableJobs.Pop();
             else
-                jobData = new JobInfo();
+                jobData = new ActiveJob();
 
             jobData.handle = job.Schedule(require);
             jobData.job = job;

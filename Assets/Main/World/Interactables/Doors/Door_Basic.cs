@@ -1,10 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using MPCore;
+﻿using MPCore;
 using System;
+using UnityEngine;
 
-namespace MPCore
+namespace MPWorld
 {
     /// <summary> A script to open and close a hinged door upon interacting with it. </summary>
     public class Door_Basic : MonoBehaviour, IInteractable

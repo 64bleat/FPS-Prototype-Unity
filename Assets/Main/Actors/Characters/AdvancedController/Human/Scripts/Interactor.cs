@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using MPWorld;
+using UnityEngine;
 
 namespace MPCore
 {
@@ -8,15 +9,15 @@ namespace MPCore
 
         private GameObject owner;
         private TargetInfo target;
-        private Character character;
+        private InventoryContainer container;
         private int layerMask;
 
         private void Awake()
         {
             InputManager input = GetComponentInParent<InputManager>();
 
-            character = GetComponentInParent<Character>();
-            owner = character.gameObject;
+            container = GetComponentInParent<InventoryContainer>();
+            owner = container.gameObject;
             layerMask = LayerMask.GetMask("Default", "Physical", "Interactable");
 
             input.Bind("Interact", OnInteractStart, this, KeyPressType.Down);
@@ -75,14 +76,14 @@ namespace MPCore
 
         private void OnDrop()
         {
-            if(character && character.inventory.Count > 0)
+            if(container && container.inventory.Count > 0)
             {
                 TargetInfo t = GetInteractPosition();
                 Vector3 position = t.hit.point;
                 Quaternion rotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(t.hit.point - transform.position, t.hit.normal), owner.transform.up);
-                int index = character.inventory.Count - 1;
+                int index = container.inventory.Count - 1;
 
-                InventoryManager.Drop(character.inventory, index, position, rotation, owner, t.hit);
+                container.Drop(index, position, rotation, t.hit);
             }
         }
     }

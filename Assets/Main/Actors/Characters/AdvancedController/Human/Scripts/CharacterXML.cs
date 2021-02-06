@@ -36,8 +36,9 @@ namespace Serialization
                 isPlayer = character.isPlayer;
 
                 // Inventory
-                inventory = new List<InventoryItemXML>(character.inventory.Count);
-                foreach (Inventory item in character.inventory)
+                if(character.TryGetComponent(out InventoryContainer container))
+                inventory = new List<InventoryItemXML>(container.inventory.Count);
+                foreach (Inventory item in container.inventory)
                     inventory.Add(new InventoryItemXML()
                     {
                         resourcePath = item.resourcePath,
@@ -65,21 +66,26 @@ namespace Serialization
             if(o is Character character && character)
             {
                 // Inventory
-                character.inventory.Clear();
-                foreach(InventoryItemXML item in inventory)
-                    if (Resources.Load<ScriptableObject>(item.resourcePath) is Inventory inv && inv)
-                    {
-                        if (!item.staticReference)
-                        {
-                            inv = ScriptableObject.Instantiate(inv);
-                            inv.maxCount = item.maxCount;
-                            inv.count = item.count;
-                        }
+                if (character.TryGetComponent(out InventoryContainer container))
+                {
+                    container.inventory.Clear();
 
-                        InventoryManager.PickUp(character, inv);
-                    }
-                    else
-                        Debug.LogWarning($"Resource error: missing {item.resourcePath}");
+                    foreach (InventoryItemXML item in inventory)
+                        if (Resources.Load<ScriptableObject>(item.resourcePath) is Inventory inv && inv)
+                        {
+                            if (!item.staticReference)
+                            {
+                                inv = ScriptableObject.Instantiate(inv);
+                                inv.maxCount = item.maxCount;
+                                inv.count = item.count;
+                            }
+
+                            //InventoryManager.PickUp(container, inv);
+                            inv.TryPickup(container, out _);
+                        }
+                        else
+                            Debug.LogWarning($"Resource error: missing {item.resourcePath}");
+                }
 
                 // Resources
                 character.resources.Clear();

@@ -7,11 +7,13 @@ using Console = MPConsole.Console;
 
 namespace MPCore
 {
+    /// <summary>
+    /// Primary component of the entire Character Controller system
+    /// </summary>
     [ContainsConsoleCommands]
     public class Character : MonoBehaviour
     {
         public List<ResourceValue> resources = new List<ResourceValue>();
-        public List<Inventory> inventory = new List<Inventory>();
         public ResourceType hurtResource;
         public bool isPlayer = false;
 
@@ -36,15 +38,13 @@ namespace MPCore
         private void Awake()
         {
             TryGetComponent(out body);
-
-            // Don't store direct references to Inventory resources 
-            for (int i = 0; i < inventory.Count; i++)
-                if (!inventory[i].staticReference)
-                    inventory[i] = Instantiate(inventory[i]);
         }
 
         private void OnEnable()
         {
+            if (TryGetComponent(out DamageEvent damage))
+                damage.OnDamage += Damage;
+
             AiInterestPoints.interestPoints.Add(this);
             Console.RegisterInstance(this);
 
@@ -53,6 +53,9 @@ namespace MPCore
 
         private void OnDisable()
         {
+            if (TryGetComponent(out DamageEvent damage))
+                damage.OnDamage -= Damage;
+
             AiInterestPoints.interestPoints.Remove(this);
             Console.RemoveInstance(this);            
         }
@@ -78,7 +81,7 @@ namespace MPCore
                 onDisplayHealth.Invoke($"{health.value,3}");
         }
 
-        public int Damage(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction)
+        private int Damage(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction)
         {
             DamageTicket ticket = new DamageTicket()
             {
@@ -156,9 +159,10 @@ namespace MPCore
             }
 
             // Drop Inventory
-            foreach (Inventory i in inventory)
-                if (i.dropOnDeath)
-                    i.TryDrop(gameObject, transform.position, transform.rotation, default, out _);
+            if(TryGetComponent(out InventoryContainer container))
+                foreach (Inventory i in container.inventory)
+                    if (i.dropOnDeath)
+                        i.TryDrop(gameObject, transform.position, transform.rotation, default, out _);
 
             // Finished off by
             if (lastAttackedBy.instigator && Time.time - lastAttackedBy.time < 3f)
@@ -189,27 +193,6 @@ namespace MPCore
 
             if (isPlayer)
                 return health != default ? "God mode disabled" : "God mode enabled";
-            else
-                return null;
-        }
-
-        [ConsoleCommand("pickup")]
-        public string PickUp(string path)
-        {
-            if (isPlayer)
-            {
-                Inventory resource = Resources.Load<Inventory>(path);
-
-                if (resource)
-                {
-                    if (InventoryManager.PickUp(this, resource))
-                        return $"Picked up {resource.name}";
-                    else
-                        return $"Could not pick up {resource.name}";
-                }
-                else
-                    return $"Could not find resource {path}";
-            }
             else
                 return null;
         }

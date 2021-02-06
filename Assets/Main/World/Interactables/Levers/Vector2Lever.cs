@@ -1,23 +1,7 @@
-﻿/******************************************************************************      
- * author: David Martinez Copyright 2020 all rights reserved
- * description: Vector2Lever is like two FloatLevers combined into one,
- *  representing two axes.
- * procedure:
- *  1.  Add a collider to this GameObject that will cover the radius between
- *      leverCenter and leverMax;
- *  2.  Set leverCenter to an empty GameObject representing the center of
- *      the lever (0,0). Set leverMax to an empty GameObject representing
- *      the top of the lever (0, 1).
- *  3.  Value will be calculated by the position of lever relative to
- *      leverCenter and leverMax.
- *  notes:
- *  -   Value will never be greater than a unit vector.
- *  -   Setting value will automatically set the lever to the correct position.
- *****************************************************************************/
+﻿using MPCore;
 using UnityEngine;
-using MPCore;
 
-namespace MPCore
+namespace MPWorld
 {
     public class Vector2Lever : MonoBehaviour , IInteractable, IVector2Value
     {

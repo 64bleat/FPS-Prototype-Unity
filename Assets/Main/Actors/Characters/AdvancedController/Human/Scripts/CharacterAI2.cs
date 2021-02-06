@@ -18,6 +18,7 @@ namespace MPCore
         public bool hostile = true;
 
         // Character References
+        private InventoryContainer container;
         private CharacterBody body;
         private InputManager input;
         private CharacterInput characterInput;
@@ -61,7 +62,7 @@ namespace MPCore
         private static readonly Dictionary<Type, float> satisfactionDistances = new Dictionary<Type, float>()
         {
             {typeof(Character), 0.5f },
-            {typeof(InventoryObject), 0.5f }
+            {typeof(InventoryPickup), 0.5f }
         };
 
         public struct OmniInfo
@@ -91,6 +92,7 @@ namespace MPCore
 
         private void Awake()
         {
+            TryGetComponent(out container);
             TryGetComponent(out body);
             TryGetComponent(out input);
             TryGetComponent(out characterInput);
@@ -142,7 +144,7 @@ namespace MPCore
                 && (path.Count == 0
                 || nextTargetTime < Time.time
                 || 0.75f >= Vector3.Distance(pathCursor, path[path.Count - 1])
-                ||  (!(moveTarget is InventoryObject) 
+                ||  (!(moveTarget is InventoryPickup) 
                     && sight.target is Character
                     && weapons.currentWeapon 
                     && weapons.currentWeapon.preferredCombatDistance <= Vector3.Distance(sight.lastSeenPosition, path[path.Count - 1])
@@ -226,30 +228,44 @@ namespace MPCore
             (Component bestTarget, float bestPriority) omniTarget = default;
 
             storedInventoryTEMP.Clear();
-            foreach (Inventory i in character.inventory)
+            foreach (Inventory i in container.inventory)
                 storedInventoryTEMP.Add(i.resourcePath);
 
             foreach (Component candidate in AiInterestPoints.interestPoints)
                 if (candidate && candidate != this.character && (types == null || types.Contains(candidate.GetType())))
                     if (candidate is Character && IsTargetVisible(candidate, viewAngle, out _))
                     {
-                        float priority = 1f / Vector3.Distance(transform.position, candidate.transform.position);
+                        float distance = Vector3.Distance(transform.position, candidate.transform.position);
+                        float priority = 1f / distance;
+
+                        if (TryGetComponent(out WeaponSwitcher mySwitcher)
+                            && candidate.TryGetComponent(out WeaponSwitcher theirSwitcher)
+                            && mySwitcher.currentWeapon
+                            && theirSwitcher.currentWeapon
+                            && mySwitcher.currentWeapon.shortName == "Knife"
+                            //&& distance >= mySwitcher.currentWeapon.preferredCombatDistance
+                            && theirSwitcher.currentWeapon.shortName != "Knife")
+                        {
+                            priority += 2000f;
+                        }
 
                         if (priority > sightTarget.bestPriority)
                             sightTarget = (candidate, priority);
                     }
-                    else if (candidate is InventoryObject io)
+                    else if (candidate is InventoryPickup io)
                         if (io.inventory is HealthPickup hp && character.health != null && character.health.value < character.health.maxValue * hp.percentOfMax)
                         {
+                            float distance = Vector3.Distance(transform.position, candidate.transform.position);
                             float healthPriority = 1f - character.health.value / character.health.maxValue * hp.percentOfMax;
-                            float priority = healthPriority * 0.5f / Vector3.Distance(transform.position, candidate.transform.position);
+                            float priority = healthPriority / distance * 0.5f;
 
                             if (priority > omniTarget.bestPriority)
                                 omniTarget = (candidate, priority);
                         }
                         else if(io.inventory is Weapon w && !storedInventoryTEMP.Contains(w.resourcePath))
                         {
-                            float priority = 0.5f / Vector3.Distance(transform.position, candidate.transform.position);
+                            float distance = Vector3.Distance(transform.position, candidate.transform.position);
+                            float priority = 1f / distance;
 
                             if (priority > omniTarget.bestPriority)
                                 omniTarget = (candidate, priority);
@@ -333,7 +349,7 @@ namespace MPCore
             {
                 (Weapon weapon, float priority) switchWeapon = (null, float.MaxValue);
 
-                foreach (Inventory i in this.character.inventory)
+                foreach (Inventory i in container.inventory)
                     if (i is Weapon w)
                     {
                         float dist = Mathf.Abs(w.preferredCombatDistance - targetDistance);

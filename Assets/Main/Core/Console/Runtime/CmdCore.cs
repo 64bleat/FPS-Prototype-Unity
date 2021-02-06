@@ -50,13 +50,5 @@ namespace MPConsole
                 return "Map not found.";
             }
         }
-
-        //[ConsoleCommand("slomo", "Change the speed of the game. Default is 1.")]
-        //public static string Slomo(float timeScale)
-        //{
-        //    Console.GameTimeProp = timeScale;
-
-        //    return "Time scale set to " + Console.GameTimeProp;
-        //}
     }
 }

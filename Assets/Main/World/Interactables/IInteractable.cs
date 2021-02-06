@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MPCore
+namespace MPWorld
 {
     /// <summary>
     /// Interface for writing Components to be interacted with, usually by pressing 'e'
