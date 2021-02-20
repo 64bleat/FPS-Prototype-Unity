@@ -13,18 +13,23 @@ namespace MPGUI
 
         private void OnEnable()
         {
-            table = GetComponent<GUITable>();
-            container = CameraManager.target.GetComponentInParent<InventoryContainer>();
-
-            table.universalMethods.Clear();
-            table.universalMethods.Add(new GUITable.ContextMethod()
+            if (CameraManager.target)
             {
-                type = typeof(Inventory),
-                action = ContextDrop,
-                name = "Drop"
-            });
+                table = GetComponent<GUITable>();
+                container = CameraManager.target.GetComponentInParent<InventoryContainer>();
 
-            table.GenerateTable(container.inventory.ToArray());
+                table.universalMethods.Clear();
+                table.universalMethods.Add(new GUITable.ContextMethod()
+                {
+                    type = typeof(Inventory),
+                    action = ContextDrop,
+                    name = "Drop"
+                });
+
+                table.GenerateTable(container.inventory.ToArray());
+            }
+            else if(gameObject.TryGetComponentInParent(out GUIWindow window))
+                window.gameObject.SetActive(false);
         }
 
         private void ContextDrop(dynamic o)

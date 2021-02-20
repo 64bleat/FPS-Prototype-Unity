@@ -12,14 +12,14 @@ namespace MPCore
         public void Awake()
         {
             Console.Reset();
-            PauseManager.Add(GameTime.OnPauseUnPause);
+            PauseManager.AddListener(GameTime.OnPauseUnPause);
             GameTime.InitTime();
         }
 
         public void OnDestroy()
         {
             Resources.UnloadUnusedAssets();
-            PauseManager.Remove(GameTime.OnPauseUnPause);
+            PauseManager.RemoveListener(GameTime.OnPauseUnPause);
             //PauseManager.Reset();
         }
     }

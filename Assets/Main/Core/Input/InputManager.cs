@@ -67,19 +67,19 @@ namespace MPCore
             canvasScale = GetComponentInChildren<CanvasScaler>();
             lastMousePosition = Input.mousePosition;
             LoadKeyBindList(loadKeyBindList);
-            PauseManager.Add(OnPauseUnPause);
+            PauseManager.AddListener(OnPauseUnPause);
 
             if (TryGetComponent(out Character c))
-                c.OnPlayerSet += OnPlayerSet;
+                c.OnRegistered += OnPlayerSet;
         }
 
         private void OnDestroy()
         {
             keyMasks.Clear();
-            PauseManager.Remove(OnPauseUnPause);
+            PauseManager.RemoveListener(OnPauseUnPause);
 
             if (TryGetComponent(out Character c))
-                c.OnPlayerSet -= OnPlayerSet;
+                c.OnRegistered -= OnPlayerSet;
         }
 
         private void OnPlayerSet(bool isPlayer)

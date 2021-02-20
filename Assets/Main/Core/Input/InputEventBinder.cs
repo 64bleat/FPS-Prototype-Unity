@@ -18,12 +18,15 @@ namespace MPCore
 
         private void OnEnable()
         {
-            if(GetComponentInParent<InputManager>() is var input && input)
+            if(gameObject.TryGetComponentInParent(out InputManager input))
                 for (int i = 0, ie = binds.Length; i < ie; i++)
-                {
-                    UnityEvent e = binds[i].bind;
-                    input.Bind(binds[i].key.name, () => e.Invoke(), this, binds[i].mode);
-                }
+                    input.Bind(binds[i].key.name, binds[i].bind.Invoke, this, binds[i].mode);
+        }
+
+        private void OnDisable()
+        {
+            if (gameObject.TryGetComponentInParent(out InputManager input))
+                input.Unbind(this);
         }
     }
 }

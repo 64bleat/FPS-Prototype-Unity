@@ -36,6 +36,6 @@ namespace MPCore
     {
         public string message;
         public Color color;
-        public Color imageColor;
+        public Color bgColor;
     }
 }

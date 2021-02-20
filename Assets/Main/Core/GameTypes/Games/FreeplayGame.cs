@@ -39,7 +39,7 @@ namespace MPCore
             onDeath.Add(OnCharacterDied);
 
             Console.RegisterInstance(this);
-            PauseManager.Add(OnPauseUnPause);
+            PauseManager.AddListener(OnPauseUnPause);
 
             // Clear Scoreboard data
             scoreboard.Clear();
@@ -70,7 +70,7 @@ namespace MPCore
                 onDeath.Remove(OnCharacterDied);
 
             Console.RemoveInstance(this);
-            PauseManager.Remove(OnPauseUnPause);
+            PauseManager.RemoveListener(OnPauseUnPause);
         }
 
         private void Update()
@@ -180,19 +180,19 @@ namespace MPCore
                         message.message = $"You were killed by {death.instigator.displayName}";
 
                     message.color = Color.black;
-                    message.imageColor = Color.white;
+                    message.bgColor = Color.white;
                 }
                 else if (death.instigator == loadedPlayerInfo)
                 {
                     message.message = $"You killed {death.victim.displayName}";
                     message.color = Color.black;
-                    message.imageColor = Color.white;
+                    message.bgColor = Color.white;
                 }
                 else
                 {
                     message.message = $"{death.instigator.displayName} killed {death.victim.displayName}";
                     message.color = Color.grey;
-                    message.imageColor = new Color(0f, 0f, 0f, 0.25f);
+                    message.bgColor = new Color(0f, 0f, 0f, 0.25f);
                 }
             }
             catch (Exception)
@@ -258,15 +258,17 @@ namespace MPCore
 
 
                         if (playerNew.TryGetComponent(out InventoryContainer container))
-                        { 
-                        foreach (Inventory inv in spawnInventory)
-                            inv.TryPickup(container, out _);
+                        {
+                            foreach (Inventory inv in spawnInventory)
+                                container.TryPickup(inv, out _);
+                            //inv.TryPickup(container, out _);
 
-                        if (randomSpawnInventory.Count > 0)
-                            randomSpawnInventory[Random.Range(0, Mathf.Max(0, randomSpawnInventory.Count))].TryPickup(container, out _);
+                            if (randomSpawnInventory.Count > 0)
+                                container.TryPickup(randomSpawnInventory[Random.Range(0, Mathf.Max(0, randomSpawnInventory.Count))], out _);
+                                //randomSpawnInventory[Random.Range(0, Mathf.Max(0, randomSpawnInventory.Count))].TryPickup(container, out _);
 
-                        if (spawn.TryGetComponentInParent(out PortaSpawn spawnPs))
-                            spawnPs.TransferStuff(container);
+                            if (spawn.TryGetComponentInParent(out PortaSpawn spawnPs))
+                                spawnPs.TransferStuff(container);
                         }
                     }
 

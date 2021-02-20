@@ -33,7 +33,7 @@ namespace MPGUI
             public Type type;
         }
 
-        private readonly Dictionary<GameObject, object> tableRowItems = new Dictionary<GameObject, object>();
+        private readonly Dictionary<GameObject, object> rows = new Dictionary<GameObject, object>();
         private readonly HashSet<GameObject> selection = new HashSet<GameObject>();
 
         [Serializable]
@@ -49,7 +49,7 @@ namespace MPGUI
             float tableHeight = 0;
 
             // Clear data
-            tableRowItems.Clear();
+            rows.Clear();
             selection.Clear();
 
             //remove old columns
@@ -125,7 +125,7 @@ namespace MPGUI
 
                     rowRect.offsetMax = new Vector2(rowRect.offsetMin.x + tableWidth, rowRect.offsetMax.y);
                     tableHeight += rowRect.rect.height;
-                    tableRowItems.Add(row, entry);
+                    rows.Add(row, entry);
                     row.SetActive(true);
                     rowValues.Clear();
                 }
@@ -138,7 +138,7 @@ namespace MPGUI
 
         private void Select(GameObject item, SelectMode mode)
         {
-            if (tableRowItems.ContainsKey(item))
+            if (rows.ContainsKey(item))
                 switch (mode)
                 {
                     case SelectMode.Single:
@@ -192,34 +192,36 @@ namespace MPGUI
                     Select(mouse.downInfo.gameObject, SelectMode.Single);
             }
             else if (mouse.Contains(KeyCode.Mouse1))
-            {
-                List<(string name, MethodInfo method, object instance)> contextMenuEntries = new List<(string, MethodInfo, object)>();
-
-                Select(mouse.downInfo.gameObject, SelectMode.Add);
-
-                // Get Context Menu Entries
-                if (tableRowItems.TryGetValue(mouse.downInfo.gameObject, out object item))
-                    foreach (MethodInfo method in item.GetType().GetMethods())
-                        if (method.GetCustomAttribute(typeof(GUIContextMenuOptionAttribute)) is GUIContextMenuOptionAttribute attribute)
-                            contextMenuEntries.Add((attribute.name, method, item));
-
-                if (contextMenuEntries.Count > 0)
-                {
-                    GUIWindow window = GetComponentInParent<GUIWindow>();
-                    GameObject contextMenu = Instantiate(contextMenuTemplate, mouse.downInfo.screenPosition, transform.rotation, window.transform.parent);
-                    GUIButtonSet buttonSet = contextMenu.GetComponentInChildren<GUIButtonSet>();
-
-                    foreach (var entry in universalMethods)
-                        buttonSet.AddButton(entry.name, () => entry.action.Invoke(item));
-
-                    foreach (var entry in contextMenuEntries)
-                        buttonSet.AddButton(entry.name, () => entry.method.Invoke(entry.instance, null));
-                }
-            }
+                SpawnContextMenu(mouse.downInfo.gameObject, mouse.downInfo.screenPosition);
         }
         public void OnMouseHover(MouseInfo mouse) { }
         public void OnMousePress(MouseInfo mouse) { }
         public void OnMouseHold(MouseInfo mouse) { }
         public void OnMouseRelease(MouseInfo mouse) { }
+
+        private void SpawnContextMenu(GameObject clicked, Vector2 screenPosition)
+        {
+            List<(string name, MethodInfo method, object instance)> contextMenuEntries = new List<(string, MethodInfo, object)>();
+
+            Select(clicked, SelectMode.Add);
+
+            if (rows.TryGetValue(clicked, out object item))
+            {
+                GUIWindow window = GetComponentInParent<GUIWindow>();
+                GameObject contextMenu = Instantiate(contextMenuTemplate, screenPosition, transform.rotation, window.transform.parent);
+                GUIButtonSet buttonSet = contextMenu.GetComponentInChildren<GUIButtonSet>();
+                Type itemType = item.GetType();
+
+                // Universal Entries
+                foreach (var entry in universalMethods)
+                    if (entry.type == itemType || itemType.IsSubclassOf(entry.type))
+                        buttonSet.AddButton(entry.name, () => entry.action.Invoke(item));
+
+                // Class-Specific Entries
+                foreach (MethodInfo method in item.GetType().GetMethods())
+                    if (method.GetCustomAttribute(typeof(GUIContextMenuOptionAttribute)) is GUIContextMenuOptionAttribute attribute)
+                        buttonSet.AddButton(attribute.name, () => method.Invoke(item, null));
+            }
+        }
     }
 }

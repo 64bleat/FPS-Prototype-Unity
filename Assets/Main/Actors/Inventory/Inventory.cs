@@ -1,4 +1,5 @@
 ﻿using MPWorld;
+using System;
 using UnityEngine;
 
 namespace MPCore
@@ -27,124 +28,44 @@ namespace MPCore
         public bool activatable = false;
         public bool active = false;
 
+        [NonSerialized] public Inventory asset;
+
+        public Inventory()
+        {
+            asset = this;
+        }
+
         [GUITableValue("Id")]
         public string ID => GetInstanceID().ToString();
 
-        [GUIContextMenuOption("TestLog")]
-        public void TestLog()
-        {
-            Debug.Log($"{displayName} performed a test log at {Time.time}");
-        }
-
-        /// <summary> Pickup the item and call OnPickup, returns true if pickup was a success. </summary>
-        /// 
-        public bool TryPickup(InventoryContainer container, out Inventory instance)
-        {
-            // Set instance
-            if (destroyOnPickup || staticReference || isCopy)
-                instance = this;
-            else
-            {
-                instance = Instantiate(this);
-                instance.isCopy = true;
-            }
-
-            // Pickup DestroyOnPickup
-            if (destroyOnPickup)
-                return instance.OnPickupInternal(container);
-
-            // Pickup Duplicate
-            foreach (Inventory item in container.inventory)
-                if (item.displayName.Equals(displayName))
-                    if (item.count >= item.maxCount)
-                        return false;
-                    else if (instance.OnPickupInternal(container))
-                    {
-                        item.count = Mathf.Min(item.maxCount, item.count + count);
-                        return true;
-                    }
-                    else
-                        return false;
-
-            if (instance.OnPickupInternal(container))
-            {
-                container.inventory.Add(instance);
-
-                return true;
-            }
-            else if (instance != this)
-                Destroy(instance);
-
-            return false;
-        }
+        //[GUIContextMenuOption("TestLog")]
+        //public void TestLog()
+        //{
+        //    Debug.Log($"{displayName} performed a test log at {Time.time}");
+        //}
 
         /// <summary> Try to drop an inventory item </summary>
         /// <returns> true if the item was successfully dropped </returns>
-        public bool TryDrop(GameObject owner, Vector3 position, Quaternion rotation, RaycastHit dropPoint, out GameObject droppedObject)
+
+        public bool SetActive(GameObject owner, bool active)
         {
-            if (OnDrop(owner, position, rotation) && !destroyOnDrop && sceneObjectPrefab)
-            {
-                // Deactivate if Active
-                SetActive(owner, false);
+            if (this.active != active)
+                if (active)
+                    OnActivate(owner);
+                else
+                    OnDeactivate(owner);
 
-                droppedObject = Instantiate(sceneObjectPrefab, position, rotation);
-
-                // Remove In HUD
-                if(activatable && owner.TryGetComponent(out Character character) && character.isPlayer)
-                {
-                    character.inventoryEvents.OnActivatableDrop?.Invoke(this);
-                }
-
-                // Inventory Transfer to Dropped Object
-                if (droppedObject.GetComponent<InventoryPickup>() is var io && io)
-                {
-                    io.inventory = this;
-                    io.countDownDestroy = droppedLifeTime > 0;
-                    io.lifeTime = droppedLifeTime;
-                }
-
-                { // Set velocity
-                    Rigidbody newRB = droppedObject.GetComponent<Rigidbody>();
-                    Rigidbody ownRB = owner.GetComponent<Rigidbody>();
-                    IGravityUser newGU = droppedObject.GetComponent<IGravityUser>();
-                    IGravityUser ownGU = owner.GetComponent<IGravityUser>();
-                    Vector3 ownVel = ownGU != null ? ownGU.Velocity : ownRB != null ? ownRB.velocity : Vector3.zero;
-
-                    if (newRB)
-                        newRB.velocity += ownVel;
-                    else if (newGU != null)
-                        newGU.Velocity += ownVel;
-                }
-
-                // Clipping prevention
-                if(droppedObject.TryGetComponent(out Collider collider))
-                    droppedObject.transform.position += collider.transform.position - collider.ClosestPoint(collider.transform.position - dropPoint.normal * 100);
-            }
-            else
-                droppedObject = null;
-
-            return destroyOnDrop || droppedObject;
+            return this.active = active;
         }
 
-        private bool OnPickupInternal(InventoryContainer container)
+        public virtual void OnActivate(GameObject owner)
         {
-            bool valid = OnPickup(container.gameObject);
 
-            // Activatables
-            if (activatable && active)
-                OnActivate(container.gameObject);
+        }
 
-            // Display Pickup Message
-            if (container.TryGetComponent(out Character character) && character.isPlayer)
-            {
-                if (character.pickupMessager && valid)
-                    character.pickupMessager.Invoke(new MessageEventParameters() { message = $"Acquired {displayName}" });
+        public virtual void OnDeactivate(GameObject owner)
+        {
 
-                if (activatable)
-                    character.inventoryEvents.OnActivatablePickup?.Invoke(this);
-            }
-
-            return valid;
         }
 
         /// <summary> Child-defined code for approving pick-ups </summary>
@@ -167,27 +88,6 @@ namespace MPCore
         public virtual bool OnDrop(GameObject owner, Vector3 position, Quaternion rotation)
         {
             return true;
-        }
-
-        public bool SetActive(GameObject owner, bool active)
-        {
-            if (this.active != active)
-                if (active)
-                    OnActivate(owner);
-                else
-                    OnDeactivate(owner);
-
-            return this.active = active;
-        }
-
-        public virtual void OnActivate(GameObject owner)
-        {
-
-        }
-
-        public virtual void OnDeactivate(GameObject owner)
-        {
-
         }
     }
 }

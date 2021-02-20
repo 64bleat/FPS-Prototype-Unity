@@ -8,7 +8,7 @@ namespace MPCore
 {
     public class PickupSlotGui : MonoBehaviour
     {
-        public WeaponSlotEvents events;
+        public PlayerInventoryEvents events;
         public GameObject template;
 
         private readonly Dictionary<Inventory, GameObject> map = new Dictionary<Inventory, GameObject>();

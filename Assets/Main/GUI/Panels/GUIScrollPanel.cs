@@ -22,11 +22,6 @@ public class GUIScrollPanel : MonoBehaviour, IGUIClickable
         input = GetComponentInParent<InputManager>();
     }
 
-    private void OnEnable()
-    {
-        Update();
-    }
-
     private void Update()
     {
         if (target && viewPanel)
@@ -80,16 +75,16 @@ public class GUIScrollPanel : MonoBehaviour, IGUIClickable
     public void OnMouseClick(MouseInfo mouse) { }
     public void OnMouseHold(MouseInfo mouse) 
     {
-        RectTransform mtrans = mouse.downInfo.gameObject.transform as RectTransform;
+        RectTransform hoverRect = mouse.downInfo.gameObject.transform as RectTransform;
 
         // Move Vertical Scroll Button
-        if (verticalScrollArea && verticalScrollButton && mtrans.Equals(verticalScrollButton))
+        if (hoverRect.Equals(verticalScrollButton))
         {
             float max = verticalScrollArea.rect.height - verticalScrollButton.rect.height;
             verticalScrollButton.anchoredPosition = new Vector2(0, Mathf.Clamp(verticalScrollButton.anchoredPosition.y + Vector3.Dot(input.MousePositionDelta, verticalScrollArea.up), -max, 0));
         }
         // Move Horizontal Scroll Button
-        else if (horizontalScrollArea && horizontalScrollButton && mtrans.Equals(horizontalScrollButton))
+        else if (hoverRect.Equals(horizontalScrollButton))
         {
             float max = horizontalScrollArea.rect.width - horizontalScrollButton.rect.width;
             horizontalScrollButton.anchoredPosition = new Vector2(Mathf.Clamp(horizontalScrollButton.anchoredPosition.x + Vector3.Dot(input.MousePositionDelta, horizontalScrollArea.right), 0, max), 0);

@@ -5,27 +5,20 @@ using Object = UnityEngine.Object;
 
 namespace MPCore
 {
-    public class PauseManager
+    public static class PauseManager
     {
         private static readonly HashSet<Object> pauseRequests = new HashSet<Object>();
         private static event Action<bool> OnPauseUnPause;
 
         public static bool IsPaused { get; private set; } = false;
 
-        public static void Reset()
-        {
-            IsPaused = false;
-            pauseRequests.Clear();
-            OnPauseUnPause = null;
-        }
-
-        public static void Request(Object pauser)
+        public static void Push(Object pauser)
         {
             pauseRequests.Add(pauser);
             SetPause(true);
         }
 
-        public static bool Release(Object pauser)
+        public static bool Pull(Object pauser)
         {
             pauseRequests.Remove(pauser);
             SetPause(pauseRequests.Count != 0);
@@ -33,13 +26,13 @@ namespace MPCore
             return !IsPaused;
         }
 
-        public static void Add(Action<bool> onPauseUnPause)
+        public static void AddListener(Action<bool> onPauseUnPause)
         {
             OnPauseUnPause += onPauseUnPause;
             onPauseUnPause.Invoke(IsPaused);
         }
 
-        public static void Remove(Action<bool> onPauseUnPause)
+        public static void RemoveListener(Action<bool> onPauseUnPause)
         {
             OnPauseUnPause -= onPauseUnPause;
         }
@@ -48,6 +41,9 @@ namespace MPCore
         {
             if (pause != IsPaused)
                 OnPauseUnPause?.Invoke(pause);
+
+            Cursor.lockState = pause ? CursorLockMode.Confined : CursorLockMode.Locked;
+            Cursor.visible = pause;
 
             IsPaused = pause;
         }

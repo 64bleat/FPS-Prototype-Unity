@@ -9,6 +9,7 @@ namespace MPCore
     public class ScoreboardViewer : MonoBehaviour
     {
         public Scoreboard scoreboard;
+        public GameObject panel;
         public TextMeshProUGUI entryTemplate;
 
         private static readonly SortedList<float, DataRow> sort = new SortedList<float, DataRow>();
@@ -17,9 +18,9 @@ namespace MPCore
         private void Awake()
         {
             input = GetComponentInParent<InputManager>();
-            input.Bind("Scoreboard", Disable, this, KeyPressType.Up);
             input.Bind("Scoreboard", Enable, this, KeyPressType.Down);
-            gameObject.SetActive(false);
+            input.Bind("Scoreboard", Disable, this, KeyPressType.Up);
+            //gameObject.SetActive(false);
         }
 
         private void OnEnable()
@@ -41,24 +42,25 @@ namespace MPCore
 
         private void Enable()
         {
-            gameObject.SetActive(true);
+            panel.SetActive(true);
         }
 
         private void Disable()
         {
-            gameObject.SetActive(false);
+            panel.SetActive(false);
         }
 
         public void Refresh()
         {
             // Destroy Old
-            int childCount = transform.childCount;
+            int childCount = panel.transform.childCount;
 
             for (int i = 0; i < childCount; i++)
             {
-                GameObject child = transform.GetChild(i).gameObject;
+                GameObject child = panel.transform.GetChild(i).gameObject;
 
-                if (child.activeSelf)
+                //if (child.activeSelf)
+                if(child != entryTemplate.gameObject)
                     Destroy(child);
             }
 
@@ -76,7 +78,7 @@ namespace MPCore
 
             foreach(DataRow row in sort.Values)
             {
-                GameObject entry = Instantiate(entryTemplate.gameObject, transform);
+                GameObject entry = Instantiate(entryTemplate.gameObject, panel.transform);
                 string name = (string)row[scoreboard.displayName];
                 int kills = (int)row[scoreboard.kills];
                 int deaths = (int)row[scoreboard.deaths];

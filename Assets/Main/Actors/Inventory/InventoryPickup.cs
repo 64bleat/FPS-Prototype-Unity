@@ -30,7 +30,8 @@ namespace MPCore
         public virtual void OnPickup(GameObject picker)
         {
             if (picker && picker.TryGetComponent(out InventoryContainer container)
-                && inventory.TryPickup(container, out _))
+                && container.TryPickup(inventory, out _))
+                //&& inventory.TryPickup(container, out _))
                 //&& InventoryManager.PickUp(container, inventory))
             {
                 gameObject.SetActive(false);

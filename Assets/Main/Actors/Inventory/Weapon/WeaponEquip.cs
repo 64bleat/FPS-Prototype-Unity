@@ -41,7 +41,7 @@ namespace MPCore
 
             layerMask = LayerMask.GetMask(layermask);
 
-            PauseManager.Add(OnPause);
+            PauseManager.AddListener(OnPause);
         }
 
         private void OnEnable()
@@ -58,7 +58,7 @@ namespace MPCore
 
         private void OnDestroy()
         {
-            PauseManager.Remove(OnPause);
+            PauseManager.RemoveListener(OnPause);
         }
 
         private void OnPause(bool paused)

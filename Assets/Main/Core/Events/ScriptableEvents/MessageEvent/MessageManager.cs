@@ -31,7 +31,7 @@ namespace MPCore
             GameObject go = Instantiate(template, transform);
 
             if (go.TryGetComponentInChildren(out Image image))
-                image.color = message.imageColor;
+                image.color = message.bgColor;
 
             if(go.TryGetComponentInChildren(out TextMeshProUGUI text))
             {

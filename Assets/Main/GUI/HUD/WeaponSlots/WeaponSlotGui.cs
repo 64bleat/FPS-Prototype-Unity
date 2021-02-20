@@ -8,7 +8,7 @@ namespace MPCore
 {
     public class WeaponSlotGui : MonoBehaviour
     {
-        public WeaponSlotEvents events;
+        public PlayerInventoryEvents events;
         public GameObject template;
         public WeaponSlot[] slots;
 

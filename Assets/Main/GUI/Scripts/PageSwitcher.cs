@@ -1,6 +1,4 @@
 ﻿using MPCore;
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -21,26 +19,26 @@ namespace MPGUI
 
         private void OnEnable()
         {
-            // Bind Keys
-            if (GetComponentInParent<InputManager>() is var input && input)
-                foreach (var bind in switches)
-                    input.Bind(bind.switchKey.name, () => Switch(bind.switchTo), this, KeyPressType.Down);
+            if (gameObject.TryGetComponentInParent(out InputManager input))
+                foreach (SwitchBind bind in switches)
+                    input.Bind(bind.switchKey.name, bind.switchTo.SwitchToThis, this, KeyPressType.Down);
         }
 
         private void OnDisable()
         {
-            // Unbind Keys
-            if (GetComponentInParent<InputManager>() is var input && input)
+            if (gameObject.TryGetComponentInParent(out InputManager input))
                 input.Unbind(this);
         }
 
         /// <summary> Make all other transforms in the target's child group inactive. </summary>
         public void Switch(PageSwitcher target)
         {
-            if (target && target.transform.parent is var parent && parent)
-                for (int i = 0, ie = parent.childCount; i < ie; i++)
-                    if (parent.GetChild(i) is var t && t.GetComponent<PageSwitcher>())
-                        t.gameObject.SetActive(t.Equals(target.transform));
+            Transform parent = target.transform.parent;
+
+            if(parent)
+                for (int i = 0, count = parent.childCount; i < count; i++)
+                    if (parent.GetChild(i).TryGetComponent(out PageSwitcher ps))
+                        ps.gameObject.SetActive(ps == this);
 
             if (target.mainPage)
                 target.mainPage.SwitchToThis();
