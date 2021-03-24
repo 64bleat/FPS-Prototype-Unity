@@ -2,7 +2,7 @@
 using MPCore;
 using UnityEngine;
 
-public class GUIScrollPanel : MonoBehaviour, IGUIClickable
+public class GUIScrollPanel : MonoBehaviour, IClickable
 {
     public RectTransform target;
     public RectTransform headerTarget;

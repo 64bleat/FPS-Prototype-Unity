@@ -1,20 +1,22 @@
 ﻿using MPCore;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace MPGUI
 {
     /// <summary> Activates a given GameObject and deactivates all other siblings. </summary>
-    public class PageSwitcher : MonoBehaviour
+    public class Page : MonoBehaviour
     {
         public List<SwitchBind> switches = new List<SwitchBind>();
-        public PageSwitcher mainPage;
+        [FormerlySerializedAs("mainPage")]
+        public Page startingSubPage;
 
         [System.Serializable]
         public class SwitchBind
         {
             public KeyBind switchKey;
-            public PageSwitcher switchTo;
+            public Page switchTo;
         }
 
         private void OnEnable()
@@ -22,6 +24,9 @@ namespace MPGUI
             if (gameObject.TryGetComponentInParent(out InputManager input))
                 foreach (SwitchBind bind in switches)
                     input.Bind(bind.switchKey.name, bind.switchTo.SwitchToThis, this, KeyPressType.Down);
+
+            if (startingSubPage)
+                startingSubPage.SwitchToThis();
         }
 
         private void OnDisable()
@@ -31,17 +36,17 @@ namespace MPGUI
         }
 
         /// <summary> Make all other transforms in the target's child group inactive. </summary>
-        public void Switch(PageSwitcher target)
+        private void Switch(Page target)
         {
             Transform parent = target.transform.parent;
 
             if(parent)
                 for (int i = 0, count = parent.childCount; i < count; i++)
-                    if (parent.GetChild(i).TryGetComponent(out PageSwitcher ps))
-                        ps.gameObject.SetActive(ps == this);
+                    if (parent.GetChild(i).TryGetComponent(out Page sibPage))
+                        sibPage.gameObject.SetActive(sibPage == this);
 
-            if (target.mainPage)
-                target.mainPage.SwitchToThis();
+            if (target.startingSubPage)
+                target.startingSubPage.SwitchToThis();
         }
 
         public void SwitchToThis()

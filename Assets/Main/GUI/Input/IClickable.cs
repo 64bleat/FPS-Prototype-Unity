@@ -1,6 +1,6 @@
 ﻿namespace MPGUI
 {
-    public interface IGUIClickable
+    public interface IClickable
     {
         /// <summary> Called when cursor is over the object. </summary>
         void OnMouseHover(MouseInfo mouse);

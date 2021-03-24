@@ -1,19 +1,16 @@
 ﻿using MPCore;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
-using System;
 
 namespace MPGUI
 {
-    public class GUIKeyBindButton : MonoBehaviour
+    public class KeyBindButton : ValueButton
     {
-        public KeyBind key;
-        public TextMeshProUGUI description;
-        public TextMeshProUGUI keyname;
+        private static readonly List<KeyCode> comboBuffer = new List<KeyCode>();
 
+        private KeyBind key;
         private bool awaitingInput = false;
-        private readonly List<KeyCode> newCombo = new List<KeyCode>();
 
         private void Awake()
         {
@@ -36,11 +33,11 @@ namespace MPGUI
                     {
                         wait = false;
 
-                        if (Input.GetKeyDown(k) && !newCombo.Contains(k))
-                            newCombo.Add(k);
+                        if (Input.GetKeyDown(k) && !comboBuffer.Contains(k))
+                            comboBuffer.Add(k);
                     }
 
-                if (newCombo.Count != 0 && wait)
+                if (comboBuffer.Count != 0 && wait)
                     CommitReassignment();
             }
         }
@@ -50,15 +47,15 @@ namespace MPGUI
             if (k)
             {
                 key = k;
-                description.text = k.name;
-                keyname.text = k.GetComboString();
+                SetLabel(k.name);
+                SetValueText(k.GetComboString());
             }
         }
 
         public void CancelReassignment()
         {
             awaitingInput = false;
-            keyname.text = key.GetComboString();
+            SetValueText(key.GetComboString());
         }
 
         public void BeginReassignment()
@@ -66,9 +63,9 @@ namespace MPGUI
             if (GetComponentInParent<InputManager>() is var input && input)
                 input.enabled = false;
 
-            newCombo.Clear();
+            comboBuffer.Clear();
             awaitingInput = true;
-            keyname.text = "???";
+            SetValueText("???");
         }
 
         private void CommitReassignment()
@@ -78,13 +75,13 @@ namespace MPGUI
                 if (GetComponentInParent<InputManager>() is var input && input)
                     input.enabled = true;
 
-                if (newCombo.Count != 0)
-                    key.keyCombo = newCombo.ToArray();
+                if (comboBuffer.Count != 0)
+                    key.keyCombo = comboBuffer.ToArray();
 
                 awaitingInput = false;
             }
 
-            keyname.text = key.GetComboString();
+            SetValueText(key.GetComboString());
 
             foreach (GUIInputManager ginput in GetComponentsInParent<GUIInputManager>())
                 ginput.Deselect(GetComponent<IGUISelectable>());

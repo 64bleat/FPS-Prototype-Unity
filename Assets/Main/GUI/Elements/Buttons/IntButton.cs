@@ -1,29 +1,25 @@
 ﻿using MPCore;
-using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 
 namespace MPGUI
 {
-    public class GUIFloatButton : MonoBehaviour
+    public class IntButton : ValueButton
     {
-        public float value;
-        public string displayFormat = "F2";
-        public TextMeshProUGUI description;
-        public TextMeshProUGUI valueName;
-        public UnityEvent<float> OnValueChange;
+        public int value;
+        public UnityEvent<int> OnValueChange;
 
         private string inputString;
 
         private void OnValidate()
         {
-            valueName.SetText(value.ToString(displayFormat));
+            SetValueText(value.ToString());
         }
 
         private void OnDisable()
         {
             inputString = "";
-            valueName.SetText(value.ToString(displayFormat));
+            SetValueText(value.ToString());
         }
 
         private void Update()
@@ -45,24 +41,24 @@ namespace MPGUI
                 string text = inputString;
                 text += (int)(Time.unscaledTime * 3) % 2 == 0 ? " " : "|";
 
-                valueName.SetText(text);
+                SetValueText(text);
             }
         }
 
-        public void SetValue(float newValue)
+        public void SetValue(int n)
         {
             float oldVal = value;
 
-            value = newValue;
-            valueName.SetText(value.ToString(displayFormat));
+            value = n;
+            SetValueText(n.ToString());
 
-            if (newValue != oldVal)
-                OnValueChange?.Invoke(newValue);
+            if (n != oldVal)
+                OnValueChange?.Invoke(n);
         }
 
         private void Deselect()
         {
-            if(TryGetComponent(out GUISelectableEvents selector))
+            if (GetComponent<GUISelectableEvents>() is var selector && selector)
                 foreach (GUIInputManager ginput in GetComponentsInParent<GUIInputManager>())
                     ginput.Deselect(selector);
 
@@ -71,7 +67,7 @@ namespace MPGUI
 
         public void BeginReassignment()
         {
-            if (gameObject.TryGetComponentInParent(out InputManager input))
+            if (GetComponentInParent<InputManager>() is var input && input)
                 input.enabled = false;
 
             inputString = value.ToString();
@@ -80,11 +76,11 @@ namespace MPGUI
 
         public void CommitReassignment()
         {
-            if(gameObject.TryGetComponentInParent(out InputManager input))
+            if (GetComponentInParent<InputManager>() is var input && input)
                 input.enabled = true;
 
-            if (float.TryParse(inputString, out float f))
-                SetValue(f);
+            if (int.TryParse(inputString, out int n))
+                SetValue(n);
             else
                 SetValue(value);
 

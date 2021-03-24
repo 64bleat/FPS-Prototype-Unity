@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using MPCore;
+using TMPro;
 
 namespace MPGUI
 {
@@ -8,7 +9,7 @@ namespace MPGUI
         public GameObject entryTemplate;
         public GameObject floatButtonTemplate;
         public GameObject keyButtonTemplate;
-        public GUIBoolButton boolButton;
+        public BoolButton boolButton;
         public KeyBindList kbl;
         public ScriptFloat[] values;
         public KeyBindLayer[] keyOrder;
@@ -36,8 +37,9 @@ namespace MPGUI
 
             {
                 GameObject button = buttonSet.AddGameObject(boolButton.gameObject);
-                GUIBoolButton bb = button.GetComponent<GUIBoolButton>();
-                bb.description.text = "Always Sprint";
+                BoolButton bb = button.GetComponent<BoolButton>();
+
+                bb.SetLabel("Always Run");
                 bb.SetValue(kbl.alwaysRun);
                 bb.OnValueChange.AddListener( b => kbl.alwaysRun = b);
             }
@@ -47,8 +49,8 @@ namespace MPGUI
             foreach(ScriptFloat val in values)
             {
                 GameObject button = buttonSet.AddGameObject(floatButtonTemplate);
-                GUIFloatButton b = button.GetComponentInChildren<GUIFloatButton>();
-                b.description.text = val.name;
+                FloatButton b = button.GetComponentInChildren<FloatButton>();
+                //b.description.text = val.name;
                 b.SetValue(val.value);
                 b.OnValueChange.AddListener(v => val.value = v);
             }
@@ -60,7 +62,7 @@ namespace MPGUI
 
                 foreach(KeyBind k in l.binds)
                     buttonSet.AddGameObject(keyButtonTemplate)
-                        .GetComponentInChildren<GUIKeyBindButton>()
+                        .GetComponentInChildren<KeyBindButton>()
                         .SetValue(k);
             }
         }

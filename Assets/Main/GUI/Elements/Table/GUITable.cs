@@ -9,7 +9,7 @@ using MPCore;
 
 namespace MPGUI
 {
-    public class GUITable : MonoBehaviour, IGUIClickable
+    public class GUITable : MonoBehaviour, IClickable
     {
         private enum SelectMode { Single, Add, Invert, Remove }
 
@@ -89,21 +89,22 @@ namespace MPGUI
             if (entries != null)
             {
                 Dictionary<string, string> rowValues = new Dictionary<string, string>();
-                Type tableValue = typeof(GUITableValueAttribute);
+                Type tableValue = typeof(TabulateAttribute);
 
-                foreach (dynamic entry in entries)
+                foreach (object entry in entries)
                 {
                     GameObject row = Instantiate(itemTemplate, itemTemplate.transform.parent);
                     RectTransform rowRect = row.transform as RectTransform;
+                    Type entryType = entry.GetType();
 
                     foreach (FieldInfo field in entry.GetType().GetFields())
-                        if (field.GetCustomAttribute(tableValue) is GUITableValueAttribute attribute
+                        if (field.GetCustomAttribute(tableValue) is TabulateAttribute attribute
                             && schema.Contains(attribute.columnName)
                             && !rowValues.ContainsKey(attribute.columnName))
                             rowValues.Add(attribute.columnName, field.GetValue(entry)?.ToString() ?? "ERROR");
 
                     foreach (PropertyInfo property in entry.GetType().GetProperties())
-                        if (property.GetCustomAttribute(tableValue) is GUITableValueAttribute attribute
+                        if (property.GetCustomAttribute(tableValue) is TabulateAttribute attribute
                             && schema.Contains(attribute.columnName)
                             && !rowValues.ContainsKey(attribute.columnName))
                             rowValues.Add(attribute.columnName, property.GetValue(entry)?.ToString() ?? "ERROR");
@@ -219,7 +220,7 @@ namespace MPGUI
 
                 // Class-Specific Entries
                 foreach (MethodInfo method in item.GetType().GetMethods())
-                    if (method.GetCustomAttribute(typeof(GUIContextMenuOptionAttribute)) is GUIContextMenuOptionAttribute attribute)
+                    if (method.GetCustomAttribute(typeof(ContextMenuAttribute)) is ContextMenuAttribute attribute)
                         buttonSet.AddButton(attribute.name, () => method.Invoke(item, null));
             }
         }

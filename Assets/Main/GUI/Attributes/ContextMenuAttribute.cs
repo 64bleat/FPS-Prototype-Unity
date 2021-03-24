@@ -7,11 +7,11 @@ public enum GUIValidation { Available, Unavailable, Hidden }
 /// </summary>
 /// <remarks> Context menus can open prompts in order to fill parameters of non-void methods. </remarks>
 [AttributeUsage(AttributeTargets.Method)]
-public class GUIContextMenuOptionAttribute : Attribute
+public class ContextMenuAttribute : Attribute
 {
     public string name;
 
-    public GUIContextMenuOptionAttribute(string name)
+    public ContextMenuAttribute(string name)
     {
         this.name = name;
     }

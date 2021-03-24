@@ -46,5 +46,21 @@ namespace MPCore
         {
             return go.transform.TryGetComponentInChildren(out component);
         }
+
+        public static bool TryFindChild<T>(this Component c, string name, out T component)
+        {
+            Transform t = c.transform;
+
+            if (t.gameObject.name.Contains(name) && t.TryGetComponent(out component))
+                return true;
+            else
+                for (int i = 0, count = t.childCount; i < count; i++)
+                    if (t.GetChild(i).TryFindChild(name, out component))
+                        return true;
+
+            component = default;
+
+            return false;
+        }
     }
 }

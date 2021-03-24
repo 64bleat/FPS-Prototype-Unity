@@ -3,18 +3,17 @@ using MPCore;
 
 namespace MPGUI
 {
-    [RequireComponent(typeof(GUIIntButton))]
+    [RequireComponent(typeof(IntButton))]
     public class BotmatchInfoGUI : MonoBehaviour
     {
         public BotmatchGameInfo botmatchInfo;
 
         private void Awake()
         {
-            if (TryGetComponent(out GUIIntButton button))
+            if (TryGetComponent(out IntButton button))
             {
-                button.valueName.SetText(botmatchInfo.botCount.ToString());
-                button.description.SetText("Bot Count");
-                button.value = botmatchInfo.botCount;
+                button.SetLabel("Bot Count");
+                button.SetValue(botmatchInfo.botCount);
             }
         }
 

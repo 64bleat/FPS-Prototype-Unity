@@ -11,21 +11,20 @@ namespace MPGUI
     [RequireComponent(typeof(RectTransform))]
     public class GUIButtonSet : MonoBehaviour
     {
-        public GameObject buttonPrefab;
-        public GameObject titlePrefab;
+        [SerializeField] private GameObject buttonPrefab;
+        [SerializeField] private GameObject titlePrefab;
 
         private Vector2 size = Vector2.zero;
 
         private void Awake()
         {
             size.x = (transform as RectTransform).sizeDelta.x;
-
         }
 
         public GameObject AddButton(string buttonText, Action clickActions)
         {
             GameObject go = AddGameObject(buttonPrefab); 
-            GUIButton button = go.GetComponentInChildren<GUIButton>();
+            Button button = go.GetComponentInChildren<Button>();
             TextMeshProUGUI text = go.GetComponentInChildren<TextMeshProUGUI>();
 
             button.clickEvents.AddListener(new UnityAction(clickActions));

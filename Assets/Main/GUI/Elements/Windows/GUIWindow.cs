@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace MPGUI
 {
-    public class GUIWindow : MonoBehaviour, IGUIClickable
+    public class GUIWindow : MonoBehaviour, IClickable
     {
         [SerializeField] private Vector2 minDimensions = new Vector2(100, 50);
         [SerializeField] private Sprite activeGradient = null;

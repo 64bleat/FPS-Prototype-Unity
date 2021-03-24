@@ -7,20 +7,17 @@ namespace MPGUI
     /// <summary>
     /// Assign events to a button click, or just a button animator for other IGUIClickables
     /// </summary>
-    public class GUIButton : MonoBehaviour, IGUIClickable
+    public class Button : MonoBehaviour, IClickable
     {
-        public Sprite pressImage = null;
-        public bool directClicksOnly = false;
+        [SerializeField] private Sprite pressImage = null;
+        [SerializeField] private bool directClicksOnly = false;
         public UnityEvent clickEvents = null;
 
-        private Image image;
         private Sprite unpressSprite;
 
         private void Awake()
         {
-            image = GetComponent<Image>();
-
-            if(image)
+            if(TryGetComponent(out Image image))
                 unpressSprite = image.sprite;
         }
 
@@ -29,7 +26,7 @@ namespace MPGUI
             if(!directClicksOnly || gameObject.Equals(mouse.upInfo.gameObject))
                 clickEvents.Invoke();
 
-            if(image && unpressSprite)
+            if(unpressSprite && TryGetComponent(out Image image))
                 image.sprite = unpressSprite;
         }
 
@@ -43,13 +40,13 @@ namespace MPGUI
 
         public void OnMousePress(MouseInfo mouse)
         {
-            if(image && pressImage)
+            if(pressImage && TryGetComponent(out Image image))
                 image.sprite = pressImage;
         }
 
         public void OnMouseRelease(MouseInfo mouse)
         {
-            if(image)
+            if(TryGetComponent(out Image image))
                 image.sprite = unpressSprite;
         }
     }

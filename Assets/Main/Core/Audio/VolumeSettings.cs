@@ -7,7 +7,7 @@ namespace MPCore
     /// <summary>
     /// Sets the volume scale for a channel from 0% to 100%
     /// </summary>
-    [RequireComponent(typeof(GUIFloatButton))]
+    [RequireComponent(typeof(FloatButton))]
     public class VolumeSettings : MonoBehaviour
     {
         public AudioMixer mixer;
@@ -15,12 +15,12 @@ namespace MPCore
 
         private void OnEnable()
         {
-            if(TryGetComponent(out GUIFloatButton button)
+            if(TryGetComponent(out FloatButton button)
                 && mixer.GetFloat(mixerFloatParameter, out float value))
             {
                 value /= 20f;
                 value = Mathf.Pow(10f, value);
-                button.valueName.SetText(value.ToString(button.displayFormat));
+                button.SetValueText(value);
                 button.value = value;
             }
         }
@@ -35,9 +35,9 @@ namespace MPCore
             decibels *= 20;
             mixer.SetFloat(mixerFloatParameter, decibels);
 
-            if (TryGetComponent(out GUIFloatButton button))
+            if (TryGetComponent(out FloatButton button))
             {
-                button.valueName.SetText(volumeScale.ToString(button.displayFormat));
+                button.SetValueText(volumeScale);
                 button.value = volumeScale;
             }
         }

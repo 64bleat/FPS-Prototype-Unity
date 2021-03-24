@@ -11,9 +11,9 @@ namespace MPCore
     {
         [Header("Inventory")]
         public GameObject sceneObjectPrefab;
-        [GUITableValue("Name")]
+        [Tabulate("Name")]
         public string displayName;
-        [GUITableValue("Count")]
+        [Tabulate("Count")]
         public int count = 1;
         public int maxCount = 1;
         public bool staticReference = false;
@@ -35,7 +35,7 @@ namespace MPCore
             asset = this;
         }
 
-        [GUITableValue("Id")]
+        [Tabulate("Id")]
         public string ID => GetInstanceID().ToString();
 
         //[GUIContextMenuOption("TestLog")]

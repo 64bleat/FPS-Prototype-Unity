@@ -236,7 +236,7 @@ namespace MPGUI
             //}
 
             if (downInfo.gameObject)
-                foreach (IGUIClickable click in downInfo.gameObject.GetComponentsInParent<IGUIClickable>())
+                foreach (IClickable click in downInfo.gameObject.GetComponentsInParent<IClickable>())
                     switch (type)
                     {
                         case PressType.Hover: click.OnMouseHover(this); break;
