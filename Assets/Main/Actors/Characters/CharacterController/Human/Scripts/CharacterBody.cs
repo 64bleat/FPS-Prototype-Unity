@@ -3,10 +3,11 @@ using MPWorld;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace MPCore
 {
-    public class CharacterBody : MonoBehaviour, IGravityUser
+    public class CharacterBody : MonoBehaviour//, IGravityUser
     {
         public enum MoveState { Grounded, Airborne }
         private static readonly string[] collisionLayers = { "Default", "Physical", "Player" };
@@ -31,6 +32,7 @@ namespace MPCore
         public float defaultAirAcceleration = 6f;
         public float defaultSpeedDecceleration = 2.5f;
         public float defaultslopeLimit = 46;
+        public int fallForgiveness = 5;
         [Header("Crouching")]
         public float defaultCrouchDownSpeed = 5.5f;
         public float defaultCrouchUpSpeed = 4f;
@@ -63,6 +65,12 @@ namespace MPCore
         public GameObject deadBody;
         [Header("References")]
         public DamageType impactDamageType;
+        [Header("Events")]
+        public UnityEvent JumpCallback;
+        public UnityEvent WalljumpCallback;
+        public UnityEvent GroundMoveCallback;
+        public UnityEvent<CharacterBody> OnGlide;
+        public UnityEvent<CharacterBody> OnWallJump;
 
         // NONSERIALIZED
         [NonSerialized] public CharacterSound characterSound;
@@ -72,6 +80,7 @@ namespace MPCore
         [NonSerialized] public Character character;
         [NonSerialized] public CharacterVoice voice;
         [NonSerialized] private CharacterCamera characterCamera;
+        private GravitySampler phys;
         private DamageEvent damageEvent;
         private CharacterEventManager events;
         [NonSerialized] public Vector3 moveDir = Vector3.zero;
@@ -86,29 +95,16 @@ namespace MPCore
         [NonSerialized] public float stepOffset;
         [NonSerialized] public int layerMask;
         [NonSerialized] public MoveState currentState;
-        [NonSerialized] private readonly StateMachine crouchState = new StateMachine();
         [NonSerialized] public Vector3 zoneVelocity;
-        // Events
-        public event Action JumpCallback;
-        public event Action WalljumpCallback;
-        public event Action GroundMoveCallback;
-        public event Action<CharacterBody> OnGlide;
-        public event Action<CharacterBody> OnWallJump;
-
 
         // PROPERTIES
-        public Transform WeaponHand => leftHanded
-            ? leftHand : rightHand;
-        public float JumpHeight => input.Crouch
-            ? defaultCrouchJumpHeight : defaultJumpHeight;
+        public float JumpHeight => input.Crouch ? defaultCrouchJumpHeight : defaultJumpHeight;
         public float MoveSpeed => input.Walk || input.Crouch || cap.height < defaultCrouchHeight
             ? defaultWalkSpeed : input.Sprint ? defaultSprintSpeed : defaultMoveSpeed;
 
-        // IGravityUser
-        public List<GravityZone> GravityZones { get; set; } = new List<GravityZone>();
-        public Vector3 Gravity { get; set; } = Physics.gravity;
-        public Vector3 Velocity { get; set; } = Vector3.zero;
-        public float Mass => defaultMass;
+        // IGravityUser Holdovers
+        public Vector3 Gravity { get => phys.Gravity; set => phys.Gravity = value; }
+        public Vector3 Velocity { get => phys.Velocity; set => phys.Velocity = value; } 
 
         private void Awake()
         {
@@ -121,6 +117,7 @@ namespace MPCore
             voice = GetComponentInChildren<CharacterVoice>();
             TryGetComponent(out damageEvent);
             TryGetComponent(out events);
+            TryGetComponent(out phys);
 
             // CharacterController
             stepOffset = defaultStepOffset;
@@ -129,19 +126,14 @@ namespace MPCore
             cb = new CollisionBuffer(gameObject);
             cb.OnCollision += Impact;
 
-            // Gravity
-            GravityZones.Clear();
-            Gravity = Physics.gravity;
-            falseGravity = Gravity;
+            // Orient to Spawn;
             equilibrium = -transform.up;
 
             // layermask
             layerMask = LayerMask.GetMask(collisionLayers);
 
-            // Make Crouch States
-            InitializeCrouchRoutine();
+            // Events
             PauseManager.AddListener(OnPauseUnPause);
-
             character.OnRegistered += OnSetPlayer;
         }
 
@@ -202,9 +194,7 @@ namespace MPCore
         private void FixedUpdate()
         {
             cb.Clear();
-            Gravity = GravityZone.GetVolumeGravity(cap, GravityZones, out zoneVelocity);
 
-            crouchState.FixedUpdate();
             Move();
             GroundDetection();
             OverlapFix();
@@ -220,7 +210,7 @@ namespace MPCore
             if (currentState == MoveState.Grounded)
                 moveDir = Vector3.Cross(transform.right * input.Forward - transform.forward * input.Right, cb.FloorNormal).normalized;
             else if (cb.Normal.sqrMagnitude == 0)
-                moveDir = Quaternion.FromToRotation(-transform.up, Gravity) * (transform.forward * input.Forward + transform.right * input.Right).normalized;
+                moveDir = Quaternion.FromToRotation(-transform.up, phys.Gravity) * (transform.forward * input.Forward + transform.right * input.Right).normalized;
             else
                 moveDir = Quaternion.FromToRotation(-transform.up, falseGravity) * (transform.forward * input.Forward + transform.right * input.Right).normalized;
 
@@ -229,22 +219,22 @@ namespace MPCore
 
             /*  FALSE GRAVITY & WALL WALKING ..................................
                 FalseGravity is used for orientation and "falling" while
-                Gravity is still used for all other physical interactions.
-                in normal circumstances, falsGravity == Gravity.             */
+                phys.phys.Gravity is still used for all other physical interactions.
+                in normal circumstances, falsGravity == phys.phys.Gravity.             */
 
             if (!input.Crawl)
-                falseGravity = Gravity;
+                falseGravity = phys.Gravity;
             else if (input.ProcessStep && moveDir.sqrMagnitude != 0
                 && Physics.SphereCast(transform.position - transform.up * (cap.height / 2 - cap.radius), cap.radius, Vector3.ProjectOnPlane(moveDir, falseGravity), out RaycastHit hit, stepOffset * 3, layerMask, QueryTriggerInteraction.Ignore)
                 || Physics.SphereCast(transform.position, cap.radius, -transform.up, out hit, cap.height / 2 - cap.radius + stepOffset * 2, layerMask, QueryTriggerInteraction.Ignore))
             {
-                falseGravity = -hit.normal * Gravity.magnitude;
+                falseGravity = -hit.normal * phys.Gravity.magnitude;
 
-                cb.AddHit(new CBCollision(hit, Velocity));
+                cb.AddHit(new CBCollision(hit, phys.Velocity));
                 currentState = MoveState.Grounded;
             }
             else if (cb.Normal.sqrMagnitude != 0)
-                falseGravity = -cb.Normal * Gravity.magnitude;
+                falseGravity = -cb.Normal * phys.Gravity.magnitude;
 
             /*  EQUILIBRIUM ...................................................
                 This is how the character orients itself to the direction of
@@ -271,7 +261,7 @@ namespace MPCore
             if (currentState == MoveState.Grounded)
             {
 
-                /*  Launch Velocity............................................
+                /*  Launch phys.Velocity............................................
                     If a platform accelerates downward too quickly, the
                     character will be set to airborn and can be
                     launched off platforms.                                  */
@@ -282,9 +272,9 @@ namespace MPCore
                 }
                 else
                 {
-                    Vector3 relativeVel = Velocity - cb.PlatformVelocity;
+                    Vector3 relativeVel = phys.Velocity - cb.PlatformVelocity;
                     Vector3 moveVel = Vector3.ProjectOnPlane(relativeVel, moveDir);
-                    Vector3 slopeDir = Vector3.ProjectOnPlane(moveDir.sqrMagnitude != 0 ? moveDir : Velocity.sqrMagnitude != 0 ? Velocity : transform.forward, transform.up);
+                    Vector3 slopeDir = Vector3.ProjectOnPlane(moveDir.sqrMagnitude != 0 ? moveDir : phys.Velocity.sqrMagnitude != 0 ? phys.Velocity : transform.forward, transform.up);
                     float slopeFactor = (0.5f - Vector3.Angle(slopeDir, cb.FloorNormal) / 180f);
                     float wallFactor = cb.WallNormal.sqrMagnitude != 0 ? Mathf.Abs(Vector3.Dot(moveDir, cb.WallNormal)) : 1;
                     float slopeSpeedFactor = (1f + slopeFactor) * Mathf.Max(1f - wallFactor, wallFactor);
@@ -311,8 +301,7 @@ namespace MPCore
                     if (forwardSpeed < 0)
                         acc *= 2;
 
-                    Velocity += moveDir * acc - moveVel.normalized * dec;
-                    //Velocity += Gravity * Time.fixedDeltaTime;
+                    phys.Velocity += moveDir * acc - moveVel.normalized * dec;
 
                     /*  JUMP...................................................
                         When a character jumps, the energy required to reach
@@ -324,11 +313,11 @@ namespace MPCore
                         Vector3 verticalVel = Vector3.ProjectOnPlane(relativeVel, falseGravity);
                         Vector3 desiredVel = cb.LimitMomentum(verticalVel + jumpVel, verticalVel, defaultMaxKickVelocity);
 
-                        Velocity = desiredVel + cb.PlatformVelocity;
+                        phys.Velocity = desiredVel + cb.PlatformVelocity;
 
                         currentState = MoveState.Airborne;
                         input.jumpTimer.Restart();
-                        cb.AddForce((relativeVel - desiredVel) * Mass * 2);
+                        cb.AddForce((relativeVel - desiredVel) * defaultMass * 2);
 
                         voice.PlayJump();
                     }
@@ -343,8 +332,8 @@ namespace MPCore
 
             else // if(currentState == State.Airborne)
             {
-                Vector3 rVel = Velocity - zoneVelocity;
-                Vector3 gVel = Vector3.Project(rVel, Gravity);
+                Vector3 rVel = phys.Velocity - zoneVelocity;
+                Vector3 gVel = Vector3.Project(rVel, phys.Gravity);
                 Vector3 hVel = rVel - gVel;
                 float acc = defaultAirAcceleration * Time.fixedDeltaTime * Mathf.Lerp(cb.IsEmpty ? 4f : 0.5f, cb.IsEmpty ? 1f : 0.1f, (Vector3.Dot(moveDir, hVel) + 1) / 2);
                 float maxSpeed = MoveSpeed;
@@ -356,8 +345,8 @@ namespace MPCore
 
                 // Keep original excessive speeds, but never exceed it.
                 hVel = Vector3.ClampMagnitude(hVel + moveDir * acc, Mathf.Max(hVel.magnitude, maxSpeed));
-                gVel += Gravity * Time.fixedDeltaTime;
-                Velocity = hVel + gVel + zoneVelocity;
+                gVel += phys.Gravity * Time.fixedDeltaTime;
+                phys.Velocity = hVel + gVel + zoneVelocity;
 
                 if (input.Jump)
                     OnWallJump?.Invoke(this);
@@ -379,7 +368,7 @@ namespace MPCore
 
                 if (Physics.SphereCast(point, cap.radius * 0.9f, -transform.up, out RaycastHit hit, distance, layerMask, QueryTriggerInteraction.Ignore))
                 {
-                    CBCollision collision = new CBCollision(hit, Velocity);
+                    CBCollision collision = new CBCollision(hit, phys.Velocity);
                     float trigOpposite = Vector3.ProjectOnPlane(transform.position - collision.point, transform.up).magnitude;
                     float trigAdjacent = new Vector2(cap.radius, trigOpposite).magnitude;
                     float floorDelta = hit.distance - stepOffset - offset + trigAdjacent - cap.radius;
@@ -388,9 +377,10 @@ namespace MPCore
 
                     if (Physics.Raycast(point, -transform.up, out hit, distance, layerMask, QueryTriggerInteraction.Ignore)
                      || Physics.Raycast(point + transform.forward * cap.radius / 2f, -transform.up, out hit, distance, layerMask, QueryTriggerInteraction.Ignore))
-                        collision = new CBCollision(hit, Velocity);
+                        collision = new CBCollision(hit, phys.Velocity);
 
                     cb.AddHit(collision);
+
                     transform.position -= transform.up * floorDelta;
                     characterCamera.stepOffset = Mathf.Clamp(characterCamera.stepOffset + floorDelta, -0.5f, 0.5f);
                 }
@@ -404,9 +394,9 @@ namespace MPCore
             Vector3 capPoint = transform.up * (cap.height * 0.5f - cap.radius);
             Vector3 point0 = transform.position + capPoint;
             Vector3 point1 = transform.position - capPoint;
-            int oCount = Physics.OverlapCapsuleNonAlloc(point0, point1, cap.radius, cBuffer, layerMask, QueryTriggerInteraction.Ignore);
+            int count = Physics.OverlapCapsuleNonAlloc(point0, point1, cap.radius, cBuffer, layerMask, QueryTriggerInteraction.Ignore);
 
-            for (int i = 0; i < oCount; i++)
+            for (int i = 0; i < count; i++)
             {
                 Collider collider = cBuffer[i];
 
@@ -424,64 +414,65 @@ namespace MPCore
                         normal = Vector3.ProjectOnPlane(normal, transform.up).normalized;
 
                     // Vertical squeeze prevention
-                    if (Vector3.Dot(finalOffset, direction) < 0 && Vector3.Dot(Velocity, fpd) < 0)
-                        Velocity = Vector3.Project(Velocity, Vector3.Cross(finalOffset, direction));
+                    if (Vector3.Dot(finalOffset, direction) < 0 && Vector3.Dot(phys.Velocity, fpd) < 0)
+                        phys.Velocity = Vector3.Project(phys.Velocity, Vector3.Cross(finalOffset, direction));
 
                     finalOffset = fpd;
 
-                    cb.AddHit(new CBCollision(collider, normal, transform.position, Velocity));
+                    cb.AddHit(new CBCollision(collider, normal, transform.position, phys.Velocity));
                     transform.position += direction;
                 }
             }
 
             Vector3 dir = transform.position - oldPos;
             float squeeze = dir.magnitude;
-            GameObject conduit = cBuffer[0] ? cBuffer[0].gameObject : null;
+            int damage = (int)(squeeze * 200);
+            GameObject instigatorBody = cBuffer[0] ? cBuffer[0].gameObject : null;
             CharacterInfo instigator;
 
-            if (conduit && conduit.TryGetComponent(out Character ch) && ch.characterInfo)
+            // Instigated by Character or self-instigated
+            if (instigatorBody && instigatorBody.TryGetComponent(out Character ch) && ch.characterInfo)
                 instigator = ch.characterInfo;
             else
                 instigator = character.characterInfo;
 
             if (squeeze > cap.radius)
-                damageEvent.Damage((int)(squeeze * 200), conduit,  instigator, impactDamageType, dir);
+                damageEvent.Damage(damage, instigatorBody,  instigator, impactDamageType, dir);
         }
 
         private void Move()
         {
             float dt = Time.fixedDeltaTime;
             float iterations = 3;
+            float backup = cap.radius * 0.5f;
+            Vector3 pointOffset = transform.up * (cap.height / 2f - cap.radius);
 
-            while (Velocity.sqrMagnitude != 0 && dt > 0 && iterations-- > 0)
+            while (phys.Velocity.sqrMagnitude > 0 && dt > 0 && iterations-- > 0)
             {
-                float distance = Velocity.magnitude * dt;
-                float velDist = cap.radius * 0.5f;
-                Vector3 heightOff = transform.up * (cap.height / 2f - cap.radius);
-                Vector3 velOff = -Velocity.normalized * velDist;
+                float distance = phys.Velocity.magnitude * dt;
+                Vector3 velOff = -phys.Velocity.normalized * backup;
                 Vector3 center = transform.TransformPoint(cap.center);
 
                 if (Physics.CapsuleCast(
-                            point1: center + velOff + heightOff,
-                            point2: center + velOff - heightOff,
+                            point1: center + velOff + pointOffset,
+                            point2: center + velOff - pointOffset,
                             radius: cap.radius,
-                            direction: Velocity,
-                            maxDistance: distance + velDist,
+                            direction: phys.Velocity,
+                            maxDistance: distance + backup,
                             hitInfo: out RaycastHit hit,
                             layerMask: layerMask,
                             queryTriggerInteraction: QueryTriggerInteraction.Ignore)
                     && !hit.transform.IsChildOf(transform)
-                    && hit.distance > velDist)
+                    && hit.distance > backup)
                 {
-                    hit.distance -= velDist;
-                    CBCollision collision = new CBCollision(hit, Velocity);
-                    cb.AddHit(collision);
+                    hit.distance -= backup;
                     distance = Mathf.Min(hit.distance, distance);
+                    cb.AddHit(new CBCollision(hit, phys.Velocity));
                 }
 
-                transform.position += Vector3.ClampMagnitude(Velocity, distance);
+                transform.Translate(Vector3.ClampMagnitude(phys.Velocity, distance), Space.World);
 
-                dt -= distance / Velocity.magnitude;
+                dt -= distance / phys.Velocity.magnitude;
             }
         }
 
@@ -496,76 +487,11 @@ namespace MPCore
             else
                 instigator = character.characterInfo;
 
-            if (damage > 5)
+            if (damage > fallForgiveness)
                 damageEvent.Damage(damage, hit.gameObject, instigator, impactDamageType, hit.normal);
 
             if (characterSound)
                 characterSound.PlayImpact(impactSpeed - 3f);
-        }
-
-        private void InitializeCrouchRoutine()
-        {
-            float appliedCrouchHeight;
-            float appliedHeight;
-
-            void SharedStart()
-            {
-                appliedCrouchHeight = defaultCrouchHeight - defaultCrouchHeight / defaultHeight * defaultStepOffset;
-                appliedHeight = defaultHeight - defaultStepOffset;
-            }
-
-            void SharedEnd()
-            {
-                stepOffset = cap.height / defaultHeight * defaultStepOffset;
-            }
-
-            crouchState.Add(new State(name: "Idle"),
-                new State(name: "GoDown",
-                fixedUpdate: () =>
-                {
-                    SharedStart();
-
-                    if (input.Crouch && appliedCrouchHeight < cap.height)
-                        cap.height = Mathf.Max(appliedCrouchHeight, cap.height - defaultCrouchDownSpeed * Time.fixedDeltaTime);
-                    else if (!input.Crouch)
-                        crouchState.SwitchTo("GoUp");
-
-                    SharedEnd();
-                }),
-                new State(name: "GoUp",
-                fixedUpdate: () =>
-                {
-                    SharedStart();
-
-                    if (!input.Crouch && appliedHeight < defaultHeight)
-                    {
-                        float desiredHeight = Mathf.Min(appliedHeight, cap.height + defaultCrouchUpSpeed * Time.fixedDeltaTime);
-                        float rayDistance = appliedHeight - cap.height;
-                        Vector3 rayStart = transform.position - transform.up * (cap.height / 2 - cap.radius);
-                        int oCount = Physics.OverlapSphereNonAlloc(rayStart, cap.radius * 0.9f, cBuffer, layerMask, QueryTriggerInteraction.Ignore);
-                        bool hasOverlap = false;
-
-                        for (int i = 0; i < oCount; i++)
-                            if (!cBuffer[i].transform.IsChildOf(transform))
-                            {
-                                hasOverlap = true;
-                                break;
-                            }
-
-                        if (!hasOverlap
-                            && !Physics.SphereCast(rayStart, cap.radius * 0.9f, transform.up, out RaycastHit hit, rayDistance, layerMask))
-                        {
-                            transform.position += transform.up * (desiredHeight - cap.height) * 0.5f;
-                            cap.height = desiredHeight;
-                        }
-                    }
-                    else if (input.Crouch)
-                        crouchState.SwitchTo("GoDown");
-
-                    SharedEnd();
-                }));
-
-            crouchState.Initialize("GoDown");
         }
     }
 }

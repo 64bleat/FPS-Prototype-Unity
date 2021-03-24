@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
-using UnityEngine;
 
 namespace MPConsole
 {
@@ -9,18 +9,17 @@ namespace MPConsole
     public static class Console
     {
         public static object target;
-        private static readonly Dictionary<string, IList<CommandInfo>> commands = new Dictionary<string, IList<CommandInfo>>();
+
         private static readonly Dictionary<char, char> parseCloser = new Dictionary<char, char>() { { '"', '"' }, { '(', ')' } };
-        private static readonly Stack<char> grouping = new Stack<char>();
-        private static readonly Queue<string> argBuffer = new Queue<string>();
+
+        private static readonly Dictionary<string, IList<CommandInfo>> commands = new Dictionary<string, IList<CommandInfo>>();
         private static readonly Dictionary<Type, HashSet<object>> instanceRegistry = new Dictionary<Type, HashSet<object>>();
-        private static readonly Dictionary<Type, MethodInfo> conversions = new Dictionary<Type, MethodInfo>();
-        private static readonly Queue<string> rawArgs = new Queue<string>();
+        private static readonly Dictionary<Type, MethodInfo> paramTypeConversions = new Dictionary<Type, MethodInfo>();
 
         private struct CommandInfo
         {
             public ConsoleCommandAttribute attribute;
-            public Type type;
+            public Type baseType;
             public MethodInfo method;
         }
 
@@ -38,45 +37,26 @@ namespace MPConsole
         [ConsoleCommand("find", "Finds commands containing a given part")]
         public static string Find(string part)
         {
-            string ret;
+            string start;
 
-            if (part == null || part.Length == 0)
-                ret = "\n--- Displaying all commands ---\n";
+            part ??= string.Empty;
+
+            if (part.Length == 0)
+                start = "\n--- Displaying all commands ---";
             else 
-                ret = $"\n--- Displaying commands containing '{part}' ---\n";
-
-            part ??= "";
+                start = $"\n--- Displaying commands containing '{part}' ---";
 
             if (part.Length > 0)
-            {
-                SortedList<float, ConsoleCommandAttribute> matches = new SortedList<float, ConsoleCommandAttribute>();
-
-                foreach (var kvp in commands)
-                    if (kvp.Key.Contains(part))
-                    {
-                        float position = kvp.Key.Length / part.Length;
-
-                        while (matches.ContainsKey(position))
-                            position += 0.00001f;
-
-                        matches.Add(position, kvp.Value[0].attribute);
-                    }
-
-                foreach (var match in matches.Values)
-                    ret += $" * {match.callname}   {match.info}\n";
-            }
+                return commands
+                    .Where(kvp => kvp.Key.Contains(part))
+                    .OrderBy(kvp => kvp.Key.Length / part.Length)
+                    .Select(kvp => new { name = kvp.Value[0].attribute.callname, info = kvp.Value[0].attribute.info })
+                    .Aggregate(start, (str, cmd) => $"{str}\n{cmd.name,-16}: {cmd.info}");
             else
-            {
-                SortedList<string, ConsoleCommandAttribute> matches = new SortedList<string, ConsoleCommandAttribute>();
-
-                foreach (var kvp in commands)
-                    matches.Add(kvp.Key, kvp.Value[0].attribute);
-
-                foreach (var match in matches.Values)
-                    ret += $" * {match.callname}   {match.info}\n";
-            }    
-
-            return ret;
+                return commands
+                    .OrderBy(kvp => kvp.Key)
+                    .Select(kvp => new { name = kvp.Value[0].attribute.callname, info = kvp.Value[0].attribute.info })
+                    .Aggregate(start, (str, cmd) => $"{str}\n{cmd.name,-16}: {cmd.info}");
         }
 
         /// <summary> Send an argument to the console </summary>
@@ -84,19 +64,19 @@ namespace MPConsole
         /// <returns> the concatenated string output of the performed executions </returns>
         public static string Command(string arg)
         {
-            ParseCommand(arg);
-            string output = "";
-            string firstArg = argBuffer.Count > 0 ? argBuffer.Dequeue() : "";
+            IList<string> argList = ParseCommand(arg, out string cmdName);
 
-            if (commands.TryGetValue(firstArg, out IList<CommandInfo> commandList))
-                foreach (CommandInfo cmd in commandList)
-                    output += Execute(cmd, argBuffer.ToArray()) + '\n';
-
-            return output.TrimEnd('\n');
+            if (commands.TryGetValue(cmdName, out IList<CommandInfo> commandList))
+                return commandList
+                    .Select(cmd => Execute(cmd, argList))
+                    .Where(s => s?.Length > 0)
+                    .Aggregate(string.Empty, (str, s) => $"{str}\n{s}");
+            else
+                return string.Empty;
         }
 
         /// <summary> Register an instance of a Type to be affected by non-static commands </summary>
-        public static void RegisterInstance(object instance)
+        public static void AddInstance(object instance)
         {
             Type type = instance.GetType();
 
@@ -115,79 +95,67 @@ namespace MPConsole
                 list.Remove(instance);
         }
 
-        private static string Execute(CommandInfo cmd, string[] args)
+        private static string Execute(CommandInfo cmd, IList<string> args)
         {
             try
             {
-
-                rawArgs.Clear();
-
-                foreach (string arg in args)
-                    rawArgs.Enqueue(arg);
-
+                Queue<string> paramBuffer = new Queue<string>(args);
                 ParameterInfo[] parameters = cmd.method.GetParameters();
                 object[] sendParams = new object[parameters.Length];
+                bool isStatic = cmd.baseType.IsAbstract && cmd.baseType.IsSealed;
 
-                for (int i = 0; i < sendParams.Length && rawArgs.Count > 0; i++)
-                    sendParams[i] = Convert(parameters[i].ParameterType, rawArgs);
+                for (int i = 0; i < sendParams.Length; i++)
+                    sendParams[i] = PullInvokeParameters(parameters[i].ParameterType, paramBuffer);
 
-                if (!cmd.type.IsAbstract && !cmd.type.IsSealed)
-                {
-                    if (instanceRegistry.TryGetValue(cmd.type, out HashSet<object> instances) && instances.Count > 0)
-                    {
-                        string message = "";
-
-                        foreach (object instance in instances)
-                            if (cmd.method.Invoke(instance, sendParams) is string s)
-                                message += s + '\n';
-
-                        return message.TrimEnd('\n');
-                    }
-                    else
-                        return "No available instances of " + cmd.type.Name;
-                }
-                else
+                if (isStatic)
                     return cmd.method.Invoke(null, sendParams) as string;
+                else if (instanceRegistry.TryGetValue(cmd.baseType, out HashSet<object> instances) && instances.Count > 0)
+                    return instances
+                        .Select(i => cmd.method.Invoke(i, sendParams) as string)
+                        .Where(s => s?.Length > 0)
+                        .Aggregate(string.Empty, (s, a) => $"{s}\n{a}");
+                else
+                    return $"No available instances of {cmd.baseType.Name}";
             }
-            catch
+            catch (Exception e)
             {
-                return "";
+                return e.Message;
             }
         }
 
-        private static object Convert(Type type, Queue<string> args)
+        private static object PullInvokeParameters(Type convertType, Queue<string> sBuffer)
         {
-            if (args.Count > 0)
+            if (convertType.Equals(typeof(string)))
+                return sBuffer.Count > 0 ? sBuffer.Dequeue() : default;
+            else if (convertType.Equals(typeof(string[])))
             {
-                if (type.Equals(typeof(string)))
-                    return args.Dequeue();
-                else if(type.Equals(typeof(string[])))
-                {
-                    string[] sendParams = args.ToArray();
-                    args.Clear();
-                    return sendParams;
-                }
-                else if (conversions.TryGetValue(type, out MethodInfo method))
-                {
-                    ParameterInfo[] parameters = method.GetParameters();
-                    object[] sendParams = new object[parameters.Length];
-
-                    for (int i = 0; i < parameters.Length; i++)
-                        sendParams[i] = Convert(parameters[i].ParameterType, args);
-
-                    return method.Invoke(null, sendParams);
-                }
+                string[] invokeParams = sBuffer.ToArray();
+                sBuffer.Clear();
+                return invokeParams;
             }
+            else if (paramTypeConversions.TryGetValue(convertType, out MethodInfo method))
+            {
+                ParameterInfo[] parameters = method.GetParameters();
+                object[] invokeParams = new object[parameters.Length];
 
-            return null;
+                for (int i = 0; i < parameters.Length; i++)
+                    if (sBuffer.Count > 0)
+                        invokeParams[i] = PullInvokeParameters(parameters[i].ParameterType, sBuffer);
+                    else
+                        invokeParams[i] = default;
+
+                return method.Invoke(null, invokeParams);
+            }
+            else
+                return default;
         }
 
-        private static void ParseCommand(string arg)
+        private static List<string> ParseCommand(string arg, out string cmdName)
         {
             int last = 0;
 
-            grouping.Clear();
-            argBuffer.Clear();
+            Stack<char> grouping = new Stack<char>();
+            List<string> argList = new List<string>();
 
             for (int i = 0; i < arg.Length; i++)
             {
@@ -198,10 +166,10 @@ namespace MPConsole
                     if (grouping.Count != 0)
                         grouping.Pop();
 
-                    string add = arg.Substring(last, i - last + 1).Trim(' ', '"');
+                    string sParam = arg.Substring(last, i - last + 1).Trim(' ', '"');
 
-                    if (add.Length > 0)
-                        argBuffer.Enqueue(add);
+                    if (sParam.Length > 0)
+                        argList.Add(sParam);
 
                     last = i + 1;
                 }
@@ -210,6 +178,16 @@ namespace MPConsole
                     grouping.Push(arg[i]);
                 }
             }
+
+            if (argList.Count > 0)
+            {
+                cmdName = argList[0];
+                argList.RemoveAt(0);
+            }
+            else
+                cmdName = "";
+
+            return argList;
         }
 
         public static void Reset()
@@ -218,7 +196,7 @@ namespace MPConsole
             Type commandAttributeType = typeof(ConsoleCommandAttribute);
             Type conversionAttribute = typeof(ConversionAttribute);
 
-            conversions.Clear();
+            paramTypeConversions.Clear();
             commands.Clear();
             target = null;
 
@@ -231,7 +209,7 @@ namespace MPConsole
                                 CommandInfo command;
 
                                 command.attribute = cmdAttribute;
-                                command.type = type;
+                                command.baseType = type;
                                 command.method = method;
 
                                 if (commands.TryGetValue(cmdAttribute.callname, out IList<CommandInfo> list))
@@ -241,7 +219,7 @@ namespace MPConsole
                             }
                             else if(method.GetCustomAttribute(conversionAttribute, false) is ConversionAttribute)
                             {
-                                conversions.Add(method.ReturnType, method);
+                                paramTypeConversions.Add(method.ReturnType, method);
                             }
         }
     }

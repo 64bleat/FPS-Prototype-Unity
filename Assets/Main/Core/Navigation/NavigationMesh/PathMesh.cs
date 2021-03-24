@@ -93,11 +93,10 @@ namespace MPCore
 
         private void OnDrawGizmosSelected()
         {
-            if (TryGetComponent(out MeshRenderer mr))
-            {
-                
-    
-            }
+            Gizmos.color = Color.blue;
+            if (TryGetComponent(out MeshFilter mf))
+                Gizmos.DrawWireMesh(mf.sharedMesh, transform.position, transform.rotation, transform.lossyScale);
+            Gizmos.color = Color.white;
         }
     }
 }

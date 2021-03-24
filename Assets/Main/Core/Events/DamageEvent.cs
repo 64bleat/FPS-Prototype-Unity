@@ -18,7 +18,7 @@ namespace MPCore
                 characterInfo = character.characterInfo;
         }
 
-        public void Damage(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction)
+        public void Damage(int damage, GameObject instigatorBody, CharacterInfo instigator, DamageType damageType, Vector3 direction)
         {
             DamageTicket ticket = new DamageTicket()
             {
@@ -26,7 +26,7 @@ namespace MPCore
                 damageType = damageType,
                 instigator = instigator,
                 victim = characterInfo,
-                conduit = conduit,
+                instigatorBody = instigatorBody,
                 victimBody = gameObject,
                 momentum = direction,
                 point = transform.position,
@@ -46,7 +46,7 @@ namespace MPCore
         public DamageType damageType;
         public CharacterInfo instigator;
         public CharacterInfo victim;
-        public GameObject conduit;
+        public GameObject instigatorBody;
         public GameObject victimBody;
         public Vector3 momentum;
         public Vector3 point;

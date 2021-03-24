@@ -40,8 +40,8 @@ namespace MPCore
             if (TryGetComponent(out DamageEvent damage))
                 damage.OnHit += Damage;
 
-            AiInterestPoints.interestPoints.Add(this);
-            Console.RegisterInstance(this);
+            AIBlackboard.visualTargets.Add(this);
+            Console.AddInstance(this);
 
             GetHealthResource();
         }
@@ -51,7 +51,7 @@ namespace MPCore
             if (TryGetComponent(out DamageEvent damage))
                 damage.OnHit -= Damage;
 
-            AiInterestPoints.interestPoints.Remove(this);
+            AIBlackboard.visualTargets.Remove(this);
             Console.RemoveInstance(this);            
         }
 
@@ -92,7 +92,7 @@ namespace MPCore
                     playerDisplayHealth.Invoke($"{health.value,3}");
 
                 if (initialValue > 0 && health.value <= 0)
-                    Kill(ticket.instigator, ticket.conduit, ticket.damageType);
+                    Kill(ticket.instigator, ticket.instigatorBody, ticket.damageType);
             }
         }
 

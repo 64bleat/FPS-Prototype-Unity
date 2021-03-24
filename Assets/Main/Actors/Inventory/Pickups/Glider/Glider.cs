@@ -13,24 +13,13 @@ namespace MPCore
         public override void OnActivate(GameObject owner)
         {
             if (owner.TryGetComponent(out CharacterBody body))
-            {
-                body.OnGlide += OnGlideNew;
-
-                //if (body.glider)
-                //    body.glider.SetActive(owner, false);
-
-                //body.glider = this;
-            }
+                body.OnGlide.AddListener(OnGlideNew);
         }
 
         public override void OnDeactivate(GameObject owner)
         {
-
             if (owner.TryGetComponent(out CharacterBody body))
-            {
-                body.OnGlide -= OnGlideNew;
-                //body.glider = null;
-            }
+                body.OnGlide.RemoveListener(OnGlideNew);
         }
 
         public void OnGlideNew(CharacterBody body)

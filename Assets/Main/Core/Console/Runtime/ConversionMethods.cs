@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Text.RegularExpressions;
+using UnityEngine;
 
 namespace MPConsole
 {
@@ -27,6 +28,15 @@ namespace MPConsole
         public static Vector3 MakeVector3(float a, float b, float c)
         {
             return new Vector3(a, b, c);
+        }
+
+        [Conversion]
+        public static GameObject FindGameObject(string name)
+        {
+            if (name == null || name == "target")
+                return Console.target as GameObject;
+            else
+                return GameObject.Find(name);
         }
     }
 }

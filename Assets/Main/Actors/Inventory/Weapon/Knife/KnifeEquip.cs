@@ -47,13 +47,13 @@ namespace MPCore
 
         private void OnEnable()
         {
-            RaiseUp();
+            FireUp();
 
-            input.Bind("Fire", RaiseDown, this, KeyPressType.Down);
-            input.Bind("Fire", RaiseUp, this, KeyPressType.Up);
+            input.Bind("Fire", FireDown, this, KeyPressType.Down);
+            input.Bind("Fire", FireUp, this, KeyPressType.Up);
 
             if (input.GetKey("Fire"))
-                RaiseDown();
+                FireDown();
         }
 
         private void OnDisable()
@@ -61,13 +61,15 @@ namespace MPCore
             input.Unbind(this);
         }
 
-        private void RaiseDown() => animator.SetBool(raiseId, true);
-        private void RaiseUp() => animator.SetBool(raiseId, false);
+        private void FireDown() => animator.SetBool(raiseId, true);
+        private void FireUp() => animator.SetBool(raiseId, false);
 
 
         public void AnimAttack1()
         {
-            if(Physics.SphereCast(attackPoint.position, attackRadius, attackPoint.forward, out RaycastHit hit, attackLength, layermask, QueryTriggerInteraction.Ignore))
+            if(Physics.Raycast(attackPoint.position, attackPoint.forward, out RaycastHit hit, attackLength + attackRadius, layermask, QueryTriggerInteraction.Ignore)
+                || Physics.SphereCast(attackPoint.position, attackRadius, attackPoint.forward, out hit, attackLength, layermask, QueryTriggerInteraction.Ignore)
+                && hit.collider.gameObject != character.gameObject)
             {
                 Rigidbody rb = hit.collider.attachedRigidbody;
 
@@ -77,7 +79,7 @@ namespace MPCore
                     gu.Velocity += attackPoint.forward * attackForce / gu.Mass;
 
                 if (hit.collider.TryGetComponentInParent(out DamageEvent damageEvent))
-                    damageEvent.Damage(damage, gameObject, instigator, shared.damageType, attackPoint.forward);
+                    damageEvent.Damage(damage, character.gameObject, instigator, shared.damageType, attackPoint.forward);
 
                 // COPYPASTA FROM PROJECTILE.CS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 HitEffect hitEffect = default;

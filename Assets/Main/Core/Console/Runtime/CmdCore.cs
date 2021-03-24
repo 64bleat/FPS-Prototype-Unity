@@ -20,15 +20,12 @@ namespace MPConsole
         }
 
         [ConsoleCommand("destroy", "Destroys targeted gameobjects.")]
-        public static string DestroyTarget()
+        public static string DestroyTarget(GameObject go)
         {
-            GameObject go = Console.target as GameObject;
-
             if (!go)
                 return "No target to destroy";
 
             GameObject.Destroy(go);
-            Console.target = null;
 
             return null;
         }

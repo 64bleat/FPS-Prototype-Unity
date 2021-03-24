@@ -29,6 +29,7 @@ namespace MPCore
         private readonly CharacterBody body;
         private readonly Dictionary<Rigidbody, CBCollision> rigidbodies = new Dictionary<Rigidbody, CBCollision>();
         private readonly Dictionary<IGravityUser, CBCollision> gravityUsers = new Dictionary<IGravityUser, CBCollision>();
+        private readonly List<Vector3> normals = new List<Vector3>();
 
         public CollisionBuffer(GameObject gameObject)
         {
@@ -49,6 +50,7 @@ namespace MPCore
                 IsEmpty = false;
                 CollisionMass = Mathf.Max(CollisionMass, collision.rigidbody ? collision.rigidbody.mass : collision.gravityUser?.Mass ?? 0);
                 Normal = (Normal + collision.normal).normalized;
+                normals.Add(collision.normal);
                 Velocity = Vector3.ClampMagnitude(Velocity + collision.pointVelocity, Mathf.Max(Velocity.magnitude, collision.pointVelocity.magnitude));
                 Point = body.cap.ClosestPoint(
                     transform.InverseTransformPoint(
@@ -99,6 +101,7 @@ namespace MPCore
 
         public void Clear()
         {
+            normals.Clear();
             rigidbodies.Clear();
             gravityUsers.Clear();
             IsEmpty = true;
@@ -233,6 +236,16 @@ namespace MPCore
                 return collision.isStep || collision.isAlwaysGround || Vector3.Angle(-body.falseGravity, collision.normal) <= body.defaultslopeLimit;
             else
                 return false;
+        }
+
+        public float MinDot(Vector3 n)
+        {
+            float min = 1f;
+
+            foreach (Vector3 normal in normals)
+                min = Mathf.Min(min, Vector3.Dot(n, normal));
+
+            return min;
         }
     }
 }

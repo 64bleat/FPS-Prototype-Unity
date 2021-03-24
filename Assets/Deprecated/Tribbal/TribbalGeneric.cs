@@ -80,18 +80,14 @@ namespace Junk
 
         private GOAPStatus PFFollowingPathUpdate()
         {
-            if (target && path != null && path.Count > 0) // && Vector3.Distance(path[path.Length - 1], target.transform.position) < 5)
+            if (target && path != null && path.Count > 0)
             {
-                //while (pathIndex < path.Length - 3 && (Vector3.Distance(path[pathIndex], transform.position)) < 1.5f)
-                //pathIndex++;
-                //pathIndex = Navigator.GetBestDestinationIndex(path, sphere.radius, transform.position, path[path.Length - 1], out float distance, out float tDistance);
-                pathIndex = Mathf.CeilToInt(Navigator.GetCoordinatesOnPath(path, transform.position, pathIndex, out float distance));
+                Vector3 pClamp = Navigator.ClampToPath(path, transform.position, out float pIndex);
+                float distance = Vector3.Distance(transform.position, pClamp);
+                pathIndex = Mathf.CeilToInt(pIndex);
 
                 if (distance > 5f || Vector3.Distance(transform.position, path[path.Count - 1]) < sphere.radius) //|| tDistance > 5f)
                     return GOAPStatus.Fail;
-
-                //while (pathIndex < path.Length - 1 && Vector3.Distance(path[pathIndex], transform.position) < sphere.radius)
-                //    pathIndex++;
 
                 Vector3 direction = Vector3.ClampMagnitude(path[pathIndex] - transform.position + transform.up * 0.5f, 3);
 
@@ -110,12 +106,6 @@ namespace Junk
 
         private void PFFolowingPathEnd()
         {
-
-            //inimportant
-            //transform.localScale = new Vector3(1, 1, 1);
-            //onMesh.enabled = false;
-            //offMesh.enabled = true;
-
             if (lineInstance)
                 Destroy(lineInstance.gameObject);
         }

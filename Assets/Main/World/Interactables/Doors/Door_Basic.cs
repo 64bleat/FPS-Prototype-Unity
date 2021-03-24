@@ -1,135 +1,87 @@
-﻿using MPCore;
-using System;
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace MPWorld
 {
     /// <summary> A script to open and close a hinged door upon interacting with it. </summary>
+    [RequireComponent(typeof(AudioSource))]
     public class Door_Basic : MonoBehaviour, IInteractable
     {
-        public GameObject _ForcePoint;
-        public float _Acceleration = 80f;
-        public float _MaxSpeed = 2.0f;
-        public float _ClosedAngle = 1.0f;
-        public bool _InitiallyOpen = false;
-        public AudioClip _OpenSound;
-        public AudioClip _CloseSound;
+        public bool clockwise = true;
+        public float motorForce = 80f;
+        public float motorVelocity = 2.0f;
+        public float snapClosedAngle = 1.0f;
+        public AudioClip openSound;
+        public AudioClip closeSound;
 
-        private readonly StateMachine state = new StateMachine();
-        private Action interactAction;
-        private Quaternion ClosedRotation;
-        private Vector3 ClosedPosition;
+        private Quaternion closeRotation;
+        private Vector3 closePosition;
         private new Rigidbody rigidbody;
-        private float timer;
         private AudioSource audioSource;
+        private HingeJoint hinge;
+        private int interactDirection;
+        private float lastDebounce = -1;
+        private const float debounceTime = 0.25f;
+
 
         public void Start()
         {
-            rigidbody = gameObject.GetComponent<Rigidbody>();
+            rigidbody = GetComponent<Rigidbody>();
+            audioSource = GetComponent<AudioSource>();
+            hinge = GetComponent<HingeJoint>();
 
-            audioSource = gameObject.GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
-
-            ClosedRotation = transform.rotation;
-            ClosedPosition = transform.position;
-
-            state.Add(new State("Initialize", Initialize, end: ClosedEnd),
-                new State("Closed", ClosedStart, end: ClosedEnd),
-                new State("Opening", OpeningStart, OpeningUpdate),
-                new State("Opened", null, OpenedUpdate),
-                new State("Closing", ClosingStart, ClosingUpdate));
-            state.Initialize("Initialize");
+            closeRotation = transform.rotation;
+            closePosition = transform.position;
+            rigidbody.constraints = RigidbodyConstraints.FreezeAll;
+            interactDirection = clockwise ? -1 : 1;
+            enabled = false;
         }
 
-        public void Update()
+        public void FixedUpdate()
         {
-            state.Update();
-        }
+            float deltaDebounce = Time.time - lastDebounce;
+            float currentAngle = Quaternion.Angle(closeRotation, rigidbody.rotation);
 
-        //initialize
-        private void Initialize()
-        {
-            if (_InitiallyOpen)
-                state.SwitchTo("Opened");
-            else
+            if (deltaDebounce > debounceTime && currentAngle < snapClosedAngle)
             {
+                rigidbody.rotation = closeRotation;
+                rigidbody.position = closePosition;
                 rigidbody.constraints = RigidbodyConstraints.FreezeAll;
-                interactAction = () => state.SwitchTo("Opening");
+                interactDirection = clockwise ? -1 : 1;
+
+                audioSource.PlayOneShot(closeSound);
+
+                enabled = false;
             }
         }
 
-        //closed
-        private void ClosedStart()
-        {
-            transform.rotation = ClosedRotation;
-            transform.position = ClosedPosition;
-
-            rigidbody.constraints = RigidbodyConstraints.FreezeAll;
-
-            interactAction = () => state.SwitchTo("Opening");
-
-            if(_CloseSound)
-                audioSource.PlayOneShot(_CloseSound);
-        }
-        private void ClosedEnd()
-        {
-            if(_OpenSound)
-                audioSource.PlayOneShot(_OpenSound);
-        }
-
-        //opening
-        private void OpeningStart()
-        {
-            rigidbody.constraints = RigidbodyConstraints.None;
-
-            interactAction = () => state.SwitchTo("Closing");
-
-            timer = Time.time;
-        }
-
-        private void OpeningUpdate()
-        {
-            if (Time.time - timer < 1.0f && rigidbody.GetPointVelocity(_ForcePoint.transform.position).magnitude < _MaxSpeed)
-                rigidbody.AddForceAtPosition(_ForcePoint.transform.forward * _Acceleration, _ForcePoint.transform.position, ForceMode.Acceleration);
-            else
-                state.SwitchTo("Opened");
-        }
-
-        //opened
-        private void OpenedUpdate()
-        {
-            if (Quaternion.Angle(transform.rotation, ClosedRotation) < _ClosedAngle)
-                state.SwitchTo("Closed");
-        }
-
-        //closing
-        private void ClosingStart()
-        {
-            interactAction = () => state.SwitchTo("Opening");
-
-            timer = Time.time;
-        }
-
-        private void ClosingUpdate()
-        {
-            if (Quaternion.Angle(transform.rotation, ClosedRotation) < _ClosedAngle)
-                state.SwitchTo("Closed");
-            if (Time.time - timer < 1.0f && rigidbody.GetPointVelocity(_ForcePoint.transform.position).magnitude < _MaxSpeed)
-                rigidbody.AddForceAtPosition(-_ForcePoint.transform.forward * _Acceleration, _ForcePoint.transform.position, ForceMode.Acceleration);
-            else
-                state.SwitchTo("Opened");
-        }
-
-        private void OnCollisionEnter(Collision collision)
-        {
-            if (!collision.gameObject.isStatic && !collision.gameObject.GetComponent<Door_Basic>() && (state.IsCurrentState("Opening") || state.IsCurrentState("Closing")))
-                timer = 0;
-        }
-
-        public void OnInteractHold(GameObject other, RaycastHit hit){}
-        public void OnInteractEnd(GameObject other, RaycastHit hit){}
         public void OnInteractStart(GameObject other, RaycastHit hit)
         {
-            interactAction.Invoke();
+            interactDirection *= -1;
+
+            JointMotor motor = hinge.motor;
+            motor.force = motorForce;
+            motor.targetVelocity = motorVelocity * interactDirection;
+            motor.freeSpin = false;
+            hinge.motor = motor;
+            hinge.useMotor = true;
+
+            if (!enabled)
+                audioSource.PlayOneShot(openSound);
+
+            enabled = true;
+            lastDebounce = Time.time;
+            rigidbody.constraints = RigidbodyConstraints.None;
+        }
+
+        public void OnInteractEnd(GameObject other, RaycastHit hit)
+        {
+            hinge.useMotor = false;
+        }
+
+        public void OnInteractHold(GameObject other, RaycastHit hit)
+        {
+
         }
     }
 }

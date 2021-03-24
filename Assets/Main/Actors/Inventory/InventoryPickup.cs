@@ -13,12 +13,12 @@ namespace MPCore
 
         private void OnEnable()
         {
-            AiInterestPoints.interestPoints.Add(this);
+            AIBlackboard.mentalTargets.Add(this);
         }
 
         private void OnDisable()
         {
-            AiInterestPoints.interestPoints.Remove(this);
+            AIBlackboard.mentalTargets.Remove(this);
         }
 
         public void Update()

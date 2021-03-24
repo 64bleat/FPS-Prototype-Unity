@@ -19,7 +19,7 @@ namespace MPCore
         private void Awake()
         {
             camera = GetComponent<Camera>();
-            Console.RegisterInstance(this);
+            Console.AddInstance(this);
         }
         private void OnDestroy()
         {

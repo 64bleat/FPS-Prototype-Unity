@@ -1,18 +1,21 @@
 ﻿using MPCore;
 using System.Collections.Generic;
+using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace MPConsole
 {
     [ContainsConsoleCommands]
     public class ConsoleInput : MonoBehaviour
     {
-        [Multiline]
+        [Multiline(8)]
         public string entryMessage;
+        public string[] clickLayermask;
+        public TextMeshProUGUI logText;
+        public TextMeshProUGUI inputText;
         public Transform cursorPointer;
-        public GameObject _Log;
-        public string[] _IgnoreLayers;
 
         private string command = "";
         private string commandHeader;
@@ -25,8 +28,7 @@ namespace MPConsole
         private readonly int viewLines = 27;
         private string fullLogText = "";
         private InputManager input;
-        private TextMeshProUGUI logText;
-        private TextMeshProUGUI inputText;
+
         private readonly List<string> previousCommands = new List<string>() { "" };
         private static readonly char[] cursorAnimation = new char[] { '/', '|', '\\', '|' };
         private readonly HashSet<char> blankChars = new HashSet<char>() { ' ' };
@@ -47,18 +49,15 @@ namespace MPConsole
 
         void Awake()
         {
-            Console.RegisterInstance(this);
+            Console.AddInstance(this);
 
             input = GetComponentInParent<InputManager>();
-            logText = _Log.GetComponent<TextMeshProUGUI>();
-            inputText = GetComponent<TextMeshProUGUI>();
-
-            input.Bind("ConTarget", GetTargetAtMouse, _Log.transform);
-            input.Bind("ConUntarget", RemoveTarget, _Log.transform);
-            input.Bind("ConUp", GetPreviousCommand, _Log.transform);
-            input.Bind("ConDown", GetNextCommand, _Log.transform);
-
-
+            input.Bind("ConTarget", GetTargetAtMouse, this);
+            input.Bind("ConUntarget", RemoveTarget, this);
+            input.Bind("ConUp", GetPreviousCommand, this);
+            input.Bind("ConDown", GetNextCommand, this);
+            input.Bind("ConLeft", CursorLeft, this);
+            input.Bind("ConRight", CursorRight, this);
         }
 
         private void Start()
@@ -72,11 +71,21 @@ namespace MPConsole
             Console.RemoveInstance(this);
         }
 
+        private void CursorLeft()
+        {
+            cursorPosition = Mathf.Clamp(--cursorPosition, 0, command.Length);
+        }
+
+        private void CursorRight()
+        {
+            cursorPosition = Mathf.Clamp(++cursorPosition, 0, command.Length);
+        }
+
         void GetTargetAtMouse()
         {
             Ray ray = Camera.main.ScreenPointToRay(UnityEngine.Input.mousePosition);
 
-            if (Physics.Raycast(ray, out RaycastHit hit, maxDistance: 1000f, layerMask: ~LayerMask.GetMask(_IgnoreLayers)))
+            if (Physics.Raycast(ray, out RaycastHit hit, maxDistance: 1000f, layerMask: ~LayerMask.GetMask(clickLayermask)))
                 Console.target = hit.collider.gameObject;
         }
 
@@ -148,7 +157,7 @@ namespace MPConsole
                     case '\r':
                         if (command.Length != 0)
                         {
-                            string output = Console.Command(command)?.Trim('\n', '\r');
+                            string output = Console.Command(command)?.Trim();
 
                             if (output?.Length > 0)
                                 logText.SetText(GetViewableLog(fullLogText += output + "\n")); // Command executed here!
@@ -198,7 +207,6 @@ namespace MPConsole
                 lpos.y = inputText.rectTransform.rect.height;
                 cursorPointer.position = inputText.transform.TransformPoint(lpos);
             }
-
         }
 
         private string GetViewableLog(string text)

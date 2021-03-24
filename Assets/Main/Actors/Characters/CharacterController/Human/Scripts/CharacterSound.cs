@@ -30,7 +30,7 @@ namespace MPCore
         {
             TryGetComponent(out body);
 
-            body.GroundMoveCallback += PlayFootstep;
+            body.GroundMoveCallback.AddListener(PlayFootstep);
         }
 
         private void Update()

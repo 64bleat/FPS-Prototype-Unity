@@ -15,28 +15,30 @@ namespace MPCore
         public KeyBindList loadKeyBindList = null;
         public string excludeLayer = "";
 
+        public Action<float> OnMouseScrollVertical;
+        public delegate Vector2 MouseUpdateDelegate(float dt);
+        public event MouseUpdateDelegate OnMouseMove;
+
         private readonly Dictionary<string, KeyBind> keyBinds = new Dictionary<string, KeyBind>();
         private readonly Dictionary<string, List<KeyListener>> keyListeners = new Dictionary<string, List<KeyListener>>();
         private readonly List<string> listenerKeys = new List<string>();
         private readonly Dictionary<string, BotPress> botPresses = new Dictionary<string, BotPress>();
-        //private readonly HashSet<BotMouse> botMouse = new HashSet<BotMouse>();
         private static readonly HashSet<string> keyMasks = new HashSet<string>();
+
         private Vector2 botMouseDelta;
         private Vector2 mousePositionDelta;
         private Vector3 lastMousePosition;
+
+        //References
         private CanvasScaler canvasScale;
-        // LateUpdate no allocation
+
+        // Buffers
         private static readonly List<Action> actionDownSet = new List<Action>();
         private static readonly List<Action> actionHoldSet = new List<Action>();
         private static readonly List<Action> actionUpSet = new List<Action>();
         private static readonly List<BotPress> botPressEnd = new List<BotPress>();
         private static readonly List<BotPress> botPressStart = new List<BotPress>();
         private static readonly List<KeyListener> removeKL = new List<KeyListener>();
-
-        public Action<float> OnMouseScrollVertical;
-
-        public delegate Vector2 MouseUpdateDelegate(float dt);
-        public event MouseUpdateDelegate OnMouseMove;
 
         private class KeyListener
         {
@@ -67,7 +69,7 @@ namespace MPCore
             canvasScale = GetComponentInChildren<CanvasScaler>();
             lastMousePosition = Input.mousePosition;
             LoadKeyBindList(loadKeyBindList);
-            PauseManager.AddListener(OnPauseUnPause);
+            PauseManager.AddListener(OnPause);
 
             if (TryGetComponent(out Character c))
                 c.OnRegistered += OnPlayerSet;
@@ -76,20 +78,10 @@ namespace MPCore
         private void OnDestroy()
         {
             keyMasks.Clear();
-            PauseManager.RemoveListener(OnPauseUnPause);
+            PauseManager.RemoveListener(OnPause);
 
             if (TryGetComponent(out Character c))
                 c.OnRegistered -= OnPlayerSet;
-        }
-
-        private void OnPlayerSet(bool isPlayer)
-        {
-            this.isPlayer = isPlayer;
-        }
-
-        private void OnPauseUnPause(bool paused)
-        {
-                enabled = !disableOnPause || !paused;
         }
 
         private void LateUpdate()
@@ -103,7 +95,6 @@ namespace MPCore
                     botPressEnd.Add(bp);
             }
 
-            //foreach (KeyValuePair<string, HashSet<KeyListener>> kvp in keyListeners)
             foreach(string key in listenerKeys)
                 if(keyListeners.TryGetValue(key, out List<KeyListener> value))
             {
@@ -152,20 +143,6 @@ namespace MPCore
             foreach (BotPress press in botPressEnd)
                 botPresses.Remove(press.key);
 
-            // Mouse movement
-            //botMouseDelta.x = botMouseDelta.y = 0f;
-
-            //foreach (BotMouse bot in botMouse)
-            //{
-            //    botMouseDelta += bot.path?.Invoke(bot.unpressTime - Time.time) ?? Vector3.zero;
-
-            //    if (Time.time > bot.unpressTime)
-            //        removeBP.Add(bot);
-            //}
-
-            //foreach (BotMouse bot in removeBP)
-            //    botMouse.Remove(bot);
-
             // Mosue Delta
             botMouseDelta = Vector2.zero;
             botMouseDelta += OnMouseMove?.Invoke(Time.deltaTime) ?? Vector2.zero;
@@ -184,9 +161,22 @@ namespace MPCore
             botPressStart.Clear();
         }
 
+        private void OnPlayerSet(bool isPlayer)
+        {
+            this.isPlayer = isPlayer;
+        }
+
+        private void OnPause(bool paused)
+        {
+            enabled = !disableOnPause || !paused;
+        }
+
         // Load Keys
         private void LoadKeyBindList(KeyBindList kbl)
         {
+            if (!kbl)
+               Debug.LogError($"InputManager on {gameObject.name} needs a KeyBindList!", gameObject);
+
             keyBinds.Clear();
 
             foreach (KeyBind kb in kbl.keyBinds)
@@ -197,7 +187,7 @@ namespace MPCore
         }
 
         // ROBOT
-        public void Press(string key, float seconds = 0f)
+        public void BotKeyDown(string key, float seconds = 0f)
         {
             if (botPresses.TryGetValue(key, out BotPress press))
             {
@@ -212,32 +202,15 @@ namespace MPCore
                 });
         }
 
-        public void Release(string key)
+        public void BotKeyUp(string key)
         {
             if (botPresses.TryGetValue(key, out BotPress press))
                 press.unpressTime = -1f;
         }
 
-        public void MouseMove(MouseUpdateDelegate mouseDelta, float seconds = 0f)
-        {
-            //Profiler.BeginSample("Input.MouseMove");
-            //botMouse.Add(new BotMouse(){
-            //    path = mouseDelta,
-            //    unpressTime = Time.time + seconds});
-            //Profiler.EndSample();
-        }
-
-        //public void Stop()
-        //{
-        //    botMouse.Clear();
-        //}
-
         // GETTING
         public bool GetKey(string keyName)
         {
-            if (keyMasks.Contains(keyName))
-                return false;
-
             if (keyBinds.TryGetValue(keyName, out KeyBind bn))
             {
                 if (botPresses.TryGetValue(keyName, out BotPress press))
@@ -253,9 +226,6 @@ namespace MPCore
 
         public bool GetKeyDown(string keyName)
         {
-            if (keyMasks.Contains(keyName))
-                return false;
-
             if (keyBinds.TryGetValue(keyName, out KeyBind bn))
             {
                 if (botPresses.TryGetValue(keyName, out BotPress press))
@@ -272,9 +242,6 @@ namespace MPCore
 
         public bool GetKeyUp(string keyName)
         {
-            if (keyMasks.Contains(keyName))
-                return false;
-
             if (keyBinds.TryGetValue(keyName, out KeyBind bn))
             {
                 if (botPresses.TryGetValue(keyName, out BotPress press))
@@ -287,29 +254,6 @@ namespace MPCore
             }
 
             return false;
-        }
-
-        // MASKING
-        public void Mask(string layer = "Ingame")
-        {
-            keyMasks.UnionWith(new HashSet<string>(
-                from kvp in keyBinds
-                where kvp.Value.layer.name.Contains(layer)
-                select kvp.Key)
-                {
-                    layer
-                });
-        }
-
-        public void Unmask(string layer = "Ingame")
-        {
-            keyMasks.ExceptWith(new HashSet<string>(
-                from kvp in keyBinds
-                where kvp.Value.layer.name.Contains(layer)
-                select kvp.Key)
-                {
-                    layer
-                });
         }
 
         // BINDING

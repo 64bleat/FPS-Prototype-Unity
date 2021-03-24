@@ -10,13 +10,13 @@ namespace MPCore
         public override void OnActivate(GameObject owner)
         {
             if (owner.TryGetComponent(out CharacterBody body))
-                body.OnWallJump += OnWallJump;
+                body.OnWallJump.AddListener(OnWallJump);
         }
 
         public override void OnDeactivate(GameObject owner)
         {
             if (owner.TryGetComponent(out CharacterBody body))
-                body.OnWallJump += OnWallJump;
+                body.OnWallJump.RemoveListener(OnWallJump);
         }
 
         public void OnWallJump(CharacterBody body)

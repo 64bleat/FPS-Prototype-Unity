@@ -23,7 +23,7 @@ namespace MPCore
                 if (!inventory[i].staticReference)
                     inventory[i] = Instantiate(inventory[i]);
 
-            Console.RegisterInstance(this);
+            Console.AddInstance(this);
         }
 
         private void OnDestroy()

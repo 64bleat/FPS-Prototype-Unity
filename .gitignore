@@ -1,3 +1,4 @@
+*.blend*
 /Assets/TestAnimation/
 /[Ll]ibrary/
 /[Tt]emp/
@@ -39,3 +40,4 @@ sysinfo.txt
 *.apk
 *.unitypackage
 Assets/Deprecated/3rd-Party/CSG/
+

@@ -38,7 +38,7 @@ namespace MPCore
             characterSpawnChannel.Add(OnCharacterSpawned);
             onDeath.Add(OnCharacterDied);
 
-            Console.RegisterInstance(this);
+            Console.AddInstance(this);
             PauseManager.AddListener(OnPauseUnPause);
 
             // Clear Scoreboard data
@@ -252,6 +252,7 @@ namespace MPCore
 
                     if (playerNew.TryGetComponent(out Character character))
                     {
+                        characterInfo.team = isPlayer ? 1 : 0;
                         character.characterInfo = characterInfo;
                         character.isPlayer = isPlayer;
                         character.RegisterCharacter();

@@ -34,7 +34,7 @@ namespace MPGUI
             upblendPass = bloomMat.FindPass("Upblend");
             addPass = bloomMat.FindPass("ApplyBloom");
 
-            Console.RegisterInstance(this);
+            Console.AddInstance(this);
         }
         private void OnDestroy()
         {

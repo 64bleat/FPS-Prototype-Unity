@@ -6,7 +6,10 @@ namespace MPCore
     {
         public enum MoveState { Run, Sprint, Walk, Crouch}
 
-        public ScriptFloat toggleCrouch, toggleSprint, toggleWalk;
+        public ScriptFloat toggleCrouch;
+        public ScriptFloat toggleSprint;
+        public ScriptFloat toggleWalk;
+        public bool autoCrouch = false;
 
         private CharacterBody characterBody;
         private InputManager input;

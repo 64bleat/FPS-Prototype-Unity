@@ -214,7 +214,7 @@ namespace MPCore
             }
 
             if (hit.collider.TryGetComponentInParent(out DamageEvent damageEvenht))
-                damageEvenht.Damage(shared.hitDamage, gameObject, instigator, shared.damageType, hitVelocity);
+                damageEvenht.Damage(shared.hitDamage, owner, instigator, shared.damageType, hitVelocity);
 
             switch (hitEffect.hitBehaviour)
             {
@@ -272,7 +272,7 @@ namespace MPCore
                         if(hit.collider.TryGetComponent(out Character character) && character.characterInfo == instigator)
                             damage = (int)(shared.selfDamageScale * damage);
 
-                        damageEvent.Damage(damage, gameObject, instigator, shared.damageType, direction);
+                        damageEvent.Damage(damage, owner, instigator, shared.damageType, direction);
                     }
 
                     hit.normal = -direction;

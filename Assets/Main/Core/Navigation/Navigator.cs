@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Unity.Jobs;
 using UnityEngine;
 
@@ -10,7 +11,7 @@ namespace MPCore
     public static class Navigator
     {
         /// <summary>
-        /// Asynchronously requests a path from one point to another.
+        /// Asynchronously requests a navigation path.
         /// </summary>
         /// <param name="startPosition">world coordinates start</param>
         /// <param name="endPosition">world coordinates destination</param>
@@ -30,80 +31,83 @@ namespace MPCore
         }
 
         /// <summary>
-        /// 
+        /// Clamp a position to a path.
+        /// </summary>
+        /// <param name="path">world-space path</param>
+        /// <param name="position">world-space position to clamp</param>
+        /// <param name="pIndex">linearly-interpolated index representation of the clamped position</param>
+        /// <returns>a position clamped to path</returns>
+        public static Vector3 ClampToPath(List<Vector3> path, Vector3 position, out float pIndex)
+        {
+            float pDistance = float.MaxValue;
+            Vector3 pClamp = position;
+            pIndex = 0;
+
+            for (int i = 1; i < path.Count; i++)
+            {
+                int h = i - 1;
+                Vector3 offset = position - path[h];
+                Vector3 direction = path[i] - path[h];
+                float sqrMag = Mathf.Max(direction.sqrMagnitude, float.Epsilon);
+                float t = Mathf.Clamp01(Vector3.Dot(offset, direction) / sqrMag);
+                Vector3 clamp = Vector3.Lerp(path[h], path[i], t);
+                float sqrDistance = (clamp - position).sqrMagnitude;
+                
+                if(sqrDistance < pDistance)
+                {
+                    pIndex = t + h;
+                    pClamp = clamp;
+                    pDistance = sqrDistance;
+                }
+            }
+
+            return pClamp;
+        }
+
+        /// <summary>
+        /// Interpolate a path index value over a path.
         /// </summary>
         /// <param name="path"></param>
-        /// <param name="position"></param>
-        /// <param name="currentIndex"></param>
-        /// <param name="offDistance"></param>
+        /// <param name="pIndex"></param>
+        /// <param name="distanceDelta"></param>
         /// <returns></returns>
-        public static float GetCoordinatesOnPath(List<Vector3> path, Vector3 position, float currentIndex, out float offDistance)
+        public static Vector3 PathLerp(IList<Vector3> path, float pIndex, float distanceDelta = 0)
         {
-            float bestDistance = float.MaxValue;
-            float bestIndex = 0;
+            int floor = Mathf.FloorToInt(pIndex);
+            int ceil = Mathf.CeilToInt(pIndex);
+            float t = pIndex % 1f;
+            Vector3 position = Vector3.Lerp(path[floor], path[ceil], t);
 
-            for (int i = 0; i < path.Count - 1; i++)
+            if (distanceDelta != 0)
             {
-                float clamp = PointInterp(position, path[i], path[i + 1]);
-                float dist = Vector3.Distance(position, Vector3.Lerp(path[i], path[i + 1], clamp));
-                float index = i + clamp;
+                int direction = Math.Sign(distanceDelta);
+                int i = direction > 0 ? ceil : floor;
+                int pCount = path.Count;
 
-                if (dist < bestDistance)
+                distanceDelta = Mathf.Abs(distanceDelta);
+
+                while (distanceDelta > 0 && i >= 0 && i < pCount)
                 {
-                    bestDistance = dist;
-                    bestIndex = index;
+                    Vector3 newPosition = Vector3.MoveTowards(position, path[i], distanceDelta);
+                    distanceDelta -= Vector3.Distance(position, newPosition);
+                    position = newPosition;
+                    i += direction;
                 }
             }
 
-            offDistance = bestDistance;
-
-            return bestIndex;
+            return position;
         }
 
-        public static Vector3 GetPositionOnPath(List<Vector3> path, float pathPosition, float offDist = 0)
-        {
-            while (offDist > 0 && pathPosition < path.Count - 1f)
-            {
-                float segLength = Vector3.Distance(path[Mathf.FloorToInt(pathPosition)], path[Mathf.FloorToInt(pathPosition) + 1]);
-
-                if (segLength != 0)
-                {
-                    float available = segLength * (1f - Mathf.Repeat(pathPosition, 1.0f));
-                    float taking = Mathf.Min(available, offDist);
-                    pathPosition += taking / segLength;
-                    offDist -= taking;
-                }
-                else
-                    pathPosition += 1f;
-            }
-
-            int floor = (int)pathPosition;
-
-            if (floor < 0)
-                return path[0];
-            else if (floor >= path.Count - 1)
-                return path[path.Count - 1];
-            else
-                return Vector3.Lerp(path[floor], path[floor + 1], pathPosition - floor);
-        }
-
-        private static float PointInterp(Vector3 position, Vector3 pointA, Vector3 pointB)
-        {
-            Vector3 segment = pointB - pointA;
-
-            if (Vector3.Dot(position - pointA, segment) < 0)
-                return 0;
-            else if (Vector3.Dot(position - pointB, -segment) < 0)
-                return 1;
-            else
-                return Vector3.Project(position - pointA, segment).magnitude / segment.magnitude;
-        }
-
+        /// <summary>
+        /// Get a random point within the navigation system
+        /// </summary>
+        /// <param name="height"></param>
+        /// <returns></returns>
         public static Vector3 RandomPoint(float height = 0)
         {
             if (PathMesh.activeMeshes.Count > 0)
             {
-                PathMesh pathMesh = PathMesh.activeMeshes[Random.Range(0, PathMesh.activeMeshes.Count)];
+                PathMesh pathMesh = PathMesh.activeMeshes[UnityEngine.Random.Range(0, PathMesh.activeMeshes.Count)];
                 int triangle = UnityEngine.Random.Range(0, pathMesh.threadMesh.triangles.Length);
                 triangle -= triangle % 3;
                 float u = UnityEngine.Random.value;
