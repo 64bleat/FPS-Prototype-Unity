@@ -7,7 +7,7 @@
 	}
 	SubShader
 	{
-	Tags { "Queue" = "Transparent" } 
+	//Tags { "Queue" = "Transparent" } 
 		Pass 
 		{
 			//Tags { "Queue" = "Transparent" } 

@@ -1,0 +1,22 @@
+fileFormatVersion: 2
+guid: 605cafda9004da44abb5755f4e1b945c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - style: {fileID: 11400000, guid: d43fccc7027881647b1906e723a9b374, type: 2}
+  - edgeLeft: {instanceID: 0}
+  - edgeRight: {instanceID: 0}
+  - edgeUp: {instanceID: 0}
+  - edgeDown: {instanceID: 0}
+  - cornerTopLeft: {instanceID: 0}
+  - cornerTopRight: {instanceID: 0}
+  - cornerBottomLeft: {instanceID: 0}
+  - cornerBottomRight: {instanceID: 0}
+  - panel: {instanceID: 0}
+  - title: {instanceID: 0}
+  executionOrder: 0
+  icon: {fileID: 2800000, guid: 02e995a666417984e9c23c4815be1bc1, type: 3}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,13 +1,15 @@
 ﻿using MPGUI;
 using MPWorld;
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
 namespace MPCore
 {
-    public class CharacterBody : MonoBehaviour//, IGravityUser
+    /// <summary>
+    /// Controls character movement
+    /// </summary>
+    public class CharacterBody : MonoBehaviour
     {
         public enum MoveState { Grounded, Airborne }
         private static readonly string[] collisionLayers = { "Default", "Physical", "Player" };
@@ -115,8 +117,8 @@ namespace MPCore
             characterSound = GetComponent<CharacterSound>();
             input = GetComponent<CharacterInput>();
             voice = GetComponentInChildren<CharacterVoice>();
+            events = GetComponent<CharacterEventManager>();
             TryGetComponent(out damageEvent);
-            TryGetComponent(out events);
             TryGetComponent(out phys);
 
             // CharacterController
@@ -193,8 +195,9 @@ namespace MPCore
 
         private void FixedUpdate()
         {
-            cb.Clear();
+            float dt = Time.fixedDeltaTime;
 
+            cb.Clear();
             Move();
             GroundDetection();
             OverlapFix();
@@ -243,7 +246,7 @@ namespace MPCore
                 direction of equilibrium.                                    */
             if(Vector3.Angle(equilibrium, falseGravity) is float currentAngle && currentAngle != 0)
             {
-                float maxAngleDelta = 8f * Mathf.Clamp01(currentAngle / 60f) * Time.fixedDeltaTime;
+                float maxAngleDelta = 8f * Mathf.Clamp01(currentAngle / 60f) * dt;
                 float faceFactor = (1f + Vector3.Dot(falseGravity.normalized, transform.up)) / 2f;
                 Vector3 eqNew = Vector3.RotateTowards(equilibrium, falseGravity, maxAngleDelta, 0);
                 eqNew = Vector3.Slerp(eqNew, Vector3.ProjectOnPlane(eqNew, transform.forward).normalized, faceFactor);
@@ -265,7 +268,6 @@ namespace MPCore
                     If a platform accelerates downward too quickly, the
                     character will be set to airborn and can be
                     launched off platforms.                                  */
-
                 if (Vector3.Dot(cb.PlatformVelocity - lastPlatformVelocity, falseGravity.normalized) > falseGravity.magnitude * 0.25f)
                 {
                     currentState = MoveState.Airborne;
@@ -273,52 +275,50 @@ namespace MPCore
                 else
                 {
                     Vector3 relativeVel = phys.Velocity - cb.PlatformVelocity;
-                    Vector3 moveVel = Vector3.ProjectOnPlane(relativeVel, moveDir);
+                    Vector3 sideVel = Vector3.ProjectOnPlane(relativeVel, moveDir);
                     Vector3 slopeDir = Vector3.ProjectOnPlane(moveDir.sqrMagnitude != 0 ? moveDir : phys.Velocity.sqrMagnitude != 0 ? phys.Velocity : transform.forward, transform.up);
                     float slopeFactor = (0.5f - Vector3.Angle(slopeDir, cb.FloorNormal) / 180f);
                     float wallFactor = cb.WallNormal.sqrMagnitude != 0 ? Mathf.Abs(Vector3.Dot(moveDir, cb.WallNormal)) : 1;
-                    float slopeSpeedFactor = (1f + slopeFactor) * Mathf.Max(1f - wallFactor, wallFactor);
-                    float topSpeed = MoveSpeed * slopeSpeedFactor;
-                    float strideSpeed = defaultStrideSpeed * slopeSpeedFactor;
-                    float forwardSpeed = Vector3.Dot(relativeVel, moveDir);
-                    float dec = Mathf.Min(moveVel.magnitude, defaultGroundDecceleration * Time.fixedDeltaTime);
-                    float acc;
+                    float speedFactor = (1f + slopeFactor) * Mathf.Max(1f - wallFactor, wallFactor);
+                    float topSpeed = MoveSpeed * speedFactor;
+                    float strideSpeed = defaultStrideSpeed * speedFactor;
+                    float moveSpeed = Vector3.Dot(relativeVel, moveDir);
+                    float sideDec = Mathf.Min(sideVel.magnitude, defaultGroundDecceleration * dt);
+                    float moveAcc;
 
-                    if (forwardSpeed <= topSpeed)
+                    if (moveSpeed <= topSpeed)
                     {
-                        float accRate = (1f + slopeFactor) * Time.fixedDeltaTime;
+                        float accRate = (1f + slopeFactor) * dt;
 
-                        if (!input.Sprint || forwardSpeed < strideSpeed)
+                        if (!input.Sprint || moveSpeed < strideSpeed)
                             accRate *= defaultGroundAcceleration;
                         else
                             accRate *= defaultStrideAcceleration ;
 
-                        acc = Mathf.Max(0, Mathf.Min(topSpeed - forwardSpeed, accRate));
+                        moveAcc = Mathf.Clamp(accRate, 0f, topSpeed - moveSpeed);
                     }
                     else
-                        acc = -Mathf.Min(forwardSpeed, defaultSpeedDecceleration * Time.fixedDeltaTime * (1f - slopeFactor));
+                        moveAcc = -Mathf.Min(moveSpeed, defaultSpeedDecceleration * dt * (1f - slopeFactor));
 
-                    if (forwardSpeed < 0)
-                        acc *= 2;
+                    if (moveSpeed < 0)
+                        moveAcc *= 2;
 
-                    phys.Velocity += moveDir * acc - moveVel.normalized * dec;
+                    phys.Velocity += moveDir * moveAcc - sideVel.normalized * sideDec;
 
                     /*  JUMP...................................................
                         When a character jumps, the energy required to reach
                         jump velocity is transferred into the colliders.     */
-
                     if (input.Jump)
                     {
-                        Vector3 jumpVel = -falseGravity.normalized * Mathf.Sqrt(2f * 9.81f * JumpHeight);
+                        float jumpSpeed = Mathf.Sqrt(2f * 9.81f * JumpHeight);
+                        Vector3 jumpVel = -falseGravity.normalized * jumpSpeed;
                         Vector3 verticalVel = Vector3.ProjectOnPlane(relativeVel, falseGravity);
                         Vector3 desiredVel = cb.LimitMomentum(verticalVel + jumpVel, verticalVel, defaultMaxKickVelocity);
 
                         phys.Velocity = desiredVel + cb.PlatformVelocity;
-
                         currentState = MoveState.Airborne;
                         input.jumpTimer.Restart();
                         cb.AddForce((relativeVel - desiredVel) * defaultMass * 2);
-
                         voice.PlayJump();
                     }
                 }
@@ -329,24 +329,27 @@ namespace MPCore
                 Air acceleration is usually lower than ground acceleration, but
                 trying to move backward from your current velocity will 
                 increase that acceleration for easier platforming.           */
-
             else // if(currentState == State.Airborne)
             {
-                Vector3 rVel = phys.Velocity - zoneVelocity;
-                Vector3 gVel = Vector3.Project(rVel, phys.Gravity);
-                Vector3 hVel = rVel - gVel;
-                float acc = defaultAirAcceleration * Time.fixedDeltaTime * Mathf.Lerp(cb.IsEmpty ? 4f : 0.5f, cb.IsEmpty ? 1f : 0.1f, (Vector3.Dot(moveDir, hVel) + 1) / 2);
-                float maxSpeed = MoveSpeed;
-                float moveDirSpeed = Vector3.Dot(hVel, moveDir);
+                Vector3 relativeVel = phys.Velocity - zoneVelocity;
+                Vector3 verticalVel = Vector3.Project(relativeVel, phys.Gravity);
+                Vector3 horizontalVel = relativeVel - verticalVel;
+                float accScaleMax = cb.IsEmpty ? 4f : 0.5f;
+                float accScaleMin = cb.IsEmpty ? 1f : 0.1f;
+                float accScaleT = (Vector3.Dot(moveDir, horizontalVel) + 1) / 2;
+                float accScale = Mathf.Lerp(accScaleMax, accScaleMin, accScaleT);
+                float moveAcc = defaultAirAcceleration * accScale * dt;
+                float moveSpeed = MoveSpeed;
+                float currentMoveSpeed = Vector3.Dot(horizontalVel, moveDir);
 
                 // Clamp move speed.
-                if (moveDirSpeed != 0 && moveDirSpeed + acc > maxSpeed)
-                    acc = moveDirSpeed > maxSpeed ? 0 : moveDirSpeed + acc - maxSpeed;
+                if (currentMoveSpeed != 0 && currentMoveSpeed + moveAcc > moveSpeed)
+                    moveAcc = currentMoveSpeed > moveSpeed ? 0 : currentMoveSpeed + moveAcc - moveSpeed;
 
                 // Keep original excessive speeds, but never exceed it.
-                hVel = Vector3.ClampMagnitude(hVel + moveDir * acc, Mathf.Max(hVel.magnitude, maxSpeed));
-                gVel += phys.Gravity * Time.fixedDeltaTime;
-                phys.Velocity = hVel + gVel + zoneVelocity;
+                horizontalVel = Vector3.ClampMagnitude(horizontalVel + moveDir * moveAcc, Mathf.Max(horizontalVel.magnitude, moveSpeed));
+                verticalVel += phys.Gravity * dt;
+                phys.Velocity = horizontalVel + verticalVel + zoneVelocity;
 
                 if (input.Jump)
                     OnWallJump?.Invoke(this);

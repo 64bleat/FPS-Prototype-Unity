@@ -12,7 +12,7 @@ MonoImporter:
   - particle: {instanceID: 0}
   - owner: {instanceID: 0}
   executionOrder: 0
-  icon: {instanceID: 0}
+  icon: {fileID: 2800000, guid: 36bbccb50d5937248a434ef0b80512ab, type: 3}
   userData: 
   assetBundleName: 
   assetBundleVariant: 

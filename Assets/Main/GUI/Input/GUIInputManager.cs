@@ -165,7 +165,7 @@ namespace MPGUI
             }
         }
 
-        private static void GetMouseInfo(MouseInfo info)
+        private static void GetMouseInfo(MouseInfo mouse)
         {
             int topDepth = int.MinValue;
             RaycastResult topObject = default;
@@ -173,6 +173,8 @@ namespace MPGUI
             ped.position = Input.mousePosition;
 
             EventSystem.current.RaycastAll(ped, mouseCastList);
+            topObject.screenPosition = Input.mousePosition;
+            topObject.worldPosition = Input.mousePosition;
 
             for(int i = 0, ie = mouseCastList.Count; i < ie; i++)
                 if(mouseCastList[i].depth > topDepth)
@@ -183,11 +185,11 @@ namespace MPGUI
 
             mouseCastList.Clear();
 
-            info.keyMask = 0;
-            info.downInfo = topObject;
-            info.holdInfo = default;
-            info.upInfo = default;
-            info.downTime = Time.time;
+            mouse.keyMask = 0;
+            mouse.downInfo = topObject;
+            mouse.holdInfo = default;
+            mouse.upInfo = default;
+            mouse.downTime = Time.time;
         }
     }
 

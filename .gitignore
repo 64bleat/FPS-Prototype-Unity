@@ -1,4 +1,5 @@
 *.blend*
+/MemoryCaptures/
 /Assets/TestAnimation/
 /[Ll]ibrary/
 /[Tt]emp/

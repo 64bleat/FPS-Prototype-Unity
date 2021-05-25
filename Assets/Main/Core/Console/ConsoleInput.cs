@@ -10,7 +10,7 @@ namespace MPConsole
     [ContainsConsoleCommands]
     public class ConsoleInput : MonoBehaviour
     {
-        [Multiline(8)]
+        [TextArea(2,8)]
         public string entryMessage;
         public string[] clickLayermask;
         public TextMeshProUGUI logText;

@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -9,8 +10,9 @@ namespace MPCore
     [System.Serializable]
     public class SceneField
     {
-        [SerializeField] public Object _SceneAsset;
-        [SerializeField] public string _SceneName = "";
+        public Object _SceneAsset;
+        public string _SceneName;
+        public int buildIndex;
 
         public Object Scene => _SceneAsset;
         public string SceneName => _SceneName;
@@ -19,6 +21,22 @@ namespace MPCore
         public static implicit operator string(SceneField sceneField)
         {
             return sceneField.SceneName;
+        }
+
+        public static implicit operator Scene(SceneField sf)
+        {
+            return SceneManager.GetSceneByName(sf._SceneName);
+        }
+
+        public static implicit operator SceneField(Scene s)
+        {
+            SceneField sf = new SceneField();
+
+            sf._SceneAsset = null;
+            sf._SceneName = s.name;
+            sf.buildIndex = s.buildIndex;
+
+            return sf;
         }
     }
 

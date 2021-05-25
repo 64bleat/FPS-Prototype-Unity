@@ -6,64 +6,57 @@ namespace MPGUI
 {
     public class KeyMapSettingsGUI : MonoBehaviour
     {
-        public GameObject entryTemplate;
-        public GameObject floatButtonTemplate;
-        public GameObject keyButtonTemplate;
-        public BoolButton boolButton;
+        [SerializeField] private RectTransform parent;
+        [SerializeField] private FloatField floatField;
+        [SerializeField] private KeyBindField keyField;
+        [SerializeField] private BoolField boolField;
+        [SerializeField] private GameObject divider;
         public KeyBindList kbl;
         public ScriptFloat[] values;
         public KeyBindLayer[] keyOrder;
 
-        private GUIButtonSet buttonSet;
-
         private void Awake()
-        {
-            buttonSet = GetComponentInChildren<GUIButtonSet>();
-        }
-
-        private void OnEnable()
         {
             LoadBindButtons();
         }
 
-        private void OnDisable()
-        {
-            buttonSet.Clear();
-        }
-
         private void LoadBindButtons()
         {
-            buttonSet.AddTitle("Settings");
+            GameObject go;
 
-            {
-                GameObject button = buttonSet.AddGameObject(boolButton.gameObject);
-                BoolButton bb = button.GetComponent<BoolButton>();
+            // Bools
+            go = Instantiate(boolField.gameObject, parent);
 
-                bb.SetLabel("Always Run");
-                bb.SetValue(kbl.alwaysRun);
-                bb.OnValueChange.AddListener( b => kbl.alwaysRun = b);
-            }
+            if (go.TryGetComponent(out BoolField bf))
+                bf.SetReference(kbl, "alwaysRun", "Always Run");
 
-            buttonSet.AddTitle("Values");
-
+            // Floats
             foreach(ScriptFloat val in values)
             {
-                GameObject button = buttonSet.AddGameObject(floatButtonTemplate);
-                FloatButton b = button.GetComponentInChildren<FloatButton>();
-                //b.description.text = val.name;
-                b.SetValue(val.value);
-                b.OnValueChange.AddListener(v => val.value = v);
+                go = Instantiate(floatField.gameObject, parent);
+
+                if (go.TryGetComponent(out FloatField ff))
+                {
+                    ff.SetReference(val, "value", val.name, "F2");
+                    ff.SetRange(0f, 20f);
+                }
             }
 
-            // Key Input Buttons
+            // Keys
             foreach(KeyBindLayer l in keyOrder)
             {
-                buttonSet.AddTitle(l.name);
+                go = Instantiate(divider.gameObject, parent);
 
-                foreach(KeyBind k in l.binds)
-                    buttonSet.AddGameObject(keyButtonTemplate)
-                        .GetComponentInChildren<KeyBindButton>()
-                        .SetValue(k);
+                if (go.TryGetComponentInChildren(out TextMeshProUGUI div))
+                    div.SetText(l.name);
+
+                foreach (KeyBind k in l.binds)
+                {
+                    go = Instantiate(keyField.gameObject, parent);
+
+                    if (go.TryGetComponent(out KeyBindField kbf))
+                        kbf.SetKey(k);
+                }
             }
         }
     }

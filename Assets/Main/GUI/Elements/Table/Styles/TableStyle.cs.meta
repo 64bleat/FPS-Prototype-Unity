@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 4c53b13604fa75643bdb24ce841d013f
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - rowTemplate: {fileID: 5567742703137339919, guid: 459e0d8b5e24c4141ac8e5fa84b200ea,
+      type: 3}
+  - columnTemplate: {fileID: 5043747172898579462, guid: 117f459340dd74b4e828348c9576702e,
+      type: 3}
+  - fieldTemplate: {fileID: 4366504958167671202, guid: 8a21b16d49c8dda439e52cefc81e64ff,
+      type: 3}
+  - contextMenuTemplate: {fileID: 8162637156591306189, guid: 39084b8209cd76643a5f7bf51625f978,
+      type: 3}
+  executionOrder: 0
+  icon: {fileID: 2800000, guid: bad886bbec8517b4cb8d525ff46dc9eb, type: 3}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

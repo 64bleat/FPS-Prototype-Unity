@@ -6,7 +6,7 @@ namespace MPGUI
 {
     public class GUIWindowSpawner : MonoBehaviour
     {
-        public ObjectEvent promptWindowChannel;
+        [SerializeField] private ObjectEvent promptWindowChannel;
 
         private void Awake()
         {
@@ -27,13 +27,12 @@ namespace MPGUI
             {
                 GameObject go = Instantiate(spawn.windowTemplate, transform);
 
-                if (go.GetComponent<GUIWindow>() is var window && window)
+                if (go.GetComponent<Window>() is var window && window)
                 {
-                    if (window.panel && window.panel.GetComponentInChildren<TextMeshProUGUI>() is var ptext && ptext)
+                    if (window.Contents.GetComponentInChildren<TextMeshProUGUI>() is var ptext && ptext)
                         ptext.text = spawn.message;
 
-                    if (window.title && window.title.GetComponentInChildren<TextMeshProUGUI>() is var ttext && ttext)
-                        ttext.text = spawn.title;
+                    window.Title = spawn.title;
                 }
 
                 if (go.transform is RectTransform rect && rect)

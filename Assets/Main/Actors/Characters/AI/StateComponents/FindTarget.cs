@@ -49,7 +49,7 @@ namespace MPCore.AI
                     && component is Character compChar
                     && compChar
                     && compChar.characterInfo
-                    && compChar.characterInfo.team != character.characterInfo.team
+                    && (compChar.characterInfo.team < 0 || compChar.characterInfo.team != character.characterInfo.team)
                     && IsTargetVisible(component, ai.viewAngle, out RaycastHit hit))
                 {
                     float distance = Vector3.Distance(position, component.transform.position);
