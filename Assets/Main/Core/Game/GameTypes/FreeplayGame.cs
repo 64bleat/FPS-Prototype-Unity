@@ -11,15 +11,8 @@ namespace MPCore
     [ContainsConsoleCommands]
     public class FreeplayGame : Game
     {   
-        public List<Inventory> spawnInventory;
-        public List<Inventory> randomSpawnInventory;
-        public CharacterInfo playerInfo;
         public GameInfo botmatchInfo;
         public Scoreboard scoreboard;
-        public DamageType respawnDamageType;
-        public ObjectEvent characterSpawnChannel;
-        public MessageEvent onShortMessage;
-        public DeathEvent onDeath;
 
         protected CharacterInfo loadedPlayerInfo;
         private readonly List<CharacterInfo> loadedBotInfo = new List<CharacterInfo>();
@@ -35,42 +28,38 @@ namespace MPCore
             // References
             input = GetComponentInParent<InputManager>();
 
-            characterSpawnChannel.Add(OnCharacterSpawned);
-            onDeath.Add(OnCharacterDied);
+            characterSpawnChannel.Add(OnSpawn);
+            onDeath.Add(OnDeath);
 
             Console.AddInstance(this);
-            PauseManager.AddListener(OnPauseUnPause);
+            PauseManager.AddListener(OnPause);
 
             // Clear Scoreboard data
             scoreboard.Clear();
 
             // Register player instance
-            RegisterPlayer();
+            PlayerJoin();
 
             // Register bot instances
             if (botmatchInfo)
                 while (loadedBotInfo.Count < botmatchInfo.botCount)
-                    RegisterBot();
+                    BotJoin();
         }
 
         private void Start()
         {
-            // Spawn player on GameStart
-            if (!currentPlayer)
-                Spawn(loadedPlayerInfo);
-            else
-                Debug.Log("FAILED");
+            Spawn(loadedPlayerInfo);
         }
 
         private void OnDestroy()
         {
             if (characterSpawnChannel)
-                characterSpawnChannel.Remove(OnCharacterSpawned);
+                characterSpawnChannel.Remove(OnSpawn);
             if (onDeath)
-                onDeath.Remove(OnCharacterDied);
+                onDeath.Remove(OnDeath);
 
             Console.RemoveInstance(this);
-            PauseManager.RemoveListener(OnPauseUnPause);
+            PauseManager.RemoveListener(OnPause);
         }
 
         private void Update()
@@ -79,7 +68,7 @@ namespace MPCore
             {
                 // Bot count may change at any time
                 while (loadedBotInfo.Count < botmatchInfo.botCount)
-                    RegisterBot();
+                    BotJoin();
 
                 // Attempt to spawn one bot per frame
                 if (liveBots.Count < botmatchInfo.botCount)
@@ -88,19 +77,19 @@ namespace MPCore
             }
         }
 
-        private void RegisterPlayer()
+        private void PlayerJoin()
         {
-            loadedPlayerInfo = playerInfo.TempClone();
+            loadedPlayerInfo = playerInfo.Clone();
 
             scoreboard.AddCharacter(loadedPlayerInfo);
         }
 
-        private void RegisterBot()
+        private void BotJoin()
         {
             int i = loadedBotInfo.Count;
             int repeat = i / botmatchInfo.botList.Count;
             CharacterInfo template = botmatchInfo.botList[i % botmatchInfo.botList.Count];
-            CharacterInfo botInfo = template.TempClone();
+            CharacterInfo botInfo = template.Clone();
 
             // Create a numbered name for duplicate characters
             if (repeat > 0)
@@ -115,13 +104,13 @@ namespace MPCore
         }
 
         /// <summary> Called when the game pauses or un-pauses </summary>
-        private void OnPauseUnPause(bool paused)
+        private void OnPause(bool paused)
         {
             enabled = !paused;
         }
 
         /// <summary> Called when a character is designated as the player </summary>
-        private void OnCharacterSpawned(object o)
+        private void OnSpawn(object o)
         {
             if(o is GameObject go)
                 if (go.TryGetComponent(out Character character))
@@ -140,7 +129,7 @@ namespace MPCore
 
                         if (!character.characterInfo)
                         {
-                            RegisterBot();
+                            BotJoin();
                             character.characterInfo = deadBots.Dequeue();
                         }
                     }
@@ -151,11 +140,11 @@ namespace MPCore
         }
 
         /// <summary> called when a character dies </summary>
-        private void OnCharacterDied(DeathEventParameters death)
+        private void OnDeath(DeathInfo death)
         {
             // Bot Died
             if (death.victim == loadedPlayerInfo)
-                PlayerDeadStart();
+                OnPlayerDeath();
             else if (botmatchInfo)
             {
                 liveBots.Remove(death.victim);
@@ -210,85 +199,66 @@ namespace MPCore
         }
 
         /// <summary> Called when the player dies </summary>
-        private void PlayerDeadStart()
+        private void OnPlayerDeath()
         { 
-            input.Bind("Fire", PlayerDeadEnd, this);
+            input.Bind("Fire", OnPlayerSpawned, this);
         }
 
         /// <summary> Called when the player is ready to spawn </summary>
-        private void PlayerDeadEnd()
+        private void OnPlayerSpawned()
         {
             if(Spawn(loadedPlayerInfo))
-                input.Unbind("Fire", PlayerDeadEnd);
+                input.Unbind("Fire", OnPlayerSpawned);
         }
 
         /// <summary> Spawn a character into the game. </summary>
         /// <param name="characterInfo"> Character to be assigned to the instantiated body </param>
         private bool Spawn(CharacterInfo characterInfo)
         {
-            if (loadedPlayerInfo && loadedPlayerInfo.bodyType)
-            {
-                SpawnPoint spawn = SpawnPoint.GetRandomSpawnPoint();
-                //GameObject spawnPoint = PortaSpawn.stack.Count != 0 ? PortaSpawn.stack.Peek() : spawn ? spawn.gameObject : null;
+            SpawnPoint spawn = SpawnPoint.GetRandomSpawnPoint();
+            bool isPlayer = characterInfo == loadedPlayerInfo;
 
-                if (spawn)
+            if (!spawn)
+                return false;
+
+            // Kill if the character is aready in play
+            if (currentPlayer && isPlayer)
+                if (currentPlayer.TryGetComponent(out Character ch))
                 {
-                    bool isPlayer = characterInfo == loadedPlayerInfo;
-
-                    // Kill if the character is aready in play
-                    if (currentPlayer && isPlayer)
-                        if (currentPlayer.TryGetComponent(out Character ch))
-                        {
-                            ch.Kill(ch.characterInfo, gameObject, respawnDamageType);
-                            input.Unbind("Fire", PlayerDeadEnd);
-                        }
-                        else
-                            Destroy(currentPlayer);
-
-
-                    GameObject playerNew = Instantiate(loadedPlayerInfo.bodyType.gameObject, spawn.transform.position, spawn.transform.rotation);
-
-                    playerNew.name = characterInfo.displayName;
-
-                    if (playerNew.TryGetComponent(out Character character))
-                    {
-                        SetTeam(characterInfo);
-                        //characterInfo.team = -1;
-                        //characterInfo.team = isPlayer ? 1 : 0;
-                        character.characterInfo = characterInfo;
-                        character.isPlayer = isPlayer;
-                        character.RegisterCharacter();
-
-
-                        if (playerNew.TryGetComponent(out InventoryContainer container))
-                        {
-                            foreach (Inventory inv in spawnInventory)
-                                container.TryPickup(inv, out _);
-                            //inv.TryPickup(container, out _);
-
-                            if (randomSpawnInventory.Count > 0)
-                                container.TryPickup(randomSpawnInventory[Random.Range(0, Mathf.Max(0, randomSpawnInventory.Count))], out _);
-                                //randomSpawnInventory[Random.Range(0, Mathf.Max(0, randomSpawnInventory.Count))].TryPickup(container, out _);
-
-                            if (spawn.TryGetComponentInParent(out PortaSpawn spawnPs))
-                                spawnPs.TransferStuff(container);
-                        }
-                    }
-
-                    // Match SpawnPoint Velocity
-                    if(playerNew.TryGetComponentInChildren(out IGravityUser playerGU))
-                        if (spawn.TryGetComponentInParent(out Rigidbody spawnRb))
-                            playerGU.Velocity = spawnRb.GetPointVelocity(playerNew.transform.position);
-                        else if (spawn.TryGetComponentInParent(out IGravityUser spawnGu))
-                            playerGU.Velocity = spawnGu.Velocity;
-
-                    spawn.lastSpawnTime = Time.time;
-
-                    return true;
+                    ch.Kill(ch.characterInfo, gameObject, respawnDamageType);
+                    input.Unbind("Fire", OnPlayerSpawned);
                 }
+                else
+                    Destroy(currentPlayer);
+
+            GameObject reference = (characterInfo.bodyType ? characterInfo : loadedPlayerInfo).bodyType.gameObject;
+            GameObject instance = spawn.Spawn(reference);
+
+            instance.name = characterInfo.displayName;
+
+            if (instance.TryGetComponent(out Character character))
+            {
+                SetTeam(characterInfo);
+                character.characterInfo = characterInfo;
+                character.isPlayer = isPlayer;
+                character.RegisterCharacter();
             }
 
-            return false;
+            if (instance.TryGetComponent(out InventoryContainer inventory))
+            {
+                foreach (Inventory inv in spawnInventory)
+                    inventory.TryPickup(inv, out _);
+
+                if (randomSpawnInventory.Count > 0)
+                    inventory.TryPickup(randomSpawnInventory[Random.Range(0, Mathf.Max(0, randomSpawnInventory.Count))], out _);
+
+                if (spawn.TryGetComponentInParent(out PortaSpawn spawnPs))
+                    spawnPs.TransferStuff(inventory);
+            }
+
+            spawn.lastSpawnTime = Time.time;
+
+            return true;
         }
 
         protected virtual void SetTeam(CharacterInfo ci)

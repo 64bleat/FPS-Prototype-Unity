@@ -3,10 +3,8 @@ using UnityEngine;
 
 namespace MPCore
 {
-    public struct DeathEventParameters
+    public struct DeathInfo
     {
-        //public GameObject target;
-        //public GameObject owner;
         public GameObject conduit;
         public CharacterInfo instigator;
         public CharacterInfo victim;

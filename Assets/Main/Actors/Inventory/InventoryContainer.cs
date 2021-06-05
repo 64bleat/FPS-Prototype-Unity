@@ -49,7 +49,7 @@ namespace MPCore
 
             // Pickup Duplicate
             foreach (Inventory item in inventory)
-                if(item.asset == reference.asset)
+                if(item.resourcePath == reference.resourcePath)
                     if (item.count >= item.maxCount)
                         return false;
                     else if (Pickup(instance))
@@ -120,28 +120,13 @@ namespace MPCore
 
         public bool TryDrop(Inventory item, Vector3 position, Quaternion rotation, RaycastHit dropPoint, out GameObject droppedObject)
         {
+            droppedObject = null;
+
             if (item.OnDrop(gameObject, position, rotation) 
                 && !item.destroyOnDrop 
                 && item.sceneObjectPrefab)
             {
-                // Deactivate if Active
-                item.SetActive(gameObject, false);
-
-                droppedObject = Instantiate(item.sceneObjectPrefab, position, rotation);
-
-                // Remove In HUD
-                if (item.activatable && (character ? character.isPlayer : false))
-                    playerInventoryEvents.OnActivatableDrop?.Invoke(item);
-
-                // Transfer to Pickup
-                if(droppedObject.TryGetComponent(out InventoryPickup pickup))
-                {
-                    pickup.inventory = item;
-                    pickup.countDownDestroy = item.droppedLifeTime > 0;
-                    pickup.lifeTime = item.droppedLifeTime;
-                }
-
-                // Set velocity
+                // Get Velocity
                 Vector3 ownVel;
 
                 if (TryGetComponent(out IGravityUser ownGU))
@@ -151,14 +136,37 @@ namespace MPCore
                 else
                     ownVel = Vector3.zero;
 
-                if (droppedObject.TryGetComponent(out Rigidbody newRB))
-                    newRB.velocity += ownVel;
-                else if (droppedObject.TryGetComponent(out IGravityUser newGU))
-                    newGU.Velocity += ownVel;
+                // Deactivate if Active
+                item.SetActive(gameObject, false);
 
-                // Clipping prevention
-                if (droppedObject.TryGetComponent(out Collider collider))
-                    droppedObject.transform.position += collider.transform.position - collider.ClosestPoint(collider.transform.position - dropPoint.normal * 100);
+                // Remove In HUD
+                if (item.activatable && (character ? character.isPlayer : false))
+                    playerInventoryEvents.OnActivatableDrop?.Invoke(item);
+
+                for (int i = 0, count = item.count; i < count; i++)
+                {
+                    // Make Pickup
+                    droppedObject = Instantiate(item.sceneObjectPrefab, position, rotation);
+
+                    // Transfer to Pickup
+                    if (droppedObject.TryGetComponent(out InventoryPickup pickup))
+                    {
+                        pickup.inventory =  i > 0 ? Instantiate(item) : item;
+                        pickup.inventory.count = 1;
+                        pickup.countDownDestroy = item.droppedLifeTime > 0;
+                        pickup.lifeTime = item.droppedLifeTime;
+                    }
+
+                    // Set Velocity
+                    if (droppedObject.TryGetComponent(out Rigidbody newRB))
+                        newRB.velocity += ownVel;
+                    else if (droppedObject.TryGetComponent(out IGravityUser newGU))
+                        newGU.Velocity += ownVel;
+
+                    // Clipping prevention
+                    if (droppedObject.TryGetComponent(out Collider collider))
+                        droppedObject.transform.position += collider.transform.position - collider.ClosestPoint(collider.transform.position - dropPoint.normal * 100);
+                }
             }
             else
                 droppedObject = null;

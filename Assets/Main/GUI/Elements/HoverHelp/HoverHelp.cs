@@ -22,8 +22,12 @@ namespace MPGUI
             helpBubble = Instantiate(_helpBubble, transform).transform as RectTransform;
             helpBubble.gameObject.SetActive(false);
 
-            if (helpBubble.TryGetComponentInChildren(out TextMeshProUGUI text))
-                text.SetText(message);
+            SetText(message);
+        }
+
+        private void OnDestroy()
+        {
+            Destroy(helpBubble);
         }
 
         private void Update()
@@ -46,14 +50,23 @@ namespace MPGUI
             }
         }
 
+        public void SetText(string message)
+        {
+            this.message = message;
+
+            if (helpBubble.TryGetComponentInChildren(out TextMeshProUGUI text))
+                text.SetText(message);
+        }
+
         public void OnMouseHover(MouseInfo mouse)
         {
             Vector3 screenPos = mouse.downInfo.screenPosition;
             bool ready = (lastpoint - screenPos).sqrMagnitude < 0.01f;
 
+            ready &= message.Length > 0;
+
             helpBubble.gameObject.SetActive(ready);
             enabled = ready;
-
 
             if (ready)
                 hoverTime += Time.unscaledDeltaTime;

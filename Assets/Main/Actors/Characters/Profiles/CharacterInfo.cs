@@ -12,7 +12,7 @@ public class CharacterInfo : ScriptableObject
     [System.NonSerialized] public int team = 0;
 
     ///<summary> Creat an instanced clone of this CharacterInfo </summary> 
-    public CharacterInfo TempClone()
+    public CharacterInfo Clone()
     {
         CharacterInfo clone = Instantiate(this);
         clone.id = clone.GetInstanceID();

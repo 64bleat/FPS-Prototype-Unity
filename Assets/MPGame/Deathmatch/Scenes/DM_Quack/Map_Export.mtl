@@ -1,0 +1,50 @@
+newmtl Marble_White_Base_b
+map_Kd Marble 1.jpg
+Kd 1 1 1
+d 1
+
+newmtl Marble_Tile_White_b
+map_Kd Marble Tile White.png
+Kd 1 1 1
+d 1
+
+newmtl Trim_Top
+bump Trim_Top_Normal.tga
+Kd 0.972549 0.9607843 0.9019608
+d 1
+
+newmtl Starry_Night
+map_Ke Starry Night.png
+Kd 0 0 0
+d 1
+
+newmtl Trim_Kitchen
+bump Trim_Kitchen_Normal.png
+Kd 0.972549 0.9607843 0.9019608
+d 1
+
+newmtl Glow_Green
+Kd 0 1 0.08627451
+d 1
+
+newmtl Tile_Hex
+map_Kd Tile_Hex_Diffuse.png
+Kd 1 1 1
+d 1
+
+newmtl blue2
+Kd 0.1462263 0.4248675 1
+d 1
+
+newmtl Tile_Bathroom_Floor
+map_Kd Tile_Bathroom_Floor_Diffuse.png
+map_Pm Tile_Bathroom_Floor_Specular.png
+bump Tile_Bathroom_Floor_Normal.png
+Kd 1 1 1
+d 1
+
+newmtl Tile_Bathroom_Floor_Diffuse
+map_Kd Tile_Bathroom_Floor_Diffuse.png
+Kd 1 1 1
+d 1
+

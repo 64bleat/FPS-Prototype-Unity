@@ -12,11 +12,14 @@ namespace MPCore
 
         private void Awake()
         {
-            if (spawnOnAwake)
-                Instantiate(itemToSpawn, transform, false);
-
             if (TryGetComponent(out MeshRenderer mr))
                 mr.enabled = false;
+        }
+
+        private void Start()
+        {
+            if (spawnOnAwake)
+                Instantiate(itemToSpawn, transform, false);
         }
 
         void Update()
@@ -27,7 +30,11 @@ namespace MPCore
 
                 if (timer >= respawnTime)
                 {
-                    Instantiate(itemToSpawn, transform, false);
+                    GameObject go = Instantiate(itemToSpawn, transform, false);
+
+                    if (go.TryGetComponent(out InventoryPickup ip))
+                        ip.countDownDestroy = false;
+
                     timer = 0;
                 }
             }

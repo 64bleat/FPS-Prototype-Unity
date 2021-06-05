@@ -9,11 +9,14 @@ namespace MPCore
     /// </summary>
     public class Root : MonoBehaviour
     {
+        [SerializeField] private MutationList mutators;
+
         public void Awake()
         {
             Console.Reset();
             PauseManager.AddListener(GameTime.OnPauseUnPause);
             GameTime.InitTime();
+            Mutation.LoadMutationList(mutators);
         }
 
         public void OnDestroy()

@@ -102,6 +102,7 @@ namespace MPGUI
             enabled = false;
 
             ParseValue(value);
+            InitValue();
         }
     }
 }

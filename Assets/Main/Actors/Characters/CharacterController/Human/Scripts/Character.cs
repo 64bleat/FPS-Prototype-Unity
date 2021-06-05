@@ -135,6 +135,8 @@ namespace MPCore
                 Destroy(db, 10);
             }
 
+            body.cap.enabled = false;
+
             // Drop Inventory
             if (TryGetComponent(out InventoryContainer container))
                 foreach (Inventory i in container.inventory)
@@ -147,7 +149,7 @@ namespace MPCore
                 instigator = lastAttackedBy.instigator;
 
             //Create Death Ticket
-            DeathEventParameters ticket;
+            DeathInfo ticket;
             ticket.conduit = conduit;
             ticket.damageType = damageType;
             ticket.instigator = instigator;

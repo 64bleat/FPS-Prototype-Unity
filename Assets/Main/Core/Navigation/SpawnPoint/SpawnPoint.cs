@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MPWorld;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -44,6 +45,23 @@ namespace MPCore
             }
 
             return null;
+        }
+
+        public GameObject Spawn(GameObject reference)
+        {
+            GameObject instance = Instantiate(reference, transform.position, transform.rotation);
+
+            if (instance.TryGetComponent(out Collider c))
+                instance.transform.position += transform.up * c.bounds.extents.y;
+
+            // Match SpawnPoint Velocity
+            if (instance.TryGetComponentInChildren(out IGravityUser playerGU))
+                if (gameObject.TryGetComponentInParent(out Rigidbody spawnRb))
+                    playerGU.Velocity = spawnRb.GetPointVelocity(instance.transform.position);
+                else if (gameObject.TryGetComponentInParent(out IGravityUser spawnGu))
+                    playerGU.Velocity = spawnGu.Velocity;
+
+            return instance;
         }
 
         private void OnTriggerEnter(Collider other)

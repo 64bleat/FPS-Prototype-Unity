@@ -6,10 +6,14 @@ namespace MPCore
     {
         [SerializeField] private GameInfo gameInfo;
 
-        private void Awake()
+        private void Start()
         {
-            if(gameInfo)
-                Instantiate(gameInfo.game.gameObject, transform);
+            if (gameInfo)
+            {
+                GameObject game = Instantiate(gameInfo.game.gameObject, transform);
+
+                Mutation.MutateGame(game);
+            }
         }
     }
 }

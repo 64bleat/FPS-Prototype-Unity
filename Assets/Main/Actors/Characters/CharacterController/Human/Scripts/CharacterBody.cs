@@ -108,6 +108,33 @@ namespace MPCore
         public Vector3 Gravity { get => phys.Gravity; set => phys.Gravity = value; }
         public Vector3 Velocity { get => phys.Velocity; set => phys.Velocity = value; } 
 
+        public void ScaleBody(float mult)
+        {
+            cap.radius *= mult;
+            cap.height *= mult;
+
+            defaultSprintSpeed *= mult;
+            defaultMoveSpeed *= mult;
+            defaultStrideSpeed *= mult;
+            defaultWalkSpeed *= mult;
+            defaultJumpHeight *= mult;
+            defaultCrouchJumpHeight *= mult;
+            defaultStepOffset *= mult;
+            defaultAirAcceleration *= mult;
+            defaultGroundAcceleration *= mult;
+            defaultStrideAcceleration *= mult;
+            defaultSpeedDecceleration *= mult;
+            defaultGroundDecceleration *= mult;
+            defaultCrouchHeight *= mult;
+            defaultHeight *= mult;
+            stepOffset *= mult;
+            thirdPersonBody.transform.localScale *= mult;
+            cameraAnchor.transform.localScale *= mult;
+            defaultMaxSafeImpactSpeed *= mult;
+            if (gameObject.TryGetComponentInChildren(out CharacterCameraEyeOffset cc))
+                cc.eyeOffset *= mult;
+        }
+
         private void Awake()
         {
             // Components

@@ -112,7 +112,7 @@ namespace MPCore
                     p.Spawn(hit.point, rotation, null);
                 }
 
-                if (hitEffect.hitSound)
+                if (hitEffect.hitSound && audio.enabled)
                     audio.PlayOneShot(hitEffect.hitSound);
             }
             else
