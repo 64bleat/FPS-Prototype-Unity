@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using MPWorld;
+using UnityEngine;
 
 namespace MPCore
 {
@@ -10,16 +11,23 @@ namespace MPCore
         public float defaultJetAccel = 0f;
         public float defaultJetSpeed = 200f;
 
+        private GameObject owner;
+
         public override void OnActivate(GameObject owner)
         {
+            this.owner = owner;
             if (owner.TryGetComponent(out CharacterBody body))
                 body.OnGlide.AddListener(OnGlideNew);
+            if (owner.TryGetComponent(out InputManager im))
+                im.Bind("Jump", Flap, owner.transform);
         }
 
         public override void OnDeactivate(GameObject owner)
         {
             if (owner.TryGetComponent(out CharacterBody body))
                 body.OnGlide.RemoveListener(OnGlideNew);
+            if (owner.TryGetComponent(out InputManager im))
+                im.Unbind("Jump", Flap);
         }
 
         public void OnGlideNew(CharacterBody body)
@@ -38,6 +46,14 @@ namespace MPCore
             if (Vector3.Project(cb.Velocity, cb.cameraAnchor.forward).magnitude < defaultJetSpeed)
                 cb.Velocity += cb.cameraAnchor.forward * defaultJetAccel * Time.fixedDeltaTime;
             cb.Velocity += cb.zoneVelocity;
+        }
+
+        private void Flap()
+        {
+            if(owner && owner.TryGetComponent(out IGravityUser igu) && owner.TryGetComponent(out CharacterBody bo))
+            {
+                igu.Velocity += bo.cameraAnchor.forward * 2;
+            }
         }
     }
 }

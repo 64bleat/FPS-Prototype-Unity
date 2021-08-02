@@ -17,9 +17,6 @@ namespace MPCore
         public ResourceType hurtResource;
         public bool isPlayer = false;
         [SerializeField] private StringEvent playerDisplayHealth;
-        [SerializeField] private DeathEvent onCharacterDied;
-        [SerializeField] private ObjectEvent onCharacterSpawned;
-
         [NonSerialized] public CharacterInfo characterInfo;
         [NonSerialized] public ResourceValue health;
 
@@ -27,11 +24,13 @@ namespace MPCore
         public event Action<DamageTicket> OnHit;
         public event Action<Character> OnDeath;
 
+        private GameModel _gameModel;
         private CharacterBody body;
         private (CharacterInfo instigator, float time) lastAttackedBy;
 
         private void Awake()
         {
+            _gameModel = Models.GetModel<GameModel>();
             TryGetComponent(out body);
         }
 
@@ -70,7 +69,7 @@ namespace MPCore
             GetHealthResource();
 
             OnRegistered?.Invoke(isPlayer);
-            onCharacterSpawned.Invoke(gameObject);
+            //onCharacterSpawned.Invoke(gameObject);
 
             if (isPlayer)
                 playerDisplayHealth.Invoke($"{health.value,3}");
@@ -149,14 +148,15 @@ namespace MPCore
                 instigator = lastAttackedBy.instigator;
 
             //Create Death Ticket
-            DeathInfo ticket;
-            ticket.conduit = conduit;
-            ticket.damageType = damageType;
-            ticket.instigator = instigator;
-            ticket.victim = characterInfo;
+            DeathInfo death;
+            death.conduit = conduit;
+            death.damageType = damageType;
+            death.instigator = instigator;
+            death.victim = characterInfo;
 
             OnDeath?.Invoke(this);
-            onCharacterDied.Invoke(ticket);
+            //onCharacterDied.Invoke(death);
+            _gameModel.CharacterDied?.Invoke(death);
 
             characterInfo = null;
             Destroy(gameObject);

@@ -4,7 +4,7 @@ namespace MPCore
 {
     public class GameLoader : MonoBehaviour
     {
-        [SerializeField] private GameInfo gameInfo;
+        [SerializeField] private GameSelectModel gameInfo;
 
         private void Start()
         {

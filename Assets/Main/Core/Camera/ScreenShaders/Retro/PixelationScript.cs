@@ -1,8 +1,4 @@
-﻿#pragma warning disable CS0109 // Member does not hide an inherited member; new keyword is not required
-
-using MPGUI;
-using System.Collections;
-using System.Collections.Generic;
+﻿using MPGUI;
 using UnityEngine;
 
 namespace MPWorld
@@ -13,7 +9,7 @@ namespace MPWorld
         //public Material currentShader;
         public PixelationGUI settings;
 
-        internal new Camera camera;
+        private new Camera camera;
 
         private void Awake()
         {

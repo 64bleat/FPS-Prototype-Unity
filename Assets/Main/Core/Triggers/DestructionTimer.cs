@@ -25,7 +25,7 @@ namespace MPCore
             time -= Time.deltaTime;
 
             if (time <= 0)
-                GameObjectPool.Return(gameObject);
+                GameObjectPool.Deactivate(gameObject);
         }
     }
 }

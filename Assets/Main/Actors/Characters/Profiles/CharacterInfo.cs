@@ -1,5 +1,6 @@
 ﻿using MPCore;
 using UnityEngine;
+using Character = MPCore.Character;
 
 /// <summary>
 /// Character Profile Info

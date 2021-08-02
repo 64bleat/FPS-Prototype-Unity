@@ -1,18 +1,19 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace MPCore
 {
+    /// <summary>
+    /// If the GameObject is destroyed, the pool creats another instance to maintain count
+    /// </summary>
     public class PoolReturn : MonoBehaviour
     {
-        [NonSerialized] public GameObjectPool returnPool;
+        [NonSerialized] public GameObjectPool parentPool;
 
         private void OnDestroy()
         {
-            if (returnPool && (!transform.parent || !transform.parent != returnPool.transform))
-                returnPool.AddInstance();
+            if (parentPool && (!transform.parent || !transform.parent != parentPool.transform))
+                parentPool.AddInstance();
         }
     }
 }

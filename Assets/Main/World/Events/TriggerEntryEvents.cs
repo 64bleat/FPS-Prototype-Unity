@@ -11,13 +11,13 @@ namespace MPWorld
 
         public void OnTriggerEnter(Collider other)
         {
-            if (other.gameObject.GetComponentInChildren<Character>())
+            if (other.gameObject.GetComponentInChildren<MPCore.Character>())
                 enterEvents?.Invoke();
         }
 
         public void OnTriggerExit(Collider other)
         {
-            if (other.gameObject.GetComponentInChildren<Character>())
+            if (other.gameObject.GetComponentInChildren<MPCore.Character>())
                 exitEvents?.Invoke();
         }
     }

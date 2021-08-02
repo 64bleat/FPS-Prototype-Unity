@@ -13,7 +13,7 @@ namespace MPCore
 
         public override void MutateGame(GameObject game)
         {
-            if (game.TryGetComponent(out Game g))
+            if (game.TryGetComponent(out GameInfo g))
                 g.spawnInventory.Add(item);
         }
     }

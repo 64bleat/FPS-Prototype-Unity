@@ -8,6 +8,6 @@ namespace MPGUI
     public class PlayerSettingsManager : ScriptableObject
     {
         public CharacterInfo characterInfo;
-        public Character[] availableCharacters;
+        public MPCore.Character[] availableCharacters;
     }
 }

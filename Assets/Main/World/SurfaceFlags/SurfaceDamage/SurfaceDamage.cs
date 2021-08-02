@@ -26,7 +26,7 @@ namespace MPWorld
                 body.currentState = CharacterBody.MoveState.Airborne;
             }
 
-            if(selfDamage && toucher.TryGetComponent(out Character character))
+            if(selfDamage && toucher.TryGetComponent(out MPCore.Character character))
                 instigator = character.characterInfo;
 
             if (toucher.TryGetComponent(out DamageEvent damageEvent))

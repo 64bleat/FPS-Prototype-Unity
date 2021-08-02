@@ -6,7 +6,7 @@ namespace MPGUI
     [RequireComponent(typeof(IntButton))]
     public class BotmatchInfoGUI : MonoBehaviour
     {
-        public GameInfo botmatchInfo;
+        public GameSelectModel botmatchInfo;
 
         private void Awake()
         {

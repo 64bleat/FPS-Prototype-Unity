@@ -6,11 +6,11 @@ namespace MPGUI
 {
     public class SceneDropdown : DropdownField
     {
-        [SerializeField] private GameInfo gameInfo;
+        [SerializeField] private GameSelectModel gameInfo;
 
         protected override void InitField()
         {
-            valueText.SetText(gameInfo.map.displayName);
+            valueText.SetText(gameInfo.scene.displayName);
         }
 
         protected override void OpenMenu()
@@ -20,10 +20,10 @@ namespace MPGUI
 
             for(int i = 0; i < count; i++)
             {
-                SceneInfo si = gameInfo.sceneList[i];
+                Case si = gameInfo.sceneList[i];
                 void call ()
                 {
-                    gameInfo.map = si;
+                    gameInfo.scene = si;
                     InitField();
                 }
 

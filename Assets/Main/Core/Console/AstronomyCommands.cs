@@ -14,28 +14,9 @@ namespace MPCore
         }
 
         [ConsoleCommand("settime", "set the date down to the second")]
-        public static string SetTime(string timecode)
+        public static string SetTime(DateTime time)
         {
-            DateTime time = TimeManager.currentTime;
-
-            switch(timecode)
-            {
-                case "now":
-                    time = DateTime.Now;
-                    break;
-                case "utcnow":
-                    time = DateTime.UtcNow;
-                    break;
-                default:
-                    if(DateTime.TryParse(timecode, out DateTime result))
-                        time = result;
-                    break;
-            }
-
             TimeManager.currentTime = time;
-
-            if (timecode == "now")
-                TimeManager.currentTime = DateTime.Now;
 
             return $"Date set to {TimeManager.currentTime}";
         }

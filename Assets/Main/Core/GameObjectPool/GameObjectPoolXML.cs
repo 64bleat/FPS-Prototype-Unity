@@ -38,12 +38,12 @@ namespace MPCore
                 p.resource = prefab;
 
                 // Destroy any existing pool
-                if (GameObjectPool.openPools.TryGetValue(prefab, out var old))
+                if (GameObjectPool.pools.TryGetValue(prefab, out var old))
                 {
                     Object.DestroyImmediate(old.gameObject);
-                    GameObjectPool.openPools.Remove(prefab);
+                    GameObjectPool.pools.Remove(prefab);
                 }
-                GameObjectPool.openPools.Add(prefab, p);
+                GameObjectPool.pools.Add(prefab, p);
 
                 // Instantiate Serialized Instances
                 foreach(GameObjectXML gInfo in instances)
@@ -55,7 +55,7 @@ namespace MPCore
                     if(gInfo.activeSelf)
                         gInfo.DeserializeGameObject(instance);
                     else
-                        p.availableInstances.Enqueue(instance);
+                        p.instances.Enqueue(instance);
                 }
             }
 

@@ -19,7 +19,7 @@ namespace MPCore
 
         public override void MutateGame(GameObject game)
         {
-            if (game.TryGetComponent(out Game g))
+            if (game.TryGetComponent(out GameInfo g))
             {
                 g.spawnInventory.RemoveAll(i => i is Weapon);
                 g.randomSpawnInventory.RemoveAll(i => i is Weapon);

@@ -5,7 +5,7 @@ namespace MPGUI
 {
     public class GameDropdown : DropdownField
     {
-        [SerializeField] private GameInfo gameInfo;
+        [SerializeField] private GameSelectModel gameInfo;
 
         protected override void InitField()
         {
@@ -18,7 +18,7 @@ namespace MPGUI
 
             for(int i = 0; i < gameInfo.gameList.Count; i++)
             {
-                Game game = gameInfo.gameList[i];
+                GameInfo game = gameInfo.gameList[i];
                 void call()
                 {
                     gameInfo.game = game;

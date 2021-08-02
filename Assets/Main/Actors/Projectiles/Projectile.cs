@@ -102,7 +102,7 @@ namespace MPCore
                 transform.localScale *= 1f - 10 * dt;
 
                 if (transform.localScale.x < 0.2f)
-                    GameObjectPool.Return(gameObject);
+                    GameObjectPool.Deactivate(gameObject);
             }
 
             // Visual offset effect
@@ -219,7 +219,7 @@ namespace MPCore
             switch (hitEffect.hitBehaviour)
             {
                 case HitEffect.ProjectileHitBehaviour.Destroy:
-                    GameObjectPool.Return(gameObject);
+                    GameObjectPool.Deactivate(gameObject);
                     break;
                 case HitEffect.ProjectileHitBehaviour.Reflect:
                     Reflect(hit);
@@ -281,7 +281,7 @@ namespace MPCore
             }
 
             sphere.radius = keepRadius;
-            GameObjectPool.Return(gameObject);
+            GameObjectPool.Deactivate(gameObject);
         }
 
         private void Reflect(MyRaycastHit hit)

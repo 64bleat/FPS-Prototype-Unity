@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Serialization
 {
     [System.Serializable]
-    [XMLSurrogate(typeof(Character))]
+    [XMLSurrogate(typeof(MPCore.Character))]
     public class CharacterXML : XMLSurrogate
     {
         public bool isPlayer;
@@ -31,13 +31,13 @@ namespace Serialization
 
         public override XMLSurrogate Serialize(dynamic o)
         {
-            if (o is Character character)
+            if (o is MPCore.Character character)
             {
                 isPlayer = character.isPlayer;
 
                 // Inventory
                 if(character.TryGetComponent(out InventoryContainer container))
-                inventory = new List<InventoryItemXML>(container.inventory.Count);
+                    inventory = new List<InventoryItemXML>(container.inventory.Count);
                 foreach (Inventory item in container.inventory)
                     inventory.Add(new InventoryItemXML()
                     {
@@ -63,7 +63,7 @@ namespace Serialization
 
         public override XMLSurrogate Deserialize(dynamic o)
         {
-            if(o is Character character && character)
+            if(o is MPCore.Character character && character)
             {
                 // Inventory
                 if (character.TryGetComponent(out InventoryContainer container))

@@ -1,4 +1,5 @@
 *.blend*
+/Assets/Mountain/
 [Tt]est/
 /MemoryCaptures/
 /Assets/TestAnimation/

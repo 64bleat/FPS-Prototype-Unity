@@ -10,6 +10,7 @@ namespace MPGUI
 
         protected override void InitField()
         {
+            if(profile.characterInfo)
             valueText.SetText(profile.characterInfo.bodyType.gameObject.name);
         }
 
@@ -17,9 +18,9 @@ namespace MPGUI
         {
             ButtonSet set = dropdown.SpawnDropdown(dropPosition);
 
-            foreach (Character c in profile.availableCharacters)
+            foreach (MPCore.Character c in profile.availableCharacters)
             {
-                Character character = c;
+                MPCore.Character character = c;
                 void Call()
                 {
                     profile.characterInfo.bodyType = character;

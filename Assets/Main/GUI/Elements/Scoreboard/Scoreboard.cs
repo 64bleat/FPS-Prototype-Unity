@@ -8,7 +8,7 @@ namespace MPCore
     /// <summary>
     /// Scoring data for deathmatch games
     /// </summary>
-    public class Scoreboard : ScriptableObject
+    public class Scoreboard : Models
     {
         public readonly DataTable table = new DataTable("Scoreboard");
         public UnityEvent OnTableChanged;

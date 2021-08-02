@@ -216,8 +216,7 @@ namespace MPCore
             //    //MasterCamera.ManualUpdateRot();
             //    //MasterCamera.ManualUpdatePos();
             //}
-            if (character.isPlayer)
-                CameraManager.ManualUpdatePos();
+
         }
 
         private void FixedUpdate()
@@ -225,9 +224,9 @@ namespace MPCore
             float dt = Time.fixedDeltaTime;
 
             cb.Clear();
-            Move();
+            
             GroundDetection();
-            OverlapFix();
+            
 
             /*  STATE CHANGE ..................................................
                 The only thing needed to be counted as grounded is a valid
@@ -251,7 +250,6 @@ namespace MPCore
                 FalseGravity is used for orientation and "falling" while
                 phys.phys.Gravity is still used for all other physical interactions.
                 in normal circumstances, falsGravity == phys.phys.Gravity.             */
-
             if (!input.Crawl)
                 falseGravity = phys.Gravity;
             else if (input.ProcessStep && moveDir.sqrMagnitude != 0
@@ -295,7 +293,7 @@ namespace MPCore
                     If a platform accelerates downward too quickly, the
                     character will be set to airborn and can be
                     launched off platforms.                                  */
-                if (Vector3.Dot(cb.PlatformVelocity - lastPlatformVelocity, falseGravity.normalized) > falseGravity.magnitude * 0.25f)
+                if (Vector3.Dot(cb.PlatformVelocity - lastPlatformVelocity, falseGravity.normalized) > 0.125f)
                 {
                     currentState = MoveState.Airborne;
                 }
@@ -356,7 +354,7 @@ namespace MPCore
                 Air acceleration is usually lower than ground acceleration, but
                 trying to move backward from your current velocity will 
                 increase that acceleration for easier platforming.           */
-            else // if(currentState == State.Airborne)
+            if(currentState == MoveState.Airborne)
             {
                 Vector3 relativeVel = phys.Velocity - zoneVelocity;
                 Vector3 verticalVel = Vector3.Project(relativeVel, phys.Gravity);
@@ -386,32 +384,44 @@ namespace MPCore
             }
 
             lastPlatformVelocity = cb.PlatformVelocity;
+            OverlapFix();
+            Move();
+            if (character.isPlayer)
+                CameraManager.ManualUpdatePos();
         }
+        private const float INSET = 0.05f;
+        private const float DOWNCAST_GROUNDED = 3f;
+        private const float DOWNCAST_AIRBORNE = 1.5f;
 
         private void GroundDetection()
         {
             if (input.ProcessStep)
             {
-                float offset = 0.05f;
-                Vector3 point = transform.position - transform.up * (cap.height / 2f - cap.radius - offset);
-                float distance = stepOffset * (currentState == MoveState.Grounded ? 3f : 1.5f) - offset;
+                //float INSET = 0.05f;
+                Vector3 position = transform.position;
+                Vector3 up = transform.up;
+                float radius = cap.radius;
+                float capDistance = cap.height / 2f - radius - INSET;
+                Vector3 point = position - up * capDistance;
+                float downcast = currentState == MoveState.Grounded ? DOWNCAST_GROUNDED : DOWNCAST_AIRBORNE;
+                float distance = stepOffset * downcast - INSET;
 
-                if (Physics.SphereCast(point, cap.radius * 0.9f, -transform.up, out RaycastHit hit, distance, layerMask, QueryTriggerInteraction.Ignore))
+                if (Physics.SphereCast(point, radius * 0.9f, -up, out RaycastHit hit, distance, layerMask, QueryTriggerInteraction.Ignore))
                 {
                     CBCollision collision = new CBCollision(hit, phys.Velocity);
-                    float trigOpposite = Vector3.ProjectOnPlane(transform.position - collision.point, transform.up).magnitude;
-                    float trigAdjacent = new Vector2(cap.radius, trigOpposite).magnitude;
-                    float floorDelta = hit.distance - stepOffset - offset + trigAdjacent - cap.radius;
+                    float trigOpposite = Vector3.ProjectOnPlane(position - collision.point, up).magnitude;
+                    float trigAdjacent = new Vector2(radius, trigOpposite).magnitude;
+                    float floorDelta = hit.distance - stepOffset - INSET + trigAdjacent - radius;
 
-                    point = transform.position - transform.up * (cap.height / 2f);
+                    point = position - up * (cap.height / 2f);
 
-                    if (Physics.Raycast(point, -transform.up, out hit, distance, layerMask, QueryTriggerInteraction.Ignore)
-                     || Physics.Raycast(point + transform.forward * cap.radius / 2f, -transform.up, out hit, distance, layerMask, QueryTriggerInteraction.Ignore))
+                    if (Physics.Raycast(point, -up, out hit, distance, layerMask, QueryTriggerInteraction.Ignore)
+                     || Physics.Raycast(point + transform.forward * radius / 2f, -up, out hit, distance, layerMask, QueryTriggerInteraction.Ignore))
                         collision = new CBCollision(hit, phys.Velocity);
 
                     cb.AddHit(collision);
 
-                    transform.position -= transform.up * floorDelta;
+                    transform.position -= up * floorDelta;
                     characterCamera.stepOffset = Mathf.Clamp(characterCamera.stepOffset + floorDelta, -0.5f, 0.5f);
                 }
             }
@@ -419,11 +429,14 @@ namespace MPCore
 
         private void OverlapFix()
         {
-            Vector3 oldPos = transform.position;
+            Quaternion rotation = transform.rotation;
+            Vector3 up = transform.up;
+            Vector3 position = transform.position;
+            Vector3 oldPos = position;
             Vector3 finalOffset = Vector3.zero;
-            Vector3 capPoint = transform.up * (cap.height * 0.5f - cap.radius);
-            Vector3 point0 = transform.position + capPoint;
-            Vector3 point1 = transform.position - capPoint;
+            Vector3 capPoint = up * (cap.height * 0.5f - cap.radius);
+            Vector3 point0 = position + capPoint;
+            Vector3 point1 = position - capPoint;
             int count = Physics.OverlapCapsuleNonAlloc(point0, point1, cap.radius, cBuffer, layerMask, QueryTriggerInteraction.Ignore);
 
             for (int i = 0; i < count; i++)
@@ -431,7 +444,7 @@ namespace MPCore
                 Collider collider = cBuffer[i];
 
                 if (!collider.transform.IsChildOf(transform)
-                    && Physics.ComputePenetration(cap, transform.position, transform.rotation,
+                    && Physics.ComputePenetration(cap, position, rotation,
                         collider, collider.transform.position, collider.transform.rotation,
                         out Vector3 direction, out float distance))
                 {
@@ -440,8 +453,8 @@ namespace MPCore
                     Vector3 fpd = finalOffset + direction;
 
                     //horizontal squeeze prevention
-                    if (Vector3.Dot(transform.up, normal) < 0 && cb.FloorNormal.sqrMagnitude != 0)
-                        normal = Vector3.ProjectOnPlane(normal, transform.up).normalized;
+                    if (Vector3.Dot(up, normal) < 0 && cb.FloorNormal.sqrMagnitude != 0)
+                        normal = Vector3.ProjectOnPlane(normal, up).normalized;
 
                     // Vertical squeeze prevention
                     if (Vector3.Dot(finalOffset, direction) < 0 && Vector3.Dot(phys.Velocity, fpd) < 0)
@@ -449,12 +462,12 @@ namespace MPCore
 
                     finalOffset = fpd;
 
-                    cb.AddHit(new CBCollision(collider, normal, transform.position, phys.Velocity));
-                    transform.position += direction;
+                    cb.AddHit(new CBCollision(collider, normal, position, phys.Velocity));
+                    position += direction;
                 }
             }
 
-            Vector3 dir = transform.position - oldPos;
+            Vector3 dir = position - oldPos;
             float squeeze = dir.magnitude;
             int damage = (int)(squeeze * 200);
             GameObject instigatorBody = cBuffer[0] ? cBuffer[0].gameObject : null;
@@ -468,6 +481,8 @@ namespace MPCore
 
             if (squeeze > cap.radius)
                 damageEvent.Damage(damage, instigatorBody,  instigator, impactDamageType, dir);
+
+            transform.position = position;
         }
 
         private void Move()
@@ -481,11 +496,11 @@ namespace MPCore
             {
                 float distance = phys.Velocity.magnitude * dt;
                 Vector3 velOff = -phys.Velocity.normalized * backup;
-                Vector3 center = transform.TransformPoint(cap.center);
+                Vector3 capCenter = transform.TransformPoint(cap.center);
 
                 if (Physics.CapsuleCast(
-                            point1: center + velOff + pointOffset,
-                            point2: center + velOff - pointOffset,
+                            point1: capCenter + velOff + pointOffset,
+                            point2: capCenter + velOff - pointOffset,
                             radius: cap.radius,
                             direction: phys.Velocity,
                             maxDistance: distance + backup,
