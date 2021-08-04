@@ -5,7 +5,7 @@ namespace MPGUI
 {
     public class SettingsSaver : MonoBehaviour
     {
-        public void Save()
+        private void OnDisable()
         {
             if (transform.TryGetComponentInParent(out SettingsManager settings))
                 settings.SaveSettings();

@@ -5,23 +5,28 @@ namespace MPGUI
 {
     public class GameDropdown : DropdownField
     {
-        [SerializeField] private GameSelectModel gameInfo;
+        private GameSelectModel _gameSelectModel;
+
+        private void Awake()
+        {
+            _gameSelectModel = Models.GetModel<GameSelectModel>();
+        }
 
         protected override void InitField()
         {
-            valueText.SetText(gameInfo.game.gameObject.name);
+            valueText.SetText(_gameSelectModel.game.gameObject.name);
         }
 
         protected override void OpenMenu()
         {
             ButtonSet set = dropdown.SpawnDropdown(dropPosition);
 
-            for(int i = 0; i < gameInfo.gameList.Count; i++)
+            for(int i = 0; i < _gameSelectModel.gameList.Count; i++)
             {
-                GameInfo game = gameInfo.gameList[i];
+                GameController game = _gameSelectModel.gameList[i];
                 void call()
                 {
-                    gameInfo.game = game;
+                    _gameSelectModel.game = game;
                     InitField();
                 }
 

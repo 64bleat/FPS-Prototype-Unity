@@ -6,24 +6,29 @@ namespace MPGUI
 {
     public class SceneDropdown : DropdownField
     {
-        [SerializeField] private GameSelectModel gameInfo;
+        private GameSelectModel _gameSelectModel;
+
+        private void Awake()
+        {
+            _gameSelectModel = Models.GetModel<GameSelectModel>();
+        }
 
         protected override void InitField()
         {
-            valueText.SetText(gameInfo.scene.displayName);
+            valueText.SetText(_gameSelectModel.scene.displayName);
         }
 
         protected override void OpenMenu()
         {
-            int count = gameInfo.sceneList.Count;
+            int count = _gameSelectModel.sceneList.Count;
             ButtonSet set = dropdown.SpawnDropdown(dropPosition);
 
             for(int i = 0; i < count; i++)
             {
-                Case si = gameInfo.sceneList[i];
+                Case si = _gameSelectModel.sceneList[i];
                 void call ()
                 {
-                    gameInfo.scene = si;
+                    _gameSelectModel.scene = si;
                     InitField();
                 }
 

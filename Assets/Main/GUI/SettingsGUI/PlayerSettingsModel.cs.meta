@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 0dfa8bb6025d6f743bf1fc0589cf8796
+guid: ceb028cd29a9d3d4783406c3c308a005
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
   defaultReferences:
-  - qualityChannel: {fileID: 11400000, guid: 58ccfcfa4eb09aa4a9d5de60f9728661, type: 2}
+  - characterInfo: {fileID: 11400000, guid: d4db530448e19914b9d697c3a6487bb4, type: 2}
   - dropdown: {fileID: 2419169160406910603, guid: e2cfd8b711f277c4699430b522f09a1f,
       type: 3}
   executionOrder: 0

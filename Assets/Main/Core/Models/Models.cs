@@ -12,15 +12,17 @@ namespace MPCore
         {
             Type type = typeof(T);
 
+            // Get from Dictionary
             if (instances.TryGetValue(type, out Models model))
                 return model as T;
 
-            Models instance = CreateInstance(type) as Models;
+            // Get from Resources
+            // Get new Instance
+            T instance = Resources.Load<T>(type.Name) ?? CreateInstance<T>();
 
-            instance.name = $"{type.Name}_instance";
             instances.Add(type, instance);
 
-            return instance as T;
+            return instance;
         }
 
         public static void RemoveModel<T>()

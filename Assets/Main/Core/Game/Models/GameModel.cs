@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
 namespace MPCore
 {
@@ -14,7 +15,7 @@ namespace MPCore
         public UnityEvent GameEnd = new UnityEvent();
         public UnityEvent GameClosed = new UnityEvent();
         public UnityEvent<DeathInfo> CharacterDied = new UnityEvent<DeathInfo>();
-        public UnityEvent<CharacterInfo, bool> ConnectPlayer = new UnityEvent<CharacterInfo, bool>();
+        public UnityEvent<CharacterInfo, bool> OnPlayerConnected = new UnityEvent<CharacterInfo, bool>();
         public UnityEvent<CharacterInfo> SpawnCharacter = new UnityEvent<CharacterInfo>();
         public UnityEvent<Character> OnCharacterSpawned = new UnityEvent<Character>();
         public UnityEvent<(CharacterInfo scorer, int score)> CharacterScored = new UnityEvent<(CharacterInfo, int)>();

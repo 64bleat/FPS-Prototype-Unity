@@ -8,7 +8,7 @@ namespace MPGUI
     [ExecuteInEditMode, ImageEffectAllowedInSceneView]
     public class BloomRenderer : MonoBehaviour
     {
-        public BloomSettings settings;
+        private BloomModel _bloomModel;
         public ObjectEvent qualityChannel;
         public Material bloomMat;
         public Material filmGrain;
@@ -29,6 +29,7 @@ namespace MPGUI
 
         private void Awake()
         {
+            _bloomModel = Models.GetModel<BloomModel>();
             downblendPrefilter = bloomMat.FindPass("DownblendPrefilter");
             downblendPass = bloomMat.FindPass("Downblend");
             upblendPass = bloomMat.FindPass("Upblend");
@@ -43,7 +44,7 @@ namespace MPGUI
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
-            if (settings.enableShader)
+            if (_bloomModel.enableShader)
             {
                 {// SetBloomMatValues
                     float knee = threshold * softThreshold;
@@ -59,7 +60,7 @@ namespace MPGUI
                 }
 
                 // Iteration Check
-                int iterations = Mathf.Min(settings.iterations, (int)Mathf.Log(source.height, 2));
+                int iterations = Mathf.Min(_bloomModel.iterations, (int)Mathf.Log(source.height, 2));
                 RenderTexture predest = RenderTexture.GetTemporary(source.width, source.height, 24, RenderTextureFormat.ARGBFloat);
 
                 // Instantiate Mipmaps
@@ -77,8 +78,8 @@ namespace MPGUI
 
                 Graphics.Blit(mipmaps[0], predest, bloomMat, addPass);
 
-                filmGrain.SetFloat("_Grain", settings.filmGrainScale / 64f);
-                filmGrain.SetVector("_Seed", settings.grainSeed);
+                filmGrain.SetFloat("_Grain", _bloomModel.filmGrainScale / 64f);
+                filmGrain.SetVector("_Seed", _bloomModel.grainSeed);
                 Graphics.Blit(destination, filmGrain);
 
                 Graphics.Blit(predest, destination);
