@@ -9,11 +9,11 @@ using UnityEngine.Events;
 public class PlatformGameModel : Models
 {
     public enum State { Playing, Stopped, Reset }
-    public ValueEvent<float> elapsedTime = new ValueEvent<float>();
-    public ValueEvent<TimeRecord> bestTime = new ValueEvent<TimeRecord>();
-    public ValueEvent<Character> currentPlayer = new ValueEvent<Character>();
-    public ValueEvent<bool> isReset = new ValueEvent<bool>();
-    public ValueEvent<State> gameState = new ValueEvent<State>();
+    public DataValue<float> elapsedTime = new DataValue<float>();
+    public DataValue<TimeRecord> bestTime = new DataValue<TimeRecord>();
+    public DataValue<Character> currentPlayer = new DataValue<Character>();
+    public DataValue<bool> isReset = new DataValue<bool>();
+    public DataValue<State> gameState = new DataValue<State>();
     
     public UnityEvent<Character> OnStart = new UnityEvent<Character>();
     public UnityEvent OnEnd = new UnityEvent();

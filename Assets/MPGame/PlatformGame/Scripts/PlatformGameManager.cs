@@ -93,22 +93,22 @@ namespace MPCore
             _gameModel.isReset.Value = true;
         }
 
-        private void MessageNewBestTime(PlatformGameModel.TimeRecord last, PlatformGameModel.TimeRecord next)
+        private void MessageNewBestTime(DeltaValue<PlatformGameModel.TimeRecord> record)
         {
-            float time = next.time;
-            float oldTime = last.time;
+            float time = record.newValue.time;
+            float oldTime = record.oldValue.time;
 
             if (time > oldTime)
             {
                 string oldName;
                 string message;
 
-                if (last.holder)
+                if (record.oldValue.holder)
                 {
-                    if (next.holder == last.holder)
+                    if (record.newValue.holder == record.oldValue.holder)
                         oldName = "your own";
                     else
-                        oldName = $"{last.holder.displayName}'s";
+                        oldName = $"{record.oldValue.holder.displayName}'s";
 
                     message = $"You beat {oldName} score with {time:F2} seconds!";
                 }

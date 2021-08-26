@@ -8,7 +8,7 @@ namespace MPConsole
     public static class CmdCore
     {
         [ConsoleCommand("exit", "Exits the game immediately.")]
-        public static string Exit()
+        private static string Exit()
         {
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
@@ -20,7 +20,7 @@ namespace MPConsole
         }
 
         [ConsoleCommand("destroy", "Destroys targeted gameobjects.")]
-        public static string DestroyTarget(GameObject go)
+        private static string DestroyTarget(GameObject go)
         {
             if (!go)
                 return "No target to destroy";
@@ -31,7 +31,7 @@ namespace MPConsole
         }
 
         [ConsoleCommand("open", "Opens a scene by name.")]
-        public static string OpenScene(string name)
+        private static string OpenScene(string name)
         {
             try
             {

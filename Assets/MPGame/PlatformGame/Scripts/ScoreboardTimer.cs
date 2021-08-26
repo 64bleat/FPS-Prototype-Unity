@@ -1,6 +1,4 @@
 using MPCore;
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -23,10 +21,10 @@ public class ScoreboardTimer : MonoBehaviour
         _gameModel.elapsedTime.OnSet.RemoveListener(SetText);
     }
 
-    private void SetText(float oldValue, float newValue)
+    private void SetText(DeltaValue<float> seconds)
     {
-        int sec = (int)newValue;
-        float fSec = newValue % 1;
+        int sec = (int)seconds.newValue;
+        float fSec = seconds.newValue % 1;
         string timeText = $"{sec / 60:D2}:{sec % 60:D2}:{(int)(fSec * 60):D2}";
 
         _text.SetText(timeText);

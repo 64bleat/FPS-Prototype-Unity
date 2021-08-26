@@ -19,6 +19,11 @@ namespace MPCore
             points.Add(this);
         }
 
+        private void Start()
+        {
+            Messages.Publish(this);
+        }
+
         void OnDestroy()
         {
             points.Remove(this);

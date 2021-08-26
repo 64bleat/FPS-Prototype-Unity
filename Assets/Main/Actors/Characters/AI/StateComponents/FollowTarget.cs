@@ -13,11 +13,13 @@ namespace MPCore.AI
         private Character character;
         private CharacterBody body;
         private InputManager input;
+        private KeyModel _keyModel;
 
         // Pathfinding
         private JobHandle pathJob;
 
         // Debug
+        GameModel _gameModel;
         public LineRenderer debugLine;
         private LineRenderer pathLine;
 
@@ -30,6 +32,8 @@ namespace MPCore.AI
 
         public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
         {
+            _gameModel = Models.GetModel<GameModel>();
+            _keyModel = Models.GetModel<KeyModel>();
             this.animator = animator;
             animator.TryGetComponent(out ai);
             animator.TryGetComponent(out body);
@@ -44,7 +48,7 @@ namespace MPCore.AI
         {
             MoveAlongPath();
 
-            if (Debugger.enabled)
+            if (_gameModel.debug.Value)
             {
                 if (!pathLine && debugLine)
                     pathLine = Instantiate(debugLine).GetComponent<LineRenderer>();
@@ -143,7 +147,7 @@ namespace MPCore.AI
                     else if (rAngle > 112.5)
                         input.BotKeyDown("Left");
 
-                    if (!character.isPlayer || !input.loadKeyBindList.alwaysRun)
+                    if (!character.isPlayer || !_keyModel.alwaysRun)
                         input.BotKeyDown("Sprint");
 
                     if (body.currentState == CharacterBody.MoveState.Grounded)

@@ -6,11 +6,11 @@ namespace MPGUI
     [RequireComponent(typeof(IntButton))]
     public class BotmatchInfoGUI : MonoBehaviour
     {
-        private GameSelectModel _gameSelectModel;
+        private PlaySettingsModel _gameSelectModel;
 
         private void Awake()
         {
-            _gameSelectModel = Models.GetModel<GameSelectModel>();
+            _gameSelectModel = Models.GetModel<PlaySettingsModel>();
 
             if (TryGetComponent(out IntButton button))
             {

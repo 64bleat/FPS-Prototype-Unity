@@ -20,7 +20,6 @@ namespace MPCore
         /// <summary>
         /// Disable and return a GameObject to the pool
         /// </summary>
-        /// <param name="instance"></param>
         private void DeactivateInstance(GameObject instance)
         {
             instance.SetActive(false);

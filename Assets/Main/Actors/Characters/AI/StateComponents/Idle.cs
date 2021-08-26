@@ -17,6 +17,8 @@ namespace MPCore.AI
         //Combat
         public bool hostile = true;
 
+        private KeyModel _keyModel;
+
         // Character References
         private bool enabled = false;
         private Transform transform;
@@ -58,6 +60,7 @@ namespace MPCore.AI
         private Vector3 accuracyOffset;
 
         // Debug
+        private GameModel _gameModel;
         private LineRenderer pathLine;
 
         private static readonly string[] layers = { "Default", "Physical", "Player" };
@@ -97,6 +100,8 @@ namespace MPCore.AI
         public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
         {
             // Awake
+            _gameModel = Models.GetModel<GameModel>();
+            _keyModel = Models.GetModel<KeyModel>();
             this.animator = animator;
             transform = animator.transform;
 
@@ -167,7 +172,7 @@ namespace MPCore.AI
             sight.target = FindTarget(attackTargets);
             Profiler.EndSample();
 
-            if (Debugger.enabled)
+            if (_gameModel.debug.Value)
             {
                 if (pathLine)
                 {
@@ -433,7 +438,7 @@ namespace MPCore.AI
             else if (rAngle > 112.5)
                 input.BotKeyDown("Left");
 
-            if (!character.isPlayer || !input.loadKeyBindList.alwaysRun)
+            if (!character.isPlayer || !_keyModel.alwaysRun)
                 input.BotKeyDown("Sprint");
 
             if (body.currentState == CharacterBody.MoveState.Grounded)

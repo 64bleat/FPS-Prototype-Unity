@@ -9,7 +9,6 @@ namespace MPGUI
     public class BloomRenderer : MonoBehaviour
     {
         private BloomModel _bloomModel;
-        public ObjectEvent qualityChannel;
         public Material bloomMat;
         public Material filmGrain;
         public bool enableShader = true;

@@ -8,7 +8,6 @@ namespace MPGUI
 {
     public class QualitySettingManager : ScriptableObject
     {
-        [SerializeField] private ObjectEvent qualityChannel;
         [SerializeField] private Dropdown dropdown;
 
         private struct Dimension

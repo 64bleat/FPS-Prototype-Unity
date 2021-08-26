@@ -5,24 +5,32 @@ namespace MPCore
     [RequireComponent(typeof(Camera))]
     public class CameraFOV : MonoBehaviour
     {
-        [SerializeField] private FloatValue fov;
+        [SerializeField] private bool _firstPersonFov = false;
 
-        private void OnEnable()
+        GraphicsModel _model;
+
+        private void Awake()
         {
-            fov.callback.AddListener(SetFov);
-            SetFov(fov);
+            _model = Models.GetModel<GraphicsModel>();
+
+            if (_firstPersonFov)
+                _model.fovFirstPerson.Initialize(OnFovChange);
+            else
+                _model.fov.Initialize(OnFovChange);
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
-            fov.callback.RemoveListener(SetFov);
+            if (_firstPersonFov)
+                _model.fovFirstPerson.Initialize(OnFovChange);
+            else
+                _model.fov.Initialize(OnFovChange);
         }
 
-        private void SetFov(float fov)
+        private void OnFovChange(DeltaValue<float> fov)
         {
             Camera camera = GetComponent<Camera>();
-
-            camera.fieldOfView = fov;
+            camera.fieldOfView = fov.newValue;
         }
     }
 }

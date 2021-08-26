@@ -18,6 +18,8 @@ namespace MPCore
 
         private void Start()
         {
+            Messages.Publish(this);
+
             if (spawnOnAwake)
                 Instantiate(itemToSpawn, transform, false);
         }
