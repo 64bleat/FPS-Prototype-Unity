@@ -2,90 +2,79 @@
 
 namespace MPCore
 {
-    public class CharacterInput : MonoBehaviour
-    {
-        public enum MoveState { Run, Sprint, Walk, Crouch}
+	public class CharacterInput : MonoBehaviour
+	{
+		public enum MoveState { Run, Sprint, Walk, Crouch }
+		public DataValue<MoveState> moveState = new(MoveState.Run);
 
-        public ScriptFloat toggleCrouch;
-        public ScriptFloat toggleSprint;
-        public ScriptFloat toggleWalk;
-        public bool autoCrouch = false;
+		KeyModel _keyModel;
+		CharacterBody _characterBody;
+		InputManager _input;
+		Character _character;
+		float _stateChangeTime = 0;
 
-        private KeyModel _keyModel;
-        private CharacterBody characterBody;
-        private InputManager input;
-        private MoveState moveState;
-        private float stateChangeTime = 0;
+		void Awake()
+		{
+			_keyModel = Models.GetModel<KeyModel>();
+			_characterBody = GetComponent<CharacterBody>();
+			_input = GetComponent<InputManager>();
+			_character = GetComponent<Character>();
 
-        void Awake()
-        {
-            _keyModel = Models.GetModel<KeyModel>();
-            characterBody = GetComponent<CharacterBody>();
-            input = GetComponent<InputManager>();
+			_input.Bind("Jump", () => jumpTimer.Reset(), this, KeyPressType.Up);
+			_input.Bind("Sprint", () => ToggleMove(MoveState.Sprint), this);
+			_input.Bind("Walk", () => ToggleMove(MoveState.Walk), this);
+			_input.Bind("Crouch", () => ToggleMove(MoveState.Crouch), this);
+			_input.Bind("Sprint", () => UntoggleMove(MoveState.Run, _keyModel.sprintToggleTime), this, KeyPressType.Up);
+			_input.Bind("Walk", () => UntoggleMove(MoveState.Run, _keyModel.walkToggleTime), this, KeyPressType.Up);
+			_input.Bind("Crouch", () => UntoggleMove(MoveState.Run, _keyModel.crouchToggleTime), this, KeyPressType.Up);
+			_character.OnInitialized.AddListener(Initialize);
+		}
 
-            input.Bind("Jump", () => jumpTimer.Reset(), this, KeyPressType.Up);
-            input.Bind("Sprint", () => ToggleMove(MoveState.Sprint), this);
-            input.Bind("Walk", () => ToggleMove(MoveState.Walk), this);
-            input.Bind("Crouch", () => ToggleMove(MoveState.Crouch), this);
-            input.Bind("Sprint", () => UntoggleMove(MoveState.Run, _keyModel.sprintToggleTime), this, KeyPressType.Up);
-            input.Bind("Walk", () => UntoggleMove(MoveState.Run, _keyModel.walkToggleTime), this, KeyPressType.Up);
-            input.Bind("Crouch", () => UntoggleMove(MoveState.Run, _keyModel.crouchToggleTime), this, KeyPressType.Up);
+		void OnEnable()
+		{
+			Initialize(false);
+		}
 
-            if (TryGetComponent(out Character c))
-                c.OnRegistered += Restart;
-        }
+		void Initialize(bool isPlayer)
+		{
+			ToggleMove(MoveState.Run);
+		}
 
-        private void OnEnable()
-        {
-            Restart(false);
-        }
+		void ToggleMove(MoveState state)
+		{
+			if (_character.IsPlayer && _keyModel.alwaysRun)
+				if (state == MoveState.Sprint)
+					state = MoveState.Run;
+				else if (state == MoveState.Run)
+					state = MoveState.Sprint;
 
-        private void OnDestroy()
-        {
-            if (TryGetComponent(out Character c))
-                c.OnRegistered -= Restart;
-        }
+			moveState.Value = state;// moveState == state ? MoveState.Run : state;
+			_stateChangeTime = Time.time;
+		}
 
-        private void Restart(bool isPlayer)
-        {
-            ToggleMove(MoveState.Run);
-        }
+		void UntoggleMove(MoveState state, float time)
+		{
+			if (Time.time - _stateChangeTime > time)
+				ToggleMove(state);
+		}
 
-        private void ToggleMove(MoveState state)
-        {
-            if (input.isPlayer && _keyModel.alwaysRun)
-                if (state == MoveState.Sprint)
-                    state = MoveState.Run;
-                else if (state == MoveState.Run)
-                    state = MoveState.Sprint;
-
-            moveState = state;// moveState == state ? MoveState.Run : state;
-            stateChangeTime = Time.time;
-        }
-
-        private void UntoggleMove(MoveState state, float time)
-        {
-            if (Time.time - stateChangeTime > time)
-                ToggleMove(state);
-        }
-
-        public readonly System.Diagnostics.Stopwatch jumpTimer = new System.Diagnostics.Stopwatch();
-        public bool Jump => input.GetKey("Jump") && (!jumpTimer.IsRunning || jumpTimer.ElapsedMilliseconds >= characterBody.defaultBunnyHopRate * 1000);
-        public bool JumpHold => input.GetKey("Jump");
-        public bool ProcessStep => !jumpTimer.IsRunning || jumpTimer.ElapsedMilliseconds > 250;
-        public bool Glide => input.GetKey("Jump");
-        public bool Sprint => moveState == MoveState.Sprint;
-        public bool Walk => moveState == MoveState.Walk;
-        public bool ForceCrouch { get; set; }
-        public bool Crouch => ForceCrouch || moveState == MoveState.Crouch;
-        public bool Crawl => characterBody.wallClimb && (!characterBody.wallClimb.onlyActivateOnCrouch || Crouch);
-        public float MouseX => input.MouseX;
-        public float MouseY => input.MouseY;
-        public float Forward => (input.GetKey("Forward") ? 1 : 0) - (input.GetKey("Reverse") ? 1 : 0);
-        public float Right => (input.GetKey("Right") ? 1 : 0) - (input.GetKey("Left") ? 1 : 0);
-        public bool Interact => input.GetKey("Interact");
-        public int weaponSwitchCategory;
-        public bool Fire1 => input.GetKey("Fire");
-        public bool Fire2 => input.GetKey("Fire");
-    }
+		public readonly System.Diagnostics.Stopwatch jumpTimer = new System.Diagnostics.Stopwatch();
+		public bool Jump => _input.GetKey("Jump") && (!jumpTimer.IsRunning || jumpTimer.ElapsedMilliseconds >= _characterBody.defaultBunnyHopRate * 1000);
+		//public bool JumpHold => _input.GetKey("Jump");
+		public bool ProcessStep => !jumpTimer.IsRunning || jumpTimer.ElapsedMilliseconds > 250;
+		public bool Glide => _input.GetKey("Jump");
+		public bool Sprint => moveState.Value == MoveState.Sprint;
+		public bool Walk => moveState.Value == MoveState.Walk;
+		public bool ForceCrouch { get; set; }
+		public bool Crouch => ForceCrouch || moveState.Value == MoveState.Crouch;
+		public bool Crawl => _characterBody.wallClimb && (!_characterBody.wallClimb.onlyActivateOnCrouch || Crouch);
+		public float MouseX => _input.MouseX;
+		public float MouseY => _input.MouseY;
+		public float Forward => (_input.GetKey("Forward") ? 1 : 0) - (_input.GetKey("Reverse") ? 1 : 0);
+		public float Right => (_input.GetKey("Right") ? 1 : 0) - (_input.GetKey("Left") ? 1 : 0);
+		//public bool Interact => _input.GetKey("Interact");
+		//public int weaponSwitchCategory;
+		//public bool Fire1 => _input.GetKey("Fire");
+		//public bool Fire2 => _input.GetKey("Fire");
+	}
 }

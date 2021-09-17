@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using CharacterInfo = MPCore.CharacterInfo;
 
 namespace MPWorld
 {
@@ -27,7 +28,7 @@ namespace MPWorld
             }
 
             if(selfDamage && toucher.TryGetComponent(out MPCore.Character character))
-                instigator = character.characterInfo;
+                instigator = character.Info;
 
             if (toucher.TryGetComponent(out DamageEvent damageEvent))
             {

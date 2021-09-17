@@ -1,25 +1,23 @@
 using UnityEngine;
-
-#pragma warning disable CS0108 // Member hides inherited member; missing new keyword
-
+using System.Linq;
 
 namespace MPCore
 {
     public class CharacterVoice : MonoBehaviour
     {
-        public float hurtVolume = 0.7f;
-        public float jumpVolume = 0.1f;
-        public float hurtRepeat = 1f;
-        public AudioClip jumpSound;
-        public HurtClip[] hurtSounds;
+        [SerializeField] float hurtVolume = 0.7f;
+        [SerializeField] float jumpVolume = 0.1f;
+        [SerializeField] float hurtRepeat = 1f;
+        [SerializeField] float recoveryRate = 25f;
+        [SerializeField] AudioClip jumpSound;
+        [SerializeField] HurtClip[] hurtSounds;
 
-        //private Character character;
-        //private CharacterBody body;
-        private DamageEvent damageEvent;
-        private AudioSource voice;
-        private int damageAccumulation;
-        private float hurtTimer;
-        private bool hitSinceLastFrame;
+        DamageEvent _damage;
+        AudioSource _voiceSource;
+        float _damageAccumulation;
+        float _hurtSoundCoolDown;
+        bool _hitSinceLastFrame;
+        float _hurtSoundThreshold;
 
         [System.Serializable]
         public struct HurtClip
@@ -30,42 +28,30 @@ namespace MPCore
 
         private void Awake()
         {
-            TryGetComponent(out voice);
+            _hurtSoundThreshold = hurtSounds.Select(s => s.damageThreshold).Min();
 
-            gameObject.TryGetComponentInParent(out damageEvent);
-            //transform.TryGetComponentInParent(out body);
-            //transform.TryGetComponentInParent(out character);
+            TryGetComponent(out _voiceSource);
+            gameObject.TryGetComponentInParent(out _damage);
 
-            damageEvent.OnHit += OnHurt;
+            _damage.OnHit += OnHurt;
         }
-
-        //private void OnEnable()
-        //{
-        //    //body.JumpCallback += PlayJump;
-        //    //body.WalljumpCallback += PlayJump;
-        //}
-
-        //private void OnDisable()
-        //{
-        //    //body.JumpCallback -= PlayJump;
-        //    //body.WalljumpCallback -= PlayJump;
-        //}
 
         private void OnDestroy()
         {
-            damageEvent.OnHit -= OnHurt;
+            _damage.OnHit -= OnHurt;
         }
 
         private void Update()
         {
 
-            if(hurtTimer > 0)
-                hurtTimer -= Time.deltaTime;
+            if(_hurtSoundCoolDown > 0)
+                _hurtSoundCoolDown -= Time.deltaTime;
 
-            if (hurtTimer <= 0 && damageAccumulation > 0 && hitSinceLastFrame)
+            if (_hurtSoundCoolDown <= 0 && _damageAccumulation > _hurtSoundThreshold && _hitSinceLastFrame)
                 PlayHurt();
 
-            hitSinceLastFrame = false;
+            _damageAccumulation = Mathf.MoveTowards(_damageAccumulation, 0f, recoveryRate * Time.deltaTime);
+            _hitSinceLastFrame = false;
         }
 
         private void PlayHurt()
@@ -74,33 +60,33 @@ namespace MPCore
             HurtClip last = default;
 
             foreach (HurtClip hc in hurtSounds)
-                if (damageAccumulation <= hc.damageThreshold)
+                if (_damageAccumulation <= hc.damageThreshold)
                     break;
                 else
                     last = hc;
 
             if(last.clip)
             {
-                voice.volume = hurtVolume;
-                voice.clip = last.clip;
-                voice.Play();
+                _voiceSource.volume = hurtVolume;
+                _voiceSource.clip = last.clip;
+                _voiceSource.Play();
             }
 
-            hurtTimer = hurtRepeat;
-            damageAccumulation = 0;
+            _hurtSoundCoolDown = hurtRepeat;
+            _damageAccumulation = 0;
         }
 
         public void PlayJump()
         {
-            voice.volume = jumpVolume;
-            voice.clip = jumpSound;
-            voice.Play();
+            _voiceSource.volume = jumpVolume;
+            _voiceSource.clip = jumpSound;
+            _voiceSource.Play();
         }
 
         private void OnHurt(DamageTicket ticket)
         {
-            damageAccumulation += ticket.damage;
-            hitSinceLastFrame = true;
+            _damageAccumulation += ticket.deltaValue;
+            _hitSinceLastFrame = true;
         }
     }
 }

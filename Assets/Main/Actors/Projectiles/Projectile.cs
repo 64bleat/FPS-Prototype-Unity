@@ -1,5 +1,4 @@
 ﻿using MPWorld;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace MPCore
@@ -8,96 +7,104 @@ namespace MPCore
     [RequireComponent(typeof(GravityZonePoint))]
     public class Projectile : MonoBehaviour
     {
-        public ProjectileShared shared;
-        public Transform visuals;
-
-        //public delegate void HitDelegate(RaycastHit hit);
-        //public event HitDelegate OnHit;
-
-        private CharacterInfo instigator;
-        private GameObject owner;
-        private float lifeTime;
-        private float travelDistance;
-        private bool hasHitWall;
-        private IGravityUser body;
-        private SphereCollider sphere;
-
-        private static LayerMask layerMask;
-        private static LayerMask playerMask;
-        private static readonly Collider[] cBuffer = new Collider[5];
-        private static readonly string[] layerMaskNames = new string[]{
+        private static LayerMask _layerMask;
+        private static LayerMask _playerMask;
+        private static readonly Collider[] _cBuffer = new Collider[5];
+        static readonly Collider[] explosionTargets = new Collider[20];
+        private static readonly string[] _layerMaskNames = new string[]{
             "Default",
             "Physical",
             "Player"};
 
-        private void Awake()
-        {
-            layerMask = LayerMask.GetMask(layerMaskNames);
-            playerMask = LayerMask.GetMask("Player");
+        public ProjectileShared shared;
+        public Transform visuals;
 
-            TryGetComponent(out sphere);
-            TryGetComponent(out body);
-            
-            //OnHit += Hit;
+        CharacterInfo _instigator;
+        GameObject _owner;
+        float _lifeTime;
+        float _travelDistance;
+        bool _hasHitWall;
+        IGravityUser _physics;
+        SphereCollider _collider;
+
+        struct MyRaycastHit
+        {
+            public Collider collider;
+            public Vector3 point;
+            public Vector3 normal;
+        }
+
+        void Awake()
+        {
+            _layerMask = LayerMask.GetMask(_layerMaskNames);
+            _playerMask = LayerMask.GetMask("Player");
+
+            TryGetComponent(out _collider);
+            TryGetComponent(out _physics);
         }
 
         private void OnEnable()
         {            
             // mechanics
-            hasHitWall = false;
-            transform.localScale = new Vector3(1, 1, 1);
-            lifeTime = Random.Range(-shared.lifeSpanDeviation, shared.lifeSpanDeviation);
-            travelDistance = 0f;
-            body.Velocity = transform.forward * shared.exitSpeed;
+            _hasHitWall = false;
+            transform.localScale = Vector3.one;
+            _lifeTime = Random.Range(-shared.lifeSpanDeviation, shared.lifeSpanDeviation);
+            _travelDistance = 0f;
+            _physics.Velocity = transform.forward * shared.exitSpeed;
         }
 
-        private void FixedUpdate()
+        void FixedUpdate()
         {
             Vector3 position = transform.position;
             Quaternion rotation = transform.rotation;
             float dt = Time.fixedDeltaTime;
-
-            lifeTime += dt;
-
-            // Subfixed Update
             float sdt = dt; // sub-delta-time
             int fb = shared.hitsPerFrame;
-            while (body.Velocity.sqrMagnitude != 0 && sdt > 0 && fb-- > 0)
+
+            _lifeTime += dt;
+
+            // Subfixed Update
+            while (_physics.Velocity.sqrMagnitude != 0 && sdt > 0 && fb-- > 0)
             {
-                if (Physics.SphereCast(position, sphere.radius, body.Velocity, out RaycastHit hit, body.Velocity.magnitude * sdt, layerMask))
+                if (Physics.SphereCast(position, _collider.radius, _physics.Velocity, out RaycastHit hit, _physics.Velocity.magnitude * sdt, _layerMask))
                 {
-                    if (hasHitWall || hit.collider.gameObject != owner || travelDistance > 2f)
+                    if (_hasHitWall || hit.collider.gameObject != _owner || _travelDistance > 2f)
                     {
-                        travelDistance += hit.distance;
-                        position += body.Velocity.normalized * hit.distance;
-                        sdt -= hit.distance / body.Velocity.magnitude;
-                        //OnHit?.Invoke(hit);
-                        Hit(new MyRaycastHit(){
+                        MyRaycastHit myHit = new MyRaycastHit()
+                        {
                             collider = hit.collider,
                             point = hit.point,
-                            normal = hit.normal});
+                            normal = hit.normal
+                        };
+
+                        _travelDistance += hit.distance;
+                        position += _physics.Velocity.normalized * hit.distance;
+                        sdt -= hit.distance / _physics.Velocity.magnitude;
+
+                        Hit(myHit);
 
                         if (!gameObject || !gameObject.activeSelf)
                             return;
                     }
                 }
                 else
+                {
+                    _travelDistance += _physics.Velocity.magnitude * sdt;
+                    position += _physics.Velocity * sdt;
                     break;
+                }
             }
 
-            if (sdt > 0)
-            {
-                travelDistance += body.Velocity.magnitude * sdt;
-                position += body.Velocity * sdt;
-            }
+            // Velocity and Rotation
+            _physics.Velocity += 2 * _physics.Gravity * dt * shared.gravityFactor;
+            Quaternion lookRotation = Quaternion.LookRotation(_physics.Velocity, transform.up);
 
-            body.Velocity += 2 * body.Gravity * dt * shared.gravityFactor;
             transform.SetPositionAndRotation(
                 position,
-                Quaternion.Lerp(rotation, Quaternion.LookRotation(body.Velocity, transform.up), body.Velocity.sqrMagnitude));
+                Quaternion.Lerp(rotation, lookRotation, _physics.Velocity.sqrMagnitude));
 
             // Make Fade Component
-            if (lifeTime > shared.lifeSpan)
+            if (_lifeTime > shared.lifeSpan)
             {
                 transform.localScale *= 1f - 10 * dt;
 
@@ -106,18 +113,11 @@ namespace MPCore
             }
 
             // Visual offset effect
-            if (!hasHitWall && visuals)
+            if (!_hasHitWall && visuals)
                 visuals.localPosition -= Vector3.ClampMagnitude(visuals.localPosition, Mathf.Min(visuals.localPosition.magnitude, dt / 0.5f));
         }
 
-        private struct MyRaycastHit
-        {
-            public Collider collider;
-            public Vector3 point;
-            public Vector3 normal;
-        }
-
-        private void AddForce(Collider collider, float momentumMag, MyRaycastHit hit)
+        void AddForce(Collider collider, float momentumMag, MyRaycastHit hit)
         {
             Vector3 momentum;
             Rigidbody rigidbody = collider.attachedRigidbody;
@@ -125,24 +125,24 @@ namespace MPCore
             if (collider.TryGetComponentInParent(out Character _))
                 momentumMag *= shared.characterHitMomentumScale;
 
-            momentum = (this.body.Velocity - Vector3.ProjectOnPlane(this.body.Velocity, hit.normal) * (1 - shared.hitFrictionFactor)).normalized * momentumMag;
-            momentum *= this.body.Velocity.magnitude / shared.exitSpeed;
+            momentum = (this._physics.Velocity - Vector3.ProjectOnPlane(this._physics.Velocity, hit.normal) * (1 - shared.hitFrictionFactor)).normalized * momentumMag;
+            momentum *= this._physics.Velocity.magnitude / shared.exitSpeed;
 
             if (rigidbody && !rigidbody.isKinematic)
             {
                 momentum /= Mathf.Max(1, shared.minimumTransferMass / rigidbody.mass);
                 rigidbody.AddForceAtPosition(momentum, hit.point, ForceMode.Impulse);
-                this.body.Velocity += Vector3.Project(rigidbody.velocity, hit.normal);
+                this._physics.Velocity += Vector3.Project(rigidbody.velocity, hit.normal);
             }
             else if (collider.TryGetComponent(out IGravityUser gravityUser))
             {
                 momentum /= Mathf.Max(1, shared.minimumTransferMass / gravityUser.Mass);
                 gravityUser.Velocity += momentum * Time.fixedDeltaTime;
-                this.body.Velocity += Vector3.Project(gravityUser.Velocity, hit.normal);
+                this._physics.Velocity += Vector3.Project(gravityUser.Velocity, hit.normal);
             }
         }
 
-        private void AddForce2(Collider collider, float momentumMag, MyRaycastHit hit)
+        void AddForce2(Collider collider, float momentumMag, MyRaycastHit hit)
         {
             Rigidbody rigidbody = collider.attachedRigidbody;
             Vector3 momentum = -hit.normal * momentumMag;
@@ -154,19 +154,19 @@ namespace MPCore
             {
                 momentum /= Mathf.Max(1, shared.minimumTransferMass / rigidbody.mass);
                 rigidbody.AddForceAtPosition(momentum, hit.point, ForceMode.Impulse);
-                this.body.Velocity += Vector3.Project(rigidbody.velocity, hit.normal);
+                this._physics.Velocity += Vector3.Project(rigidbody.velocity, hit.normal);
             }
             else if (collider.TryGetComponent(out IGravityUser gravityUser))
             {
                 momentum /= Mathf.Max(1, shared.minimumTransferMass / gravityUser.Mass);
                 gravityUser.Velocity += momentum * Time.fixedDeltaTime;
-                this.body.Velocity += Vector3.Project(gravityUser.Velocity, hit.normal);
+                this._physics.Velocity += Vector3.Project(gravityUser.Velocity, hit.normal);
             }
         }
 
-        private void Hit(MyRaycastHit hit)
+        void Hit(MyRaycastHit hit)
         {
-            Vector3 hitVelocity = this.body.Velocity;
+            Vector3 hitVelocity = this._physics.Velocity;
             Vector3 direction = Vector3.ProjectOnPlane(Random.insideUnitSphere, hit.normal);
             Quaternion rotation = Quaternion.LookRotation(direction, hit.normal);
 
@@ -214,7 +214,7 @@ namespace MPCore
             }
 
             if (hit.collider.TryGetComponentInParent(out DamageEvent damageEvenht))
-                damageEvenht.Damage(shared.hitDamage, owner, instigator, shared.damageType, hitVelocity);
+                damageEvenht.Damage(shared.hitDamage, _owner, _instigator, shared.damageType, hitVelocity);
 
             switch (hitEffect.hitBehaviour)
             {
@@ -234,8 +234,7 @@ namespace MPCore
             }
         }
 
-        private static readonly Collider[] explosionTargets = new Collider[20];
-        private void Explode(MyRaycastHit hit)
+        void Explode(MyRaycastHit hit)
         {
             if (shared.explosionEffect)
             {
@@ -244,16 +243,16 @@ namespace MPCore
                 GameObjectPool.GetPool(shared.explosionEffect, 50).Spawn(hit.point, rotation);
             }
 
-            float keepRadius = sphere.radius;
-            int count = Physics.OverlapSphereNonAlloc(transform.position, shared.explosionRadius, explosionTargets, layerMask, QueryTriggerInteraction.Ignore);
+            float keepRadius = _collider.radius;
+            int count = Physics.OverlapSphereNonAlloc(transform.position, shared.explosionRadius, explosionTargets, _layerMask, QueryTriggerInteraction.Ignore);
 
-            sphere.radius = shared.explosionRadius;
+            _collider.radius = shared.explosionRadius;
 
             for(int i = 0; i < count; i++)
             {
                 hit.collider = explosionTargets[i];
 
-                if(Physics.ComputePenetration(hit.collider, hit.collider.transform.position, hit.collider.transform.rotation, sphere, transform.position, transform.rotation, out Vector3 direction, out float distance))
+                if(Physics.ComputePenetration(hit.collider, hit.collider.transform.position, hit.collider.transform.rotation, _collider, transform.position, transform.rotation, out Vector3 direction, out float distance))
                 {
                     float explodeFactor = Mathf.Sqrt(Mathf.Clamp01(distance / shared.explosionRadius));
 
@@ -269,10 +268,10 @@ namespace MPCore
                     {
                         int damage = (int)(shared.explosionDamage * explodeFactor);
 
-                        if(hit.collider.TryGetComponent(out Character character) && character.characterInfo == instigator)
+                        if(hit.collider.TryGetComponent(out Character character) && character.Info == _instigator)
                             damage = (int)(shared.selfDamageScale * damage);
 
-                        damageEvent.Damage(damage, owner, instigator, shared.damageType, direction);
+                        damageEvent.Damage(damage, _owner, _instigator, shared.damageType, direction);
                     }
 
                     hit.normal = -direction;
@@ -280,29 +279,29 @@ namespace MPCore
                 }
             }
 
-            sphere.radius = keepRadius;
+            _collider.radius = keepRadius;
             GameObjectPool.Deactivate(gameObject);
         }
 
-        private void Reflect(MyRaycastHit hit)
+        void Reflect(MyRaycastHit hit)
         {
-            float hitDot = Vector3.Dot(this.body.Velocity.normalized, hit.normal);
+            float hitDot = Vector3.Dot(this._physics.Velocity.normalized, hit.normal);
 
             if (hitDot < 0)
-                this.body.Velocity = Vector3.Reflect(this.body.Velocity * Mathf.Lerp(shared.bounceScaleMax, shared.bounceScaleMin, -hitDot), hit.normal);
+                this._physics.Velocity = Vector3.Reflect(this._physics.Velocity * Mathf.Lerp(shared.bounceScaleMax, shared.bounceScaleMin, -hitDot), hit.normal);
 
-            this.body.Velocity = Vector3.RotateTowards(this.body.Velocity, Random.onUnitSphere, shared.bounceAngle * Mathf.Deg2Rad * Random.value, 0);
+            this._physics.Velocity = Vector3.RotateTowards(this._physics.Velocity, Random.onUnitSphere, shared.bounceAngle * Mathf.Deg2Rad * Random.value, 0);
 
-            if (!hasHitWall)
+            if (!_hasHitWall)
             {
-                hasHitWall = true;
-                int overlapCount = Physics.OverlapSphereNonAlloc(transform.position, sphere.radius, cBuffer, playerMask);
+                _hasHitWall = true;
+                int overlapCount = Physics.OverlapSphereNonAlloc(transform.position, _collider.radius, _cBuffer, _playerMask);
 
                 for (int i = 0; i < overlapCount; i++)
-                    if (cBuffer[i].TryGetComponent(out Character ch))
+                    if (_cBuffer[i].TryGetComponent(out Character ch))
                     {
                         ch.TryGetComponent(out hit.collider);
-                        hit.normal = -this.body.Velocity.normalized;
+                        hit.normal = -this._physics.Velocity.normalized;
                         Hit(hit);
                     }
             }
@@ -339,8 +338,8 @@ namespace MPCore
                     if (o.TryGetComponent(out Projectile p))
                     {
                         p.visuals.position = firePoint.position;
-                        p.owner = owner;
-                        p.instigator = instigator;
+                        p._owner = owner;
+                        p._instigator = instigator;
 
                         if (o.TryGetComponent(out IGravityUser gu))
                         {

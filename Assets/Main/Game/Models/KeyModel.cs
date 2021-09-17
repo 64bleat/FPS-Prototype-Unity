@@ -6,7 +6,7 @@ namespace MPCore
     {
         public List<KeyBind> keys;
         public List<KeyBindLayer> keyOrder;
-        public ScriptFloat[] values;
+        //public ScriptFloat[] values;
         public DataValue<float> mouseSensitivity = new DataValue<float>();
         public DataValue<float> sprintToggleTime = new DataValue<float>();
         public DataValue<float> walkToggleTime = new DataValue<float>();

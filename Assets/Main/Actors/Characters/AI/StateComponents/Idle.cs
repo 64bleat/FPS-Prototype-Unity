@@ -23,7 +23,7 @@ namespace MPCore.AI
         private bool enabled = false;
         private Transform transform;
         private Animator animator;
-        private InventoryContainer container;
+        private InventoryManager container;
         private CharacterBody body;
         private DamageEvent damageEvent;
         private InputManager input;
@@ -256,10 +256,10 @@ namespace MPCore.AI
                             sightTarget = (candidate, priority);
                     }
                     else if (candidate is InventoryPickup io)
-                        if (io.inventory is HealthPickup hp && character.health != null && character.health.value < character.health.maxValue * hp.percentOfMax)
+                        if (io.inventory is HealthPickup hp && character.Health != null && character.Health.Value < character.Health.MaxValue)
                         {
                             float distance = Vector3.Distance(transform.position, candidate.transform.position);
-                            float healthPriority = 1f - character.health.value / character.health.maxValue * hp.percentOfMax;
+                            float healthPriority = 1f - character.Health.Value / character.Health.MaxValue;
                             float priority = healthPriority / distance * 0.5f;
 
                             if (priority > omniTarget.bestPriority)
@@ -438,7 +438,7 @@ namespace MPCore.AI
             else if (rAngle > 112.5)
                 input.BotKeyDown("Left");
 
-            if (!character.isPlayer || !_keyModel.alwaysRun)
+            if (!character.IsPlayer || !_keyModel.alwaysRun)
                 input.BotKeyDown("Sprint");
 
             if (body.currentState == CharacterBody.MoveState.Grounded)

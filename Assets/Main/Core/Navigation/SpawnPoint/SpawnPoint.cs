@@ -52,9 +52,12 @@ namespace MPCore
             return null;
         }
 
-        public GameObject Spawn(GameObject reference)
+        /// <summary>
+        /// Instantiate a Prefab at this spawn point
+        /// </summary>
+        public T Spawn<T>(T reference) where T: Component
         {
-            GameObject instance = Instantiate(reference, transform.position, transform.rotation);
+            T instance = Instantiate(reference, transform.position, transform.rotation);
 
             if (instance.TryGetComponent(out Collider c))
                 instance.transform.position += transform.up * c.bounds.extents.y;

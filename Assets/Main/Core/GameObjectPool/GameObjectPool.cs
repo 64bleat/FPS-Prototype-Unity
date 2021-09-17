@@ -12,7 +12,7 @@ namespace MPCore
         public GameObject resource;
         public readonly Queue<GameObject> instances = new Queue<GameObject>();
 
-        private void OnDestroy()
+        void OnDestroy()
         {
             pools.Remove(resource);
         }
@@ -20,7 +20,7 @@ namespace MPCore
         /// <summary>
         /// Disable and return a GameObject to the pool
         /// </summary>
-        private void DeactivateInstance(GameObject instance)
+        void DeactivateInstance(GameObject instance)
         {
             instance.SetActive(false);
             instance.transform.parent = transform;
@@ -30,7 +30,7 @@ namespace MPCore
         /// <summary>
         /// Get an instance from the pool
         /// </summary>
-        private GameObject GetInstance()
+        GameObject GetInstance()
         {
             if (instances.Count == 0)
                 AddInstance();
@@ -47,11 +47,11 @@ namespace MPCore
 
             DeactivateInstance(instance);
 
-            if (!instance.TryGetComponent(out PoolReturn pr))
-                pr = instance.AddComponent<PoolReturn>();
+            if (!instance.TryGetComponent(out PoolReturn poolReturn))
+                poolReturn = instance.AddComponent<PoolReturn>();
 
             instance.name = resource.name;
-            pr.parentPool = this;
+            poolReturn.parentPool = this;
         }
 
         /// <summary>
@@ -59,18 +59,18 @@ namespace MPCore
         /// </summary>
         public GameObject Spawn(Vector3 position = default, Quaternion rotation = default, Transform parent = null)
         {
-            GameObject spawn;
+            GameObject instance;
 
             parent ??= transform;
 
-            if (spawn = GetInstance())
+            if (instance = GetInstance())
             { 
-                spawn.transform.SetPositionAndRotation(position, rotation);
-                spawn.transform.SetParent(parent, true);
-                spawn.SetActive(true);
+                instance.transform.SetPositionAndRotation(position, rotation);
+                instance.transform.SetParent(parent, true);
+                instance.SetActive(true);
             }
 
-            return spawn;
+            return instance;
         }
 
         /// <summary>
@@ -88,19 +88,21 @@ namespace MPCore
         {
             GameObjectPool pool = null;
 
+            // Make Pool
             if (resource && !pools.TryGetValue(resource, out pool))
-            {// Make Pool
+            {
                 pool = new GameObject().AddComponent<GameObjectPool>();
                 pool.gameObject.AddComponent<XMLSerializeable>();
-                pool.name = "Pool: " + resource.name;
+                pool.name = $"Pool: {resource.name}";
                 pool.resource = resource;
 
-                if(pool.resource && pool.resource.TryGetComponent(out XMLSerializeable po))
+                if(pool.resource.TryGetComponent(out XMLSerializeable po))
                     pool.resourcePath = po.resourceID;
 
                 pools.Add(resource, pool);
             }
 
+            // Ensure instance count
             if (pool)
                 for (int i = pool.transform.childCount; i < minCount; i++)
                     pool.AddInstance();
@@ -108,7 +110,6 @@ namespace MPCore
             return pool;
         }
  
-
         public static void Deactivate(GameObject instance)
         {
             if (instance.TryGetComponent(out PoolReturn pr) && pr.parentPool)

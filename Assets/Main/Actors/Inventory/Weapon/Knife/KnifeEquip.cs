@@ -35,7 +35,7 @@ namespace MPCore
             c.TryGetComponentInParent(out input);
             c.TryGetComponentInParent(out character);
             c.TryGetComponentInParent(out audio);
-            instigator = character.characterInfo;
+            instigator = character.Info;
             
 
             if (c.TryGetComponentInParent(out CharacterBody cb))

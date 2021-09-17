@@ -5,248 +5,231 @@ using UnityEngine.EventSystems;
 
 namespace MPGUI
 {
-    /// <summary>
-    /// ROOT COMPONENT:
-    ///     This controls all input related to GUI.
-    /// </summary>
-    public class GUIInputManager : MonoBehaviour
-    {
-        private static readonly KeyCode[] MOUSE_KEYS = {
-            KeyCode.Mouse0, KeyCode.Mouse1, KeyCode.Mouse2,
-            KeyCode.Mouse3, KeyCode.Mouse4, KeyCode.Mouse5};
-        private static readonly KeyCode[] MODIFIERS = { 
-            KeyCode.LeftShift, KeyCode.RightShift,
-            KeyCode.LeftAlt, KeyCode.RightAlt,
-            KeyCode.LeftControl, KeyCode.RightControl };
-        internal static readonly Dictionary<KeyCode, uint> bitmask = new Dictionary<KeyCode, uint>() {
-            {KeyCode.Mouse0, 1 << 0 },
-            {KeyCode.Mouse1, 1 << 1 },
-            {KeyCode.Mouse2, 1 << 2 },
-            {KeyCode.Mouse3, 1 << 3 },
-            {KeyCode.Mouse4, 1 << 4 },
-            {KeyCode.Mouse5, 1 << 5 },
-            {KeyCode.LeftShift, 1 << 6 },
-            {KeyCode.RightShift, 1 << 6},
-            {KeyCode.LeftAlt, 1 << 7 },
-            {KeyCode.RightAlt, 1 << 7 },
-            {KeyCode.LeftControl, 1 << 8 },
-            {KeyCode.RightControl, 1 << 8 }};
+	/// <summary>
+	/// ROOT COMPONENT:
+	///     This controls all input related to GUI.
+	/// </summary>
+	public class GUIInputManager : MonoBehaviour
+	{
+		static readonly KeyCode[] MOUSE_KEYS = {
+			KeyCode.Mouse0, KeyCode.Mouse1, KeyCode.Mouse2,
+			KeyCode.Mouse3, KeyCode.Mouse4, KeyCode.Mouse5};
+		static readonly KeyCode[] MODIFIERS = {
+			KeyCode.LeftShift, KeyCode.RightShift,
+			KeyCode.LeftAlt, KeyCode.RightAlt,
+			KeyCode.LeftControl, KeyCode.RightControl };
+		public static readonly Dictionary<KeyCode, uint> BITMASK = new() {
+			{KeyCode.Mouse0, 1 << 0 },
+			{KeyCode.Mouse1, 1 << 1 },
+			{KeyCode.Mouse2, 1 << 2 },
+			{KeyCode.Mouse3, 1 << 3 },
+			{KeyCode.Mouse4, 1 << 4 },
+			{KeyCode.Mouse5, 1 << 5 },
+			{KeyCode.LeftShift, 1 << 6 },
+			{KeyCode.RightShift, 1 << 6},
+			{KeyCode.LeftAlt, 1 << 7 },
+			{KeyCode.RightAlt, 1 << 7 },
+			{KeyCode.LeftControl, 1 << 8 },
+			{KeyCode.RightControl, 1 << 8 }};
 
-        private static PointerEventData ped;
-        private static readonly List<RaycastResult> mouseCastList = new List<RaycastResult>();
-        private static readonly HashSet<IGUISelectable> selectionAddHash = new HashSet<IGUISelectable>();
-        private static readonly List<IGUISelectable> selectionAddList = new List<IGUISelectable>();
+		static readonly List<RaycastResult> _mouseCastList = new();
+		static readonly HashSet<IGUISelectable> _selectionAddHash = new();
+		static readonly List<IGUISelectable> _selectionAddList = new();
+		static readonly List<IClickable> _clickableBuffer = new(50);
+		static readonly MouseInfo _mRaw = new();
+		static PointerEventData _pointer;
 
-        private readonly List<IGUISelectable> selectionCurrentList = new List<IGUISelectable>();
-        private readonly HashSet<IGUISelectable> selectionCurrentHash = new HashSet<IGUISelectable>();
-        private readonly MouseInfo mDown = new MouseInfo();
-        private static readonly MouseInfo mRaw = new MouseInfo();
+		readonly List<IGUISelectable> _selectionCurrentList = new();
+		readonly HashSet<IGUISelectable> _selectionCurrentHash = new();
+		readonly MouseInfo _mDown = new();
 
-        private void OnEnable()
-        {
-            ped = new PointerEventData(EventSystem.current);
-        }
+		void OnEnable()
+		{
+			_pointer = new PointerEventData(EventSystem.current);
+		}
 
-        private void LateUpdate()
-        {
-            GetMouseInfo(mRaw);
+		void LateUpdate()
+		{
+			GetMouseInfo(_mRaw);
 
-            uint downKeyMask = 0;
-            uint holdKeyMask = 0;
+			uint downKeyMask = 0;
+			uint holdKeyMask = 0;
 
-            // Get mouse buttons down
-            for (int i = 0; i < MOUSE_KEYS.Length; i++)
-                if(bitmask.TryGetValue(MOUSE_KEYS[i], out uint bit)
-                    && Input.GetKeyDown(MOUSE_KEYS[i]))
-                    downKeyMask |= bit;
+			// Get mouse buttons down
+			foreach(KeyCode mouseKey in MOUSE_KEYS)
+				if(Input.GetKeyDown(mouseKey))
+					downKeyMask |= BITMASK[mouseKey];
 
-            // Get mouse buttons held
-            for (int i = 0; i < MOUSE_KEYS.Length; i++)
-                if (bitmask.TryGetValue(MOUSE_KEYS[i], out uint bit)
-                    && Input.GetKey(MOUSE_KEYS[i]))
-                    holdKeyMask |= bit;
+			// Get mouse buttons held
+			foreach(KeyCode mouseKey in MOUSE_KEYS)
+				if(Input.GetKey(mouseKey))
+					holdKeyMask |= BITMASK[mouseKey];
 
-            if (!mDown.downInfo.isValid && downKeyMask != 0) // MOUSE DOWN
-            {
-                GetSelectables(mRaw.downInfo.gameObject, selectionAddList);
-                Select(selectionAddList);
+			if(!_mDown.downInfo.isValid && downKeyMask != 0) // MOUSE DOWN
+			{
+				GetSelectables(_mRaw.downInfo.gameObject, _selectionAddList);
+				Select(_selectionAddList);
 
-                // Get modifiers held
-                for (int i = 0; i < MODIFIERS.Length; i++)
-                    if (bitmask.TryGetValue(MODIFIERS[i], out uint bit)
-                        && Input.GetKey(MODIFIERS[i]))
-                        downKeyMask |= bit;
+				// Get modifiers held
+				foreach(KeyCode modKey in MODIFIERS)
+					if(Input.GetKey(modKey))
+						downKeyMask |= BITMASK[modKey];
 
-                //mDown = current;
-                mDown.keyMask = downKeyMask;
-                mDown.downTime = Time.time;
-                mDown.downInfo = mRaw.downInfo;
-                mDown.holdInfo = default;
-                mDown.upInfo = default;
-                mDown.Invoke(PressType.Down);
-            }
-            else if (mDown.downInfo.isValid && holdKeyMask != 0) // Mouse HOLD
-            {
-                mDown.holdInfo = mRaw.downInfo;
-                mDown.Invoke(PressType.Hold);
-            }
-            else if (mDown.downInfo.isValid && holdKeyMask == 0) // Mouse Up
-            {
-                mDown.upInfo = mRaw.downInfo;
+				//mDown = current;
+				_mDown.keyMask = downKeyMask;
+				_mDown.downTime = Time.time;
+				_mDown.downInfo = _mRaw.downInfo;
+				_mDown.holdInfo = default;
+				_mDown.upInfo = default;
+				//_mDown.Invoke(PressType.Down);
+				Invoke(_mDown, PressType.Down);
+			}
+			else if(_mDown.downInfo.isValid && holdKeyMask != 0) // Mouse HOLD
+			{
+				_mDown.holdInfo = _mRaw.downInfo;
+				//_mDown.Invoke(PressType.Hold);
+				Invoke(_mDown, PressType.Hold);
+			}
+			else if(_mDown.downInfo.isValid && holdKeyMask == 0) // Mouse Up
+			{
+				_mDown.upInfo = _mRaw.downInfo;
 
-                if (mDown.downInfo.gameObject && mDown.upInfo.gameObject && mDown.downInfo.gameObject.Equals(mDown.upInfo.gameObject))
-                    mDown?.Invoke(PressType.Click);
-                else
-                    mDown?.Invoke(PressType.Up);
+				if(_mDown.downInfo.gameObject && _mDown.upInfo.gameObject && _mDown.downInfo.gameObject.Equals(_mDown.upInfo.gameObject))
+					//_mDown?.Invoke(PressType.Click);
+					Invoke(_mDown, PressType.Click);
+				else
+					//_mDown?.Invoke(PressType.Up);
+					Invoke(_mDown, PressType.Up);
 
-                mDown.keyMask = 0u;
-                mDown.downTime = 0;
-                mDown.downInfo = default;
-                mDown.holdInfo = default;
-                mDown.upInfo = default;
+				_mDown.keyMask = 0u;
+				_mDown.downTime = 0;
+				_mDown.downInfo = default;
+				_mDown.holdInfo = default;
+				_mDown.upInfo = default;
 
-            }
-            else if (mRaw.downInfo.isValid) // Mouse Hover
-            {
-                mRaw.Invoke(PressType.Hover);
-            }
-        }
+			}
+			else if(_mRaw.downInfo.isValid) // Mouse Hover
+			{
+				//_mRaw.Invoke(PressType.Hover);
+				Invoke(_mRaw, PressType.Hover);
+			}
+		}
 
-        private static void GetSelectables(GameObject g, List<IGUISelectable> list)
-        {
-            Transform t = g ? g.transform : null;
+		static void Invoke(MouseInfo mouseInfo, PressType type)
+		{
+			if(!mouseInfo.downInfo.gameObject)
+				return;
 
-            list.Clear();
+			mouseInfo.downInfo.gameObject.GetComponentsInParent(false, _clickableBuffer);
 
-            while (t)
-            {
-                if (t.TryGetComponent(typeof(IGUISelectable), out Component c))
-                    list.Add(c as IGUISelectable);
+			foreach(IClickable click in _clickableBuffer)
+				switch(type)
+				{
+					case PressType.Hover: click.OnMouseHover(mouseInfo); break;
+					case PressType.Down: click.OnMousePress(mouseInfo); break;
+					case PressType.Hold: click.OnMouseHold(mouseInfo); break;
+					case PressType.Up: click.OnMouseRelease(mouseInfo); break;
+					case PressType.Click: click.OnMouseClick(mouseInfo); break;
+				}
+		}
 
-                t = t.parent;
-            }
+		static void GetSelectables(GameObject g, List<IGUISelectable> list)
+		{
+			Transform t = g ? g.transform : null;
 
-            list.Reverse();
-        }
+			list.Clear();
 
-        public void Select(List<IGUISelectable> addSelection)
-        {
-            selectionAddHash.Clear();
-            foreach (IGUISelectable s in addSelection)
-                selectionAddHash.Add(s);
+			while(t)
+			{
+				if(t.TryGetComponent(typeof(IGUISelectable), out Component c))
+					list.Add(c as IGUISelectable);
 
-            selectionCurrentList.Reverse();
+				t = t.parent;
+			}
 
-            foreach (IGUISelectable s in selectionCurrentList)
-                if (!selectionAddHash.Contains(s))
-                    s.OnDeselect();
+			list.Reverse();
+		}
 
-            foreach (IGUISelectable s in addSelection)
-                if (!selectionCurrentHash.Contains(s))
-                    s.OnSelect();
+		public void Select(List<IGUISelectable> addSelection)
+		{
+			_selectionAddHash.Clear();
 
-            selectionCurrentList.Clear();
-            selectionCurrentHash.Clear();
+			foreach(IGUISelectable s in addSelection)
+				_selectionAddHash.Add(s);
 
-            foreach (IGUISelectable s in addSelection)
-            {
-                selectionCurrentList.Add(s);
-                selectionCurrentHash.Add(s);
-            }
-        }
+			_selectionCurrentList.Reverse();
 
-        public void Deselect(IGUISelectable select)
-        {
-            if (selectionCurrentHash.Contains(select))
-            {
-                select.OnDeselect();
-                selectionCurrentHash.Remove(select);
-                selectionCurrentList.Remove(select);
-            }
-        }
+			foreach(IGUISelectable s in _selectionCurrentList)
+				if(!_selectionAddHash.Contains(s))
+					s.OnDeselect();
 
-        private static void GetMouseInfo(MouseInfo mouse)
-        {
-            int topDepth = int.MinValue;
-            RaycastResult topObject = default;
+			foreach(IGUISelectable s in addSelection)
+				if(!_selectionCurrentHash.Contains(s))
+					s.OnSelect();
 
-            ped.position = Input.mousePosition;
+			_selectionCurrentList.Clear();
+			_selectionCurrentHash.Clear();
 
-            EventSystem.current.RaycastAll(ped, mouseCastList);
-            topObject.screenPosition = Input.mousePosition;
-            topObject.worldPosition = Input.mousePosition;
+			foreach(IGUISelectable s in addSelection)
+			{
+				_selectionCurrentList.Add(s);
+				_selectionCurrentHash.Add(s);
+			}
+		}
 
-            for(int i = 0, ie = mouseCastList.Count; i < ie; i++)
-                if(mouseCastList[i].depth > topDepth)
-                {
-                    topDepth = mouseCastList[i].depth;
-                    topObject = mouseCastList[i];
-                }
+		public void Deselect(IGUISelectable select)
+		{
+			if(_selectionCurrentHash.Contains(select))
+			{
+				select.OnDeselect();
+				_selectionCurrentHash.Remove(select);
+				_selectionCurrentList.Remove(select);
+			}
+		}
 
-            mouseCastList.Clear();
+		static void GetMouseInfo(MouseInfo mouse)
+		{
+			int topDepth = int.MinValue;
+			RaycastResult topObject = default;
 
-            mouse.keyMask = 0;
-            mouse.downInfo = topObject;
-            mouse.holdInfo = default;
-            mouse.upInfo = default;
-            mouse.downTime = Time.time;
-        }
-    }
+			_pointer.position = Input.mousePosition;
 
-    public enum PressType { Hover, Down, Hold, Up, Click }
-    public class MouseInfo
-    {
-        public uint keyMask;
-        public RaycastResult downInfo;
-        public RaycastResult holdInfo;
-        public RaycastResult upInfo;
-        public float downTime;
+			EventSystem.current.RaycastAll(_pointer, _mouseCastList);
+			topObject.screenPosition = Input.mousePosition;
+			topObject.worldPosition = Input.mousePosition;
 
-        public bool Contains(KeyCode press)
-        {
-            if (GUIInputManager.bitmask.TryGetValue(press, out uint bit))
-                return (keyMask & bit) != 0;
-            else 
-                return false;
-        }
+			for(int i = 0, ie = _mouseCastList.Count; i < ie; i++)
+				if(_mouseCastList[i].depth > topDepth)
+				{
+					topDepth = _mouseCastList[i].depth;
+					topObject = _mouseCastList[i];
+				}
 
-        public void Invoke(PressType type)
-        {
-            // WHY DOES THIS NOT WORK I DON'T WANNA ALLOCATE MEMORY
-            //if (downInfo.gameObject)
-            //{
-            //    Transform t = downInfo.gameObject.transform;
+			_mouseCastList.Clear();
 
-            //    while (t)
-            //    {
-            //        if (t.TryGetComponent(typeof(IGUIClickable), out Component c))
-            //        {
-            //            IGUIClickable click = c as IGUIClickable;
+			mouse.keyMask = 0;
+			mouse.downInfo = topObject;
+			mouse.holdInfo = default;
+			mouse.upInfo = default;
+			mouse.downTime = Time.time;
+		}
+	}
 
-            //            switch (type)
-            //            {
-            //                case PressType.Hover: click.OnMouseHover(this); break;
-            //                case PressType.Down: click.OnMousePress(this); break;
-            //                case PressType.Hold: click.OnMouseHold(this); break;
-            //                case PressType.Up: click.OnMouseRelease(this); break;
-            //                case PressType.Click: click.OnMouseClick(this); break;
-            //            }
-            //        }
+	public enum PressType { Hover, Down, Hold, Up, Click }
+	public class MouseInfo
+	{ 
+		public uint keyMask;
+		public RaycastResult downInfo;
+		public RaycastResult holdInfo;
+		public RaycastResult upInfo;
+		public float downTime;
 
-            //        t = t.parent;
-            //    }
-            //}
-
-            if (downInfo.gameObject)
-                foreach (IClickable click in downInfo.gameObject.GetComponentsInParent<IClickable>())
-                    switch (type)
-                    {
-                        case PressType.Hover: click.OnMouseHover(this); break;
-                        case PressType.Down: click.OnMousePress(this); break;
-                        case PressType.Hold: click.OnMouseHold(this); break;
-                        case PressType.Up: click.OnMouseRelease(this); break;
-                        case PressType.Click: click.OnMouseClick(this); break;
-                    }
-        }
-    }
+		public bool Contains(KeyCode press)
+		{
+			if(GUIInputManager.BITMASK.TryGetValue(press, out uint bit))
+				return (keyMask & bit) != 0;
+			else
+				return false;
+		}
+	}
 }

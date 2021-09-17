@@ -1,51 +1,40 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace MPCore
 {
-    public static class PauseManager
+    public class PauseManager : MonoBehaviour
     {
-        private static readonly HashSet<Object> pauseRequests = new HashSet<Object>();
-        private static event Action<bool> OnPauseUnPause;
+        GameModel _gameModel;
 
-        public static bool IsPaused { get; private set; } = false;
-
-        public static void Push(Object pauser)
+        void Awake()
         {
-            pauseRequests.Add(pauser);
-            SetPause(true);
+            _gameModel = Models.GetModel<GameModel>();
+            _gameModel.pauseTickets.Subscribe(CheckPauseTickets);
+            _gameModel.isPaused.Subscribe(SetPause);
         }
 
-        public static bool Pull(Object pauser)
+        void OnDestroy()
         {
-            pauseRequests.Remove(pauser);
-            SetPause(pauseRequests.Count != 0);
-
-            return !IsPaused;
+            _gameModel.isPaused.Unsubscribe(SetPause);
+            _gameModel.pauseTickets.Unsubscribe(CheckPauseTickets);
         }
 
-        public static void AddListener(Action<bool> onPauseUnPause)
+        void CheckPauseTickets(DeltaValue<int> tickets)
         {
-            OnPauseUnPause += onPauseUnPause;
-            onPauseUnPause.Invoke(IsPaused);
+            bool isPaused = tickets.newValue != 0;
+
+            if (isPaused != _gameModel.isPaused.Value)
+                _gameModel.isPaused.Value = isPaused;
         }
 
-        public static void RemoveListener(Action<bool> onPauseUnPause)
+        void SetPause(DeltaValue<bool> pause)
         {
-            OnPauseUnPause -= onPauseUnPause;
-        }
+            if (pause.newValue)
+                Cursor.lockState = CursorLockMode.Confined;
+            else
+                Cursor.lockState = CursorLockMode.Locked;
 
-        private static void SetPause(bool pause)
-        {
-            if (pause != IsPaused)
-                OnPauseUnPause?.Invoke(pause);
-
-            Cursor.lockState = pause ? CursorLockMode.Confined : CursorLockMode.Locked;
-            Cursor.visible = pause;
-
-            IsPaused = pause;
+            Cursor.visible = pause.newValue;
         }
     }
 }

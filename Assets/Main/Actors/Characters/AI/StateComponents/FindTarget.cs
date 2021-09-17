@@ -27,7 +27,7 @@ namespace MPCore.AI
             if (!animator)
                 return;
 
-            InventoryContainer container = ai.GetComponent<InventoryContainer>();
+            InventoryManager container = ai.GetComponent<InventoryManager>();
 
             Vector3 position = ai.transform.position;
 
@@ -48,8 +48,8 @@ namespace MPCore.AI
                 if(component != null
                     && component is Character compChar
                     && compChar
-                    && compChar.characterInfo
-                    && (compChar.characterInfo.team < 0 || compChar.characterInfo.team != character.characterInfo.team)
+                    && compChar.Info
+                    && (compChar.Info.team < 0 || compChar.Info.team != character.Info.team)
                     && IsTargetVisible(component, ai.viewAngle, out RaycastHit hit))
                 {
                     float distance = Vector3.Distance(position, component.transform.position);
@@ -90,11 +90,11 @@ namespace MPCore.AI
             foreach (Component component in AIBlackboard.mentalTargets)
                 if (component is InventoryPickup io)
                     if (io.inventory is HealthPickup hp 
-                        && character.health != null 
-                        && character.health?.value < character.health.maxValue * hp.percentOfMax)
+                        && character.Health != null 
+                        && character.Health?.Value < character.Health.MaxValue)
                     {
                         float distance = Vector3.Distance(position, component.transform.position);
-                        float hpFactor = 1f - character.health.value / character.health.maxValue * hp.percentOfMax;
+                        float hpFactor = 1f - character.Health.Value / character.Health.MaxValue;
                         float priority = (range - distance) * hpFactor ;
 
                         if (priority > mentalTarget.priority)

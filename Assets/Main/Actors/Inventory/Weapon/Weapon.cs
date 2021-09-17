@@ -19,37 +19,43 @@ namespace MPCore
         public float engagementRange = 100f;
         public float validFireAngle = 5;
 
-        public override bool OnDrop(GameObject owner, Vector3 position, Quaternion rotation)
+        public override bool TryDrop(GameObject owner, Vector3 position, Quaternion rotation)
         {
-            bool basePass = base.OnDrop(owner, position, rotation);
+            bool dropSuccess = base.TryDrop(owner, position, rotation);
 
-            if(basePass && owner.TryGetComponentInChildren(out WeaponSwitcher ws))
+            if(dropSuccess && owner.TryGetComponentInChildren(out WeaponSwitcher ws))
             {
                 if (this == ws.currentWeapon)
                     ws.DrawNextBestWeapon();
 
-                if (owner.TryGetComponentInChildren(out Character character) && character.isPlayer)
-                    ws.events.DropWeapon(this);
+                if (owner.TryGetComponentInChildren(out Character character) && character.IsPlayer)
+                {
+                    GUIModel guiModel = Models.GetModel<GUIModel>();
+                    guiModel.WeaponDrop?.Invoke(this);
+                }
             }
 
-            return basePass;
+            return dropSuccess;
         }
 
-        public override bool OnPickup(GameObject owner)
+        public override bool TryPickup(GameObject owner)
         {
-            bool basePass = base.OnPickup(owner);
+            bool pickupSuccess = base.TryPickup(owner);
 
-            if (basePass)
+            if (pickupSuccess)
                 if (owner.TryGetComponentInChildren(out WeaponSwitcher ws))
                 {
+                    if (owner.TryGetComponentInChildren(out Character character) && character.IsPlayer)
+                    {
+                        GUIModel guiModel = Models.GetModel<GUIModel>();
+                        guiModel.WeaponPickup?.Invoke(this);
+                    }
+
                     if (!ws.currentWeapon)
                         ws.DrawWeapon(this);
-
-                    if(owner.TryGetComponentInChildren(out Character character) && character.isPlayer)
-                        ws.events.PickupWeapon(this);
                 }
 
-            return basePass;
+            return pickupSuccess;
         }
     }
 }

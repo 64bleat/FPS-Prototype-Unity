@@ -1,28 +1,19 @@
-﻿using MPCore;
-using MPGUI;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MPCore
 {
     public class HealthPickup : Inventory
     {
-        [Header("Health")]
-        public ResourceType restoreResourceType;
-        public int restoreAmount = 25;
-        public float percentOfMax = 0.5f;
+        [SerializeField] int _restoreAmount = 25;
 
-        public override bool OnPickup(GameObject pickedBy)
+        public override bool TryPickup(GameObject pickedBy)
         {
-            if (pickedBy && restoreResourceType && pickedBy.TryGetComponent(out Character character))
-                foreach (ResourceValue health in character.resources)
-                    if (health.resourceType == restoreResourceType)
-                    {
-                        int healValue = (int)Mathf.Clamp(health.value + restoreAmount, health.value, health.maxValue * percentOfMax ) - health.value;
+            if (pickedBy && pickedBy.TryGetComponent(out Character character))
+            {
+                DeltaValue<int> heal = character.Heal(_restoreAmount, character.gameObject, character.Info, pickedBy);
 
-                        character.Heal(healValue, character.gameObject, character.characterInfo, pickedBy);
-
-                        return healValue > 0;
-                    }
+                return heal.oldValue != heal.newValue;
+            }
 
             return false;
         }

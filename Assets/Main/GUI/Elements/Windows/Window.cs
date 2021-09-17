@@ -1,150 +1,157 @@
 ﻿using MPCore;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace MPGUI
 {
-    /// <summary>
-    /// A generic, multi-purpose GUI window
-    /// </summary>
-    public class Window : MonoBehaviour, IClickable
-    {
-        [SerializeField] private WindowStyle style;
-        [SerializeField] private RectTransform panel;
-        [SerializeField] private RectTransform title;
+	/// <summary>
+	/// A generic, multi-purpose GUI window
+	/// </summary>
+	public class Window : MonoBehaviour, IClickable
+	{
+		static readonly List<Window> _tryGetWindows = new();
 
-        private bool active = true;
+		[SerializeField] WindowStyle style;
+		[SerializeField] RectTransform panel;
+		[SerializeField] RectTransform title;
+		[SerializeField] TMP_Text _titleText;
+		[SerializeField] Image _titleBackground;
+		[SerializeField] bool pauseWhenActive = true;
+		public DataValue<bool> active = new(true);
 
-        private void OnEnable()
-        {
-            SetActive(true);
-        }
+		GameModel _gameModel;
 
-        public string Title
-        {
-            get
-            {
-                if (title.TryGetComponentInChildren(out TextMeshProUGUI text))
-                    return text.text;
-                else
-                    return string.Empty;
-            }
+		public string Title
+		{
+			get => _titleText.text;
+			set => _titleText.SetText(value);
+		}
 
-            set
-            {
-                if (title.TryGetComponentInChildren(out TextMeshProUGUI text))
-                    text.SetText(value);
-            }
-        }
+		void Awake()
+		{
+			_gameModel = Models.GetModel<GameModel>();
 
-        public RectTransform Contents => panel;
+			active.Subscribe(SetWindowActive);
+		}
 
-        public void CloseWindow()
-        {
-            int sibling = transform.parent.childCount;
-            int thisIndex = transform.GetSiblingIndex();
-            Window newTop = null;
+		void OnEnable()
+		{
+			active.Value = true;
 
-            while(sibling-- > 0)
-                if(sibling != thisIndex)
-                {
-                    Transform child = transform.parent.GetChild(sibling);
+			if (pauseWhenActive)
+				_gameModel.pauseTickets.Value++;
+		}
 
-                    if (child.TryGetComponent(out newTop))
-                        break;
-                }
+		void OnDisable()
+		{
+			if (active.Value)
+				active.Value = false;
 
-            if (newTop)
-                newTop.SetActive(true);
+			if (pauseWhenActive)
+				_gameModel.pauseTickets.Value--;
+		}
 
-            Destroy(gameObject);
-        }
+		public void TogleActive()
+		{
+			gameObject.SetActive(!gameObject.activeSelf);
+		}
 
-        private void SetActive(bool value)
-        {
-            if (value || value != active)
-            {
-                if (title.TryGetComponent(out Image titleBackground))
-                    titleBackground.sprite = value ? style.activeTitleBackground : style.inactiveTitleBackground;
+		public void CloseWindow()
+		{
+			int sibling = transform.parent.childCount;
+			int thisIndex = transform.GetSiblingIndex();
+			Window newTop = null;
 
-                if (title.TryGetComponentInChildren(out TextMeshProUGUI titleText))
-                    titleText.color = value ? style.activeTextColor : style.inactiveTextColor;
+			while(sibling-- > 0)
+				if(sibling != thisIndex)
+				{
+					Transform child = transform.parent.GetChild(sibling);
 
-                if (value == true)
-                {
-                    // Push to Front
-                    transform.SetAsLastSibling();
+					if (child.TryGetComponent(out newTop))
+						break;
+				}
 
-                    // Deactivate Sibling Windows
-                    if (transform.parent)
-                    {
-                        int siblingIndex = transform.GetSiblingIndex();
-                        int childCount = transform.parent.childCount;
+			if (newTop)
+				newTop.active.Value = true;
 
-                        for (int i = 0; i < childCount; i++)
-                            if (i != siblingIndex && transform.parent.GetChild(i).TryGetComponent(out Window window))
-                                window.SetActive(false);
-                    }
-                }
+			Destroy(gameObject);
+		}
 
-                active = value;
-            }
-        }
+		void SetWindowActive(DeltaValue<bool> isActive)
+		{
+			bool value = isActive.newValue;
 
-        public void OnMouseClick(MouseInfo mouse) { }
-        public void OnMouseHold(MouseInfo mouse) { }
-        public void OnMouseHover(MouseInfo mouse) { }
-        public void OnMouseRelease(MouseInfo mouse) { }
-        public void OnMousePress(MouseInfo mouse)
-        {
-            SetActive(true);
-        }
+			if (isActive.newValue != isActive.oldValue)
+			{
+				_titleBackground.sprite = value ? style.activeTitleBackground : style.inactiveTitleBackground;
+				_titleText.color = value ? style.activeTextColor : style.inactiveTextColor;
 
-        /// <summary>
-        /// Spawns a clone of this <c>Window</c> under the given parent
-        /// </summary>
-        /// <param name="parent"><c>RectTransform</c> under which to spawn the <c>Window</c></param>
-        public void SpawnWindow(RectTransform parent)
-        {
+				if (value == true)
+				{
+					// Bring to front
+					transform.SetAsLastSibling();
 
+					// Deactivate Sibling Windows
+					if (transform.parent)
+					{
+						transform.parent.GetComponentsInChildren(true, _tryGetWindows);
 
-            if (TryGetDuplicate(parent, out Window dupe))
-            {
-                dupe.SetActive(true);
-                return;
-            }
+						foreach(Window window in _tryGetWindows)
+							if(window != this)
+								window.active.Value = false;
+					}
+				}
+			}
+		}
 
-            GameObject go = Instantiate(gameObject, parent);
-            RectTransform rt = go.transform as RectTransform;
+		public void OnMouseClick(MouseInfo mouse) { }
+		public void OnMouseHold(MouseInfo mouse) { }
+		public void OnMouseHover(MouseInfo mouse) { }
+		public void OnMouseRelease(MouseInfo mouse) { }
+		public void OnMousePress(MouseInfo mouse)
+		{
+			active.Value = true;
+		}
 
-            rt.position = new Vector3(Screen.width / 2f, Screen.height / 2f, 0f);
-        }
+		/// <summary>
+		/// Spawns a clone of this <c>Window</c> under the given parent
+		/// </summary>
+		/// <param name="parent"><c>RectTransform</c> under which to spawn the <c>Window</c></param>
+		public void SpawnWindow(RectTransform parent)
+		{
+			if (!TryGetDuplicate(parent, out Window dupe))
+			{
+				Window instance = Instantiate(this, parent);
+				RectTransform rt = instance.transform as RectTransform;
 
-        /// <summary>
-        /// Checks children of <c>parent</c> to see if any windows have the same title as this one
-        /// </summary>
-        /// <param name="parent"><c>RectTransform</c> under which to search for duplicates</param>
-        /// <returns><c>true</c> if this window is already spawned under <c>parent</c></returns>
-        private bool TryGetDuplicate(RectTransform parent, out Window dupe)
-        {
-            int count = parent.childCount;
+				rt.position = new Vector3(Screen.width / 2f, Screen.height / 2f, 0f);
+			}
+			else
+			{
+				dupe.active.Value = true;
+			}
+		}
 
+		/// <summary>
+		/// Checks children of <c>parent</c> to see if any windows have the same title as this one
+		/// </summary>
+		/// <param name="parent"><c>RectTransform</c> under which to search for duplicates</param>
+		/// <returns><c>true</c> if this window is already spawned under <c>parent</c></returns>
+		bool TryGetDuplicate(RectTransform parent, out Window dupe)
+		{
+			parent.GetComponentsInChildren(true, _tryGetWindows);
 
-            for(int i = 0; i < count; i++)
-            {
-                Transform sib = parent.GetChild(i);
+			foreach(Window window in _tryGetWindows)
+				if(window.Title == Title)
+				{
+					dupe = window;
+					return true;
+				}
 
-                if (sib.TryGetComponent(out Window window))
-                    if (window.Title == this.Title)
-                    {
-                        dupe = window;
-                        return true;
-                    }
-            }
-
-            dupe = null;
-            return false;
-        }
-    }
+			dupe = null;
+			return false;
+		}
+	}
 }

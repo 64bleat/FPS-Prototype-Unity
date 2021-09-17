@@ -147,7 +147,7 @@ namespace MPCore.AI
                     else if (rAngle > 112.5)
                         input.BotKeyDown("Left");
 
-                    if (!character.isPlayer || !_keyModel.alwaysRun)
+                    if (!character.IsPlayer || !_keyModel.alwaysRun)
                         input.BotKeyDown("Sprint");
 
                     if (body.currentState == CharacterBody.MoveState.Grounded)

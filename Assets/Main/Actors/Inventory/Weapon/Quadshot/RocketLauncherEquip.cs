@@ -23,7 +23,7 @@ namespace MPCore
         private CharacterInfo instigator;
         private AudioSource audio;
         private GameObjectPool projectilePool;
-        private ImpactJiggler recoil;
+        private JiggleDriver recoil;
         private int animFireId;
         private float fireWait;
 
@@ -41,7 +41,7 @@ namespace MPCore
             c.TryGetComponentInParent(out audio);
             c.TryGetComponentInChildren(out muzzleFlash);
             c.TryGetComponentInParent(out recoil);
-            instigator = character.characterInfo;
+            instigator = character.Info;
 
             projectilePool = GameObjectPool.GetPool(weapon.projectilePrimary, 100);
 
@@ -97,7 +97,7 @@ namespace MPCore
         {
             Vector3 point = GetFirePoint();
 
-            Projectile.Fire(projectilePool, point, body.cameraSlot.rotation, firePoint, character.gameObject, character.characterInfo, body.lastPlatformVelocity);
+            Projectile.Fire(projectilePool, point, body.cameraSlot.rotation, firePoint, character.gameObject, character.Info, body.lastPlatformVelocity);
         }
         private Vector3 GetFirePoint()
         {

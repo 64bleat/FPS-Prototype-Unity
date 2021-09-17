@@ -12,6 +12,7 @@ namespace MPCore
 
         [NonSerialized] public GameObject owner;
 
+        GameModel _gameModel;
         private ParticleSystem muzzleFlash;
         private Weapon weapon;
         private GameObjectPool projectilePool;
@@ -19,7 +20,7 @@ namespace MPCore
         private Character character;
         private InputManager input;
         protected AudioSource audioSource;
-        private ImpactJiggler recoil;
+        private JiggleDriver recoil;
         private float fireWait;
         private static int layerMask;
         private static readonly string[] layermask = new string[]{
@@ -27,12 +28,15 @@ namespace MPCore
 
         private void Awake()
         {
+            _gameModel = Models.GetModel<GameModel>();
+            _gameModel.isPaused.Subscribe(SetPaused);
+
             if (TryGetComponent(out InventoryItem inv))
                 weapon = inv.item as Weapon;
 
             projectilePool = GameObjectPool.GetPool(weapon.projectilePrimary, 100);
             audioSource = GetComponent<AudioSource>();
-            recoil = GetComponentInParent<ImpactJiggler>();
+            recoil = GetComponentInParent<JiggleDriver>();
             owner = GetComponentInParent<Character>().gameObject;
             body = GetComponentInParent<CharacterBody>();
             input = GetComponentInParent<InputManager>();
@@ -40,8 +44,6 @@ namespace MPCore
             muzzleFlash = GetComponentInChildren<ParticleSystem>();
 
             layerMask = LayerMask.GetMask(layermask);
-
-            PauseManager.AddListener(OnPause);
         }
 
         private void OnEnable()
@@ -58,12 +60,12 @@ namespace MPCore
 
         private void OnDestroy()
         {
-            PauseManager.RemoveListener(OnPause);
+            _gameModel.isPaused.Unsubscribe(SetPaused);
         }
 
-        private void OnPause(bool paused)
+        private void SetPaused(DeltaValue<bool> paused)
         {
-            enabled = !paused;
+            enabled = !paused.newValue;
         }
 
         private void Update()
@@ -99,7 +101,7 @@ namespace MPCore
         {
             Vector3 point = GetFirePoint();
 
-            Projectile.Fire(projectilePool, point, body.cameraSlot.rotation, firePoint, owner, character.characterInfo, body.lastPlatformVelocity);
+            Projectile.Fire(projectilePool, point, body.cameraSlot.rotation, firePoint, owner, character.Info, body.lastPlatformVelocity);
         }
 
         /// <summary> Ensures projectiles don't shoot through close walls </summary>

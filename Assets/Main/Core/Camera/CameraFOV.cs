@@ -14,17 +14,17 @@ namespace MPCore
             _model = Models.GetModel<GraphicsModel>();
 
             if (_firstPersonFov)
-                _model.fovFirstPerson.Initialize(OnFovChange);
+                _model.fovFirstPerson.Subscribe(OnFovChange);
             else
-                _model.fov.Initialize(OnFovChange);
+                _model.fov.Subscribe(OnFovChange);
         }
 
         private void OnDestroy()
         {
             if (_firstPersonFov)
-                _model.fovFirstPerson.Initialize(OnFovChange);
+                _model.fovFirstPerson.Subscribe(OnFovChange);
             else
-                _model.fov.Initialize(OnFovChange);
+                _model.fov.Subscribe(OnFovChange);
         }
 
         private void OnFovChange(DeltaValue<float> fov)

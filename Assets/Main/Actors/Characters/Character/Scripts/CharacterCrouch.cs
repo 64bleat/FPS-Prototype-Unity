@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace MPCore
@@ -14,62 +15,106 @@ namespace MPCore
     /// </remarks>
     public class CharacterCrouch : MonoBehaviour
     {
-        private static readonly Collider[] overlapBuffer = new Collider[10];
-        private static readonly string[] collisionLayers = { "Default", "Physical", "Player" };
+        static readonly Collider[] _overlapBuffer = new Collider[10];
+        static readonly string[] _collisionLayers = { "Default", "Physical", "Player" };
 
-        private InputManager input;
-        private CharacterInput cInput;
-        private CapsuleCollider cap;
-        private CharacterBody body;
-        private float dampVelocity;
-        private int layermask;
+        CharacterInput _characterInput;
+        CapsuleCollider _cap;
+        CharacterBody _body;
+        int _layermask;
+        Coroutine _coroutine;
 
-        private void Awake()
+        void Awake()
         {
-            TryGetComponent(out input);
-            TryGetComponent(out cInput);
-            TryGetComponent(out cap);
-            TryGetComponent(out body);
+            _characterInput = GetComponent<CharacterInput>();
+            _cap = GetComponent<CapsuleCollider>();
+            _body = GetComponent<CharacterBody>();
+            _layermask = LayerMask.GetMask(_collisionLayers);
 
-            layermask = LayerMask.GetMask(collisionLayers);
-
-            input.Bind("Crouch", () => dampVelocity = 0, this, KeyPressType.Down);
-            input.Bind("Crouch", () => dampVelocity = 0, this, KeyPressType.Up);
+            _body.height.Value = _body.defaultHeight;
+            _body.height.Subscribe(OnHeightChanged, true);
+            _characterInput.moveState.Subscribe(OnStateChanged);
         }
 
-
-        private void FixedUpdate()
+        private void OnDestroy()
         {
-            bool crouched = cInput.Crouch;
+            _body.height.Unsubscribe(OnHeightChanged);
+            _characterInput.moveState.Unsubscribe(OnStateChanged);
+        }
 
-            float crouchHeight = body.defaultCrouchHeight - body.defaultStepOffset;
-            float standHeight = body.defaultHeight - body.defaultStepOffset;
+        void OnStateChanged(DeltaValue<CharacterInput.MoveState> state)
+        {
+            if (state.newValue == CharacterInput.MoveState.Crouch)
+                _body.height.Value = _body.defaultCrouchHeight;
+            else if (state.oldValue == CharacterInput.MoveState.Crouch
+                && state.newValue != CharacterInput.MoveState.Crouch)
+                _body.height.Value = _body.defaultHeight;
+                
+        }
 
-            if (crouched)
+        void OnHeightChanged(DeltaValue<float> height)
+        {
+            float desiredCapHeight = height.newValue - _body.defaultStepOffset;
+
+            if(_cap.height > desiredCapHeight)
             {
-                cap.height = Mathf.SmoothDamp(cap.height, crouchHeight, ref dampVelocity, 0.05f, 10f, Time.fixedDeltaTime);
+                if(_coroutine != null)
+                    StopCoroutine(_coroutine);
+
+                _coroutine = StartCoroutine(CrouchDown(height.newValue));
             }
-            else
+            else if(_cap.height < desiredCapHeight)
             {
-                if (cInput.autoCrouch || standHeight - cap.height > 0.001f)
-                {
-                    Vector3 position = transform.position;
-                    Vector3 up = transform.up;
-                    Vector3 point1 = position + up * (standHeight - cap.height / 2);
-                    int count = Physics.OverlapCapsuleNonAlloc(position, point1, cap.radius, overlapBuffer, layermask, QueryTriggerInteraction.Ignore);
+                if (_coroutine != null)
+                    StopCoroutine(_coroutine);
 
-                    if (IsBlocked(overlapBuffer, count))
-                        standHeight = crouchHeight;
-                }
-
-                cap.height = Mathf.SmoothDamp(cap.height, standHeight, ref dampVelocity, 0.05f, 10f, Time.fixedDeltaTime);
+                _coroutine = StartCoroutine(CrouchUp(height.newValue));
             }
         }
 
-        private bool IsBlocked(Collider[] colliders, int count)
+        IEnumerator CrouchDown(float desired)
         {
-            for(int i = 0; i < count; i++)
-                if (colliders[i].gameObject != gameObject)
+            float dampVelocity = 0f;
+
+            desired -= _body.defaultStepOffset;
+
+            while(_cap.height > desired)
+            {
+                _cap.height = Mathf.SmoothDamp(_cap.height, desired, ref dampVelocity, 0.05f, 10f, Time.deltaTime);
+                yield return null;
+            }
+
+            _cap.height = desired;
+        }
+
+        IEnumerator CrouchUp(float desired)
+        {
+            float dampVelocity = 0f;
+
+            desired -= _body.defaultStepOffset;
+
+            while(_cap.height < desired)
+            {
+                if (IsBlocked(desired))
+                    dampVelocity = 0f;
+                else
+                    _cap.height = Mathf.SmoothDamp(_cap.height, desired, ref dampVelocity, 0.05f, 10f, Time.deltaTime);
+
+                yield return null;
+            }
+
+            _cap.height = desired;
+        }
+
+        bool IsBlocked(float desired)
+        {
+            Vector3 position = transform.position;
+            Vector3 up = transform.up;
+            Vector3 point1 = position + up * (desired - _cap.height / 2);
+            int count = Physics.OverlapCapsuleNonAlloc(position, point1, _cap.radius, _overlapBuffer, _layermask, QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < count; i++)
+                if (_overlapBuffer[i].gameObject != gameObject)
                     return true;
 
             return false;

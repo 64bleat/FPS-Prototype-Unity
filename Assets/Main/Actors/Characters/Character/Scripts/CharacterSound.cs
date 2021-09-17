@@ -1,53 +1,52 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace MPCore
 {
     public class CharacterSound : MonoBehaviour
     {
-        public AudioSource footstepSource;
-        public AudioSource impactSource;
-        public AudioSource pickupSource;
-        public float stepVolume = 0.2f;
-        public float stepWalkRate = 0.61f;
-        public float stepSprintRate = 0.3f;
+        [SerializeField] AudioSource footstepSource;
+        [SerializeField] AudioSource impactSource;
+        [SerializeField] AudioSource pickupSource;
+        [SerializeField] float stepVolume = 0.2f;
+        [SerializeField] float stepWalkRate = 0.61f;
+        [SerializeField] float stepSprintRate = 0.3f;
+        [SerializeField] AudioClip[] defaultFootstepSounds;
+        [SerializeField] ImpactClip[] defaultImpactSounds;
 
-        public AudioClip[] defaultFootstepSounds;
-        public ImpactClip[] defaultImpactSounds;
+        CharacterBody _body;
+        float _footStepTimer;
 
-        private CharacterBody body;
-        private float footStepTimer;
-
-        [System.Serializable]
+        [Serializable]
         public struct ImpactClip
         {
             public AudioClip audioClip;
             public float speedThreshold;
         }
 
-        private void Awake()
+        void Awake()
         {
-            TryGetComponent(out body);
+            TryGetComponent(out _body);
 
-            body.GroundMoveCallback.AddListener(PlayFootstep);
+            _body.GroundMoveCallback.AddListener(PlayFootstep);
         }
 
-        private void Update()
+        void Update()
         {
-            if (footStepTimer > 0f)
+            if (_footStepTimer > 0f)
             {
-                Vector3 velocity = Vector3.ProjectOnPlane(body.Velocity - body.cb.PlatformVelocity, body.cb.Normal);
-                float clamp = Mathf.InverseLerp(body.defaultWalkSpeed, body.defaultSprintSpeed, velocity.magnitude);
+                Vector3 velocity = Vector3.ProjectOnPlane(_body.Velocity - _body.cb.PlatformVelocity, _body.cb.Normal);
+                float clamp = Mathf.InverseLerp(_body.defaultWalkSpeed, _body.defaultSprintSpeed, velocity.magnitude);
 
-                footStepTimer -= Time.deltaTime / Mathf.Lerp(stepWalkRate, stepSprintRate, clamp);
+                _footStepTimer -= Time.deltaTime / Mathf.Lerp(stepWalkRate, stepSprintRate, clamp);
                 footstepSource.volume = stepVolume * Mathf.Clamp01(clamp);
             }
         }
 
         public void PlayFootstep()
         {
-            if (footStepTimer <= 0)
+            if (_footStepTimer <= 0)
             {
                 AudioClip stepClip = defaultFootstepSounds[Random.Range(0, defaultFootstepSounds.Length)];
 
@@ -55,7 +54,7 @@ namespace MPCore
                 footstepSource.clip = stepClip;
                 footstepSource.Play();
 
-                footStepTimer = 1f;
+                _footStepTimer = 1f;
             }
         }
 
@@ -74,6 +73,11 @@ namespace MPCore
                 if (playClip && impactSource && impactSource.enabled)
                     impactSource.PlayOneShot(playClip);
             }
+        }
+
+        public void PlayPickupSound(AudioClip pickupSound)
+        {
+            pickupSource.PlayOneShot(pickupSound);
         }
     }
 }

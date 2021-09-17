@@ -3,6 +3,7 @@ using MPGUI;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using Console = MPConsole.Console;
 
 namespace MPCore
@@ -13,167 +14,137 @@ namespace MPCore
     [ContainsConsoleCommands]
     public class Character : MonoBehaviour
     {
-        public List<ResourceValue> resources = new List<ResourceValue>();
-        public ResourceType hurtResource;
-        public bool isPlayer = false;
-        [SerializeField] private StringEvent playerDisplayHealth;
-        [NonSerialized] public CharacterInfo characterInfo;
-        [NonSerialized] public ResourceValue health;
 
-        public event Action<bool> OnRegistered;
-        public event Action<DamageTicket> OnHit;
-        public event Action<Character> OnDeath;
+        [SerializeReference] ResourceValue _health = new(100);
 
-        private GameModel _gameModel;
-        private CharacterBody body;
-        private (CharacterInfo instigator, float time) lastAttackedBy;
+        public readonly UnityEvent<bool> OnInitialized = new();
+
+        GUIModel _guiModel;
+        GameModel _gameModel;
+        CharacterBody _body;
+        InventoryManager _inventory;
+        DamageEvent _damage;
+        DamageTicket _lastAttacker;
+        bool _isPlayer;
+        CharacterInfo _characterInfo;
+
+        public CharacterInfo Info => _characterInfo;
+        public InventoryManager Inventory => _inventory;
+        public bool IsPlayer => _isPlayer;
+        public ResourceValue Health => _health;
 
         private void Awake()
         {
-            _gameModel = Models.GetModel<GameModel>();
+            _guiModel = Models.GetModel<GUIModel>();
 
-            TryGetComponent(out body);
+            _gameModel = Models.GetModel<GameModel>();
+            _inventory = GetComponent<InventoryManager>();
+            _body = GetComponent<CharacterBody>();
+            _damage = GetComponent<DamageEvent>();
+
+            _health.Subscribe(KillCharacter);
+            _damage.OnHit += Damage;
         }
 
         private void OnEnable()
         {
-            if (TryGetComponent(out DamageEvent damage))
-                damage.OnHit += Damage;
-
             AIBlackboard.visualTargets.Add(this);
             Console.AddInstance(this);
-
-            GetHealthResource();
         }
 
         private void OnDisable()
         {
-            if (TryGetComponent(out DamageEvent damage))
-                damage.OnHit -= Damage;
-
             AIBlackboard.visualTargets.Remove(this);
             Console.RemoveInstance(this);            
         }
 
-        private void GetHealthResource()
+        public void Initialize(CharacterInfo info, bool isPlayer)
         {
-            for (int i = 0; i < resources.Count; i++)
-                if (resources[i].resourceType == hurtResource)
-                {
-                    health = resources[i];
-                    return;
-                }
+            _characterInfo = info;
+            _isPlayer = isPlayer;
+            OnInitialized?.Invoke(_isPlayer);
+
+            if (_isPlayer)
+                _health.Subscribe(DisplayHealthValue);
+
+            Messages.Publish(this);
         }
 
-        public void RegisterCharacter()
-        {
-            GetHealthResource();
-
-            OnRegistered?.Invoke(isPlayer);
-            //onCharacterSpawned.Invoke(gameObject);
-
-            if (isPlayer)
-                playerDisplayHealth.Invoke($"{health.value,3}");
-        }
-
-        //private int Damage(int damage, GameObject conduit, CharacterInfo instigator, DamageType damageType, Vector3 direction)
         private void Damage(DamageTicket ticket)
         {
-            if (health != null)
-            {
-                if (ticket.instigator && ticket.instigator != characterInfo)
-                    lastAttackedBy = (ticket.instigator, Time.time);
-
-                int initialValue = health.value;
-
-                health.value = Mathf.Min(health.maxValue, health.value - ticket.damage);
-
-                if (isPlayer && health.value != initialValue && playerDisplayHealth)
-                    playerDisplayHealth.Invoke($"{health.value,3}");
-
-                if (initialValue > 0 && health.value <= 0)
-                    Kill(ticket.instigator, ticket.instigatorBody, ticket.damageType);
-            }
+            _lastAttacker = ticket;
+            _health.Value -= ticket.deltaValue;
         }
 
-        public int Heal(int value, GameObject owner, CharacterInfo instigator, GameObject conduit)
+        public DeltaValue<int> Heal(int value, GameObject owner, CharacterInfo instigator, GameObject conduit)
         {
-            if (health != null)
-            {
-                int initialValue = health.value;
+            int oldValue = _health.Value;
+            _health.Value += value;
+            return new DeltaValue<int>(oldValue, _health.Value);
+        }
 
-                health.value = Mathf.Min(health.maxValue, health.value + value);
-
-                if (isPlayer && health.value != initialValue && playerDisplayHealth)
-                    playerDisplayHealth.Invoke($"{health.value, 3}");
-
-                if (initialValue > 0 && health.value <= 0)
-                    Kill(instigator, conduit, null);
-
-                return health.value;
-            }
-            else
-                return 0;
+        void DisplayHealthValue(DeltaValue<int> health) => _guiModel.health.Value = health.newValue;
+        void KillCharacter(DeltaValue<int> health)
+        {
+            if(health.oldValue > 0 && health.newValue <= 0)
+                Kill(_lastAttacker.instigator, _lastAttacker.instigatorBody, _lastAttacker.damageType);
         }
 
         public void Kill(CharacterInfo instigator, GameObject conduit, DamageType damageType)
         {
             // Spawn Dead Body
-            if (body.deadBody)
+            if (_body.deadBody)
             {
-                GameObject db = Instantiate(body.deadBody, body.cameraAnchor.position, body.cameraAnchor.rotation, null);
+                GameObject db = Instantiate(_body.deadBody, _body.cameraAnchor.position, _body.cameraAnchor.rotation, null);
 
-                if(db.TryGetComponent(out Rigidbody rb))
+                if (db.TryGetComponent(out Rigidbody rb))
                 {
-                    rb.velocity = body.Velocity;
-                    rb.mass = body.defaultMass;
+                    rb.velocity = _body.Velocity;
+                    rb.mass = _body.defaultMass;
                 }
 
-                if (isPlayer)
-                    CameraManager.target = db;
+                if (_isPlayer)
+                    //CameraManager.target = db;
+                    _gameModel.currentView.Value = db.transform;
 
                 Destroy(db, 10);
             }
 
-            body.cap.enabled = false;
+            _body.cap.enabled = false;
 
             // Drop Inventory
-            if (TryGetComponent(out InventoryContainer container))
-                foreach (Inventory i in container.inventory)
-                    if (i.dropOnDeath)
-                        //i.TryDrop(gameObject, transform.position, transform.rotation, default, out _);
-                        container.TryDrop(i, transform.position, transform.rotation, default, out _);
+            foreach (Inventory i in _inventory.inventory)
+                if (i.dropOnDeath)
+                    _inventory.TryDrop(i, transform.position, transform.rotation, default, out _);
 
             // Finished off by
-            if (lastAttackedBy.instigator && Time.time - lastAttackedBy.time < 3f)
-                instigator = lastAttackedBy.instigator;
+            if (_lastAttacker.instigator && Time.time - _lastAttacker.timeStamp < 3f)
+                instigator = _lastAttacker.instigator;
 
             //Create Death Ticket
-            DeathInfo death;
-            death.conduit = conduit;
-            death.damageType = damageType;
-            death.instigator = instigator;
-            death.victim = characterInfo;
+            DeathInfo death = new DeathInfo()
+            {
+                conduit = conduit,
+                damageType = damageType,
+                instigator = instigator,
+                victim = Info
+            };
 
-            OnDeath?.Invoke(this);
-            //onCharacterDied.Invoke(death);
             _gameModel.CharacterDied?.Invoke(death);
-
-            characterInfo = null;
             Destroy(gameObject);
         }
 
         [ConsoleCommand("god", "Toggle god mode on players")]
         public string ToggleGodMode()
         {
-            if (isPlayer)
-                if (health != default)
-                    health = default;
+            if (_isPlayer)
+                if (_health != null)
+                    _health = null;
                 else
-                    GetHealthResource();
+                    _health = new(100);
 
-            if (isPlayer)
-                return health != default ? "God mode disabled" : "God mode enabled";
+            if (_isPlayer)
+                return _health != default ? "God mode disabled" : "God mode enabled";
             else
                 return null;
         }

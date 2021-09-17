@@ -1,7 +1,5 @@
 using MPConsole;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Console = MPConsole.Console;
 
@@ -15,53 +13,53 @@ namespace MPCore
         [SerializeField] float _startingTimeScale = 1;
         [SerializeField] float _startingDayScale = 1;
 
+        GameModel _gameModel;
         TimeModel _time;
 
-        private void Awake()
+        void Awake()
         {
-            Console.AddInstance(this);
-
-            // Time Model
+            _gameModel = Models.GetModel<GameModel>();
             _time = Models.GetModel<TimeModel>();
 
-            _time.timeScale.OnSet.AddListener(OnSetTimeScale);
-            PauseManager.AddListener(OnPauseUnPause);
+            Console.AddInstance(this);
 
             if (_startAtRealTime || !DateTime.TryParse(_sceneStartDate, out DateTime startDate))
-                startDate = DateTime.Now;
+                startDate = DateTime.UtcNow;
 
             _time.currentTime.Value = startDate;
             _time.timeScale.Value = _startingTimeScale;
             _time.dayScale.Value = _startingDayScale;
+            _time.timeScale.Subscribe(SetTimeScale);
+            _gameModel.isPaused.Subscribe(SetPaused);
         }
 
-        private void OnDestroy()
+        void OnDestroy()
         {
-            _time.timeScale.OnSet.RemoveListener(OnSetTimeScale);
+            _gameModel.isPaused.Unsubscribe(SetPaused);
+            _time.timeScale.Unsubscribe(SetTimeScale);
             Console.RemoveInstance(this);
-            PauseManager.RemoveListener(OnPauseUnPause);
         }
 
-        private void LateUpdate()
+        void LateUpdate()
         {
             float elapsed = Time.deltaTime * _time.dayScale;
 
             _time.currentTime.Value = _time.currentTime.Value.AddSeconds(elapsed);
         }
 
-        private void OnSetTimeScale(DeltaValue<float> timeScale)
+        void SetTimeScale(DeltaValue<float> timeScale)
         {
             Time.timeScale = timeScale.newValue;
             Time.fixedDeltaTime = 1f / 120f * Mathf.Min(1, timeScale.newValue);
         }
 
-        private void OnPauseUnPause(bool paused)
+        void SetPaused(DeltaValue<bool> paused)
         {
-            SetTimeScale(paused ? 0f : _time.timeScale);
+            SetTimeScale(paused.newValue ? 0f : _time.timeScale.Value);
         }
 
         [ConsoleCommand("slomo")]
-        private void SetTimeScale(float value = 1f)
+        void SetTimeScale(float value = 1f)
         {
             Time.timeScale = value;
             Time.fixedDeltaTime = 1f / 120f * Mathf.Min(1, value);

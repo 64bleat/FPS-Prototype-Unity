@@ -20,7 +20,7 @@ namespace MPCore
                                           select go);
         }
 
-        public void TransferStuff(InventoryContainer container)
+        public void TransferStuff(InventoryManager container)
         {
             foreach (Inventory i in savedStuff)
                 container.TryPickup(i, out _);
@@ -33,7 +33,7 @@ namespace MPCore
 
             if (dropper)
             {
-                if (dropper.TryGetComponent(out InventoryContainer container))
+                if (dropper.TryGetComponent(out InventoryManager container))
                     foreach (Inventory i in container.inventory)
                         savedStuff.Add(Instantiate(i));
 

@@ -48,8 +48,8 @@ namespace MPCore
             {
                 KeyModel keyModel = Models.GetModel<KeyModel>();
 
-                foreach (ScriptFloat sf in keyModel.values)
-                    data.SetValue(sf.name, sf.value.ToString());
+                //foreach (ScriptFloat sf in keyModel.values)
+                //    data.SetValue(sf.name, sf.value.ToString());
 
                 foreach (KeyBind kb in keyModel.keys)
                     data.SetKey(kb.name, kb.keyCombo);
@@ -70,9 +70,9 @@ namespace MPCore
             {
                 KeyModel keyModel = Models.GetModel<KeyModel>();
 
-                foreach (ScriptFloat sf in keyModel.values)
-                    if (float.TryParse(data.GetValue(sf.name), out float value))
-                        sf.value = value;
+                //foreach (ScriptFloat sf in keyModel.values)
+                //    if (float.TryParse(data.GetValue(sf.name), out float value))
+                //        sf.value = value;
 
                 foreach (KeyBind kb in keyModel.keys)
                     if (data.GetKey(kb.name).Length > 0)

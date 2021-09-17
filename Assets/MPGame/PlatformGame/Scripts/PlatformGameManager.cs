@@ -5,25 +5,25 @@ namespace MPCore
 {
     public class PlatformGameManager : MonoBehaviour
     {
-        [SerializeField] private PlatformGameModel _gameModel;
-        [SerializeField] private GUIModel _guiModel;
+        PlatformGameModel _minigameModel;
+        GUIModel _guiModel;
+        GameModel _gameModel;
+        Coroutine _timerCoroutine;
 
-        private Coroutine _timerCoroutine;
-
-        private void Awake()
+        void Awake()
         {
-            _gameModel = Models.GetModel<PlatformGameModel>();
-            _gameModel.bestTime.OnSet.AddListener(MessageNewBestTime);
-            _gameModel.OnStart.AddListener(GameStart);
-            _gameModel.OnEnd.AddListener(GameEnd);
-            _gameModel.OnReset.AddListener(GameReset);
-            _gameModel.gameState.Value = PlatformGameModel.State.Reset;
-            _gameModel.isReset.Value = true;
-
+            _gameModel = Models.GetModel<GameModel>();
             _guiModel = Models.GetModel<GUIModel>();
+            _minigameModel = Models.GetModel<PlatformGameModel>();
+            _minigameModel.bestTime.Subscribe(MessageNewBestTime);
+            _minigameModel.OnStart.AddListener(GameStart);
+            _minigameModel.OnEnd.AddListener(GameEnd);
+            _minigameModel.OnReset.AddListener(GameReset);
+            _minigameModel.gameState.Value = PlatformGameModel.State.Reset;
+            _minigameModel.isReset.Value = true;
         }
 
-        private void OnDestroy()
+        void OnDestroy()
         {
             Models.RemoveModel<PlatformGameModel>();
         }
@@ -38,62 +38,64 @@ namespace MPCore
                 float lastFrameTime = currentTime - Time.deltaTime;
 
                 if (lastFrameTime % interval > currentTime % interval)
-                    _guiModel.ShortMessage.Invoke($"{currentTime:F0} seconds!");
+                    _guiModel.shortMessage.Value = $"{currentTime:F0} seconds!";
 
-                _gameModel.elapsedTime.Value = currentTime;
+                _minigameModel.elapsedTime.Value = currentTime;
 
                 yield return null;
             }
         }
 
-        private void GameStart(Character character)
+        void GameStart(Character character)
         {
-            _gameModel.gameState.Value = PlatformGameModel.State.Playing;
-            _gameModel.currentPlayer.Value = character;
-            _gameModel.isReset.Value = false;
-            _gameModel.elapsedTime.Value = 0;
-            _guiModel.ShortMessage.Invoke("Game start!");
+            _minigameModel.gameState.Value = PlatformGameModel.State.Playing;
+            _minigameModel.currentPlayer.Value = character.Info;
+            _minigameModel.isReset.Value = false;
+            _minigameModel.elapsedTime.Value = 0;
+            _guiModel.shortMessage.Value = "Game start!";
             _timerCoroutine = StartCoroutine(StartGameTimer(10f));
 
-            character.OnDeath += GameEndOnDeath;
+            _gameModel.CharacterDied.AddListener(CharacterDiedGameEnd);
         }
 
-        private void GameEnd()
+        void GameEnd()
         {
-            _gameModel.gameState.Value = PlatformGameModel.State.Stopped;
-            Character character = _gameModel.currentPlayer;
-            float elapsedTime = _gameModel.elapsedTime;
-            character.OnDeath -= GameEndOnDeath;
+            float elapsedTime = _minigameModel.elapsedTime;
+            float best = _minigameModel.bestTime.Value.time;
 
-            float best = _gameModel.bestTime.Value.time;
+            _minigameModel.gameState.Value = PlatformGameModel.State.Stopped;
+            _gameModel.CharacterDied.RemoveListener(CharacterDiedGameEnd);
 
             if (elapsedTime > best)
-                _gameModel.bestTime.Value = new PlatformGameModel.TimeRecord()
+                _minigameModel.bestTime.Value = new PlatformGameModel.TimeRecord()
                 {
                     time = elapsedTime,
-                    holder = character.characterInfo
+                    holder = _minigameModel.currentPlayer.Value
                 };
             else
-                _guiModel.ShortMessage.Invoke($"You lasted {elapsedTime:F2}s.");
+                _guiModel.shortMessage.Value = $"You lasted {elapsedTime:F2}s.";
 
             StopCoroutine(_timerCoroutine);
             _timerCoroutine = null;
         }
 
-        private void GameEndOnDeath(Character character)
+        void CharacterDiedGameEnd(DeathInfo death)
         {
-            _gameModel.OnEnd?.Invoke();
-            _gameModel.OnReset?.Invoke();
+            if(death.victim == _minigameModel.currentPlayer.Value)
+            {
+                _minigameModel.OnEnd?.Invoke();
+                _minigameModel.OnReset?.Invoke();
+            }
         }
 
-        public void GameReset()
+        void GameReset()
         {
-            _gameModel.gameState.Value = PlatformGameModel.State.Reset;
-            _gameModel.currentPlayer.Value = null;
-            _gameModel.isReset.Value = true;
+            _minigameModel.gameState.Value = PlatformGameModel.State.Reset;
+            _minigameModel.currentPlayer.Value = null;
+            _minigameModel.isReset.Value = true;
         }
 
-        private void MessageNewBestTime(DeltaValue<PlatformGameModel.TimeRecord> record)
+        void MessageNewBestTime(DeltaValue<PlatformGameModel.TimeRecord> record)
         {
             float time = record.newValue.time;
             float oldTime = record.oldValue.time;
@@ -117,7 +119,7 @@ namespace MPCore
                     message = $"You set a new record of {time:F2} seconds!";
                 }
 
-                _guiModel.ShortMessage.Invoke(message);
+                _guiModel.shortMessage.Value = message;
             }
         }
     }

@@ -29,16 +29,13 @@ namespace MPCore
 
         public virtual void OnPickup(GameObject picker)
         {
-            if (picker && picker.TryGetComponent(out InventoryContainer container)
+            if (picker && picker.TryGetComponent(out InventoryManager container)
                 && container.TryPickup(inventory, out _))
-                //&& inventory.TryPickup(container, out _))
-                //&& InventoryManager.PickUp(container, inventory))
             {
                 gameObject.SetActive(false);
 
-                if (inventory.pickupSound && picker.GetComponent<CharacterSound>() is var sound 
-                    && sound && sound.pickupSource)
-                    sound.pickupSource.PlayOneShot(inventory.pickupSound);
+                if (inventory.pickupSound && picker.TryGetComponent(out CharacterSound sound))
+                    sound.PlayPickupSound(inventory.pickupSound);
 
                 if(destroyOnPickup)
                     Destroy(gameObject);

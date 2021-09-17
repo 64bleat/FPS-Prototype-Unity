@@ -8,14 +8,23 @@ namespace MPGUI
     /// </summary>
     public class PauseWhenEnabled : MonoBehaviour
     {
+        GameModel _gameModel;
+
+        private void Awake()
+        {
+            _gameModel = Models.GetModel<GameModel>();
+        }
+
         private void OnEnable()
         {
-            PauseManager.Push(this);
+            //PauseManager.Push(this);
+            _gameModel.pauseTickets.Value++;
         }
 
         private void OnDisable()
         {
-            PauseManager.Pull(this);
+            ///PauseManager.Pull(this);
+            _gameModel.pauseTickets.Value--;
         }
     }
 }

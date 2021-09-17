@@ -22,7 +22,7 @@ namespace MPCore
         public void OnInteractHold(GameObject other, RaycastHit hit) { }
         public void OnInteractStart(GameObject other, RaycastHit hit)
         {
-            if(other.TryGetComponentInChildren(out InventoryContainer container))
+            if(other.TryGetComponentInChildren(out InventoryManager container))
             {
                 HashSet<ItemExchange> fulfilled = new HashSet<ItemExchange>();
 

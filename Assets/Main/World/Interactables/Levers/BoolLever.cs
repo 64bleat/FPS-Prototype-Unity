@@ -1,4 +1,5 @@
 ﻿using MPCore;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 namespace MPWorld
@@ -6,100 +7,82 @@ namespace MPWorld
     /// <summary>
     /// An interactive lever representing a boolean value.
     /// </summary>
-    public class BoolLever : MonoBehaviour, IBoolValue, IInteractable
+    public class BoolLever : MonoBehaviour, IInteractable
     {
+        public DataValue<bool> dataValue = new DataValue<bool>();
         public enum ButtonValueType { Manual, Toggle, Hold }
-        public GameObject lever;
-        public Transform upPosition;
-        public Transform DownPosition;
-        public ButtonValueType buttonType = ButtonValueType.Toggle;
-        public float transitionTime = 0.3f;
-        public bool defaultPosition = false;
-        public bool commitToPress = false;
+        [SerializeField] ButtonValueType buttonType = ButtonValueType.Toggle;
+        [SerializeField] GameObject lever;
+        [SerializeField] Transform upPosition;
+        [SerializeField] Transform DownPosition;
+        [SerializeField] float transitionTime = 0.3f;
+        [SerializeField] bool commitToPress = false;
+        [SerializeField] Material[] OnMaterials;
+        [SerializeField] Material[] offMaterials;
+        [SerializeField] UnityEvent downEvents;
 
-        public Material[] OnMaterials;
-        public Material[] offMaterials;
-
-        public UnityEvent downEvents;
-
-        private MeshRenderer meshRenderer;
-        private bool boolValue;
-        private bool isPressed = false;
-        private bool debounce = false;
-        private bool commit = false;
-        private float transition = 1f;
+        private MeshRenderer _meshRenderer;
+        Coroutine _coroutine;
+        DataValue<float> _lerp = new DataValue<float>(1f);
 
         public void Awake()
         {
-            meshRenderer = lever.GetComponent<MeshRenderer>();
-            SetValue(defaultPosition);
+            _meshRenderer = lever.GetComponent<MeshRenderer>();
+            dataValue.Subscribe(dv => downEvents.Invoke());
+            dataValue.Subscribe(SetMaterial);
+            _lerp.Subscribe(SetPosition);
         }
 
-        public void Update()
+        IEnumerator ButtonUp(float transitionTime)
         {
-            if (commit || isPressed)
+            while(_lerp.Value < 1)
             {
-                if (transitionTime > 0)
-                    transition = Mathf.Max(0, transition - 1f / transitionTime * Time.deltaTime);
-                else
-                    transition = 0;
+                _lerp.Value = Mathf.MoveTowards(_lerp.Value, 1f, 1f / transitionTime * Time.deltaTime);
+                yield return null;
             }
-            else
+        }
+
+        IEnumerator ButtonDown()
+        {
+            while(_lerp.Value > 0)
             {
-                if (transitionTime > 0)
-                    transition = Mathf.Min(1, transition + 1f / transitionTime * Time.deltaTime);
-                else
-                    transition = 1;
-            }
-
-            if (!debounce && transition <= 0)
-            {
-                commit = false;
-                debounce = true;
-
-                if (buttonType == ButtonValueType.Toggle)
-                    SetValue(!boolValue);
-
-                downEvents.Invoke();
+                _lerp.Value = Mathf.MoveTowards(_lerp.Value, 0f, 1f / transitionTime * Time.deltaTime);
+                yield return null;
             }
 
-            lever.transform.position = Vector3.Lerp(DownPosition.position, upPosition.position, transition);
+            if (buttonType == ButtonValueType.Toggle)
+                dataValue.Value = !dataValue.Value;
+        }
+
+        void SetMaterial(DeltaValue<bool> value)
+        {
+            _meshRenderer.materials = value.newValue ? OnMaterials : offMaterials;
+        }
+
+        void SetPosition(DeltaValue<float> lerp)
+        {
+            lever.transform.position = Vector3.Lerp(DownPosition.position, upPosition.position, lerp.newValue);
         }
 
         public void SetValue(bool value)
         {
-            if (boolValue != value)
-                meshRenderer.materials = value ? OnMaterials : offMaterials;
-
-            boolValue = value;
+            dataValue.Value = value;
         }
 
         public void OnInteractStart(GameObject other, RaycastHit hit)
         {
-            isPressed = true;
-            debounce = false;
+            if (_coroutine != null)
+                StopCoroutine(_coroutine);
 
-            if (commitToPress)
-                commit = true;
+            _coroutine = StartCoroutine(ButtonDown());
         }
         public void OnInteractHold(GameObject other, RaycastHit hit) { }
         public void OnInteractEnd(GameObject other, RaycastHit hit)
         {
-            isPressed = false;
-        }
+            if (_coroutine != null)
+                StopCoroutine(_coroutine);
 
-        [System.Obsolete("Use SetValue instead")]
-        public bool BoolValue
-        {
-            get => boolValue;
-
-            set
-            {
-                boolValue = value;
-
-                if (meshRenderer)
-                    meshRenderer.materials = boolValue ? OnMaterials : offMaterials;
-            }
+            _coroutine = StartCoroutine(ButtonUp(transitionTime));
         }
     }
 }

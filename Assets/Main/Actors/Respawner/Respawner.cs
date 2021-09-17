@@ -2,44 +2,63 @@
 
 namespace MPCore
 {
-    public class Respawner : MonoBehaviour
-    {
-        public GameObject itemToSpawn;
-        public float respawnTime = 5f;
-        public bool spawnOnAwake = true;
+	public class Respawner : MonoBehaviour
+	{
+		public GameObject itemToSpawn;
+		[SerializeField] float respawnTime = 5f;
+		[SerializeField] bool spawnOnAwake = true;
 
-        private float timer = 0;
+		float _timer = 0;
 
-        private void Awake()
-        {
-            if (TryGetComponent(out MeshRenderer mr))
-                mr.enabled = false;
-        }
+		private void OnDrawGizmos()
+		{
+			Gizmos.color = Color.red;
+			int drawCount = 0;
 
-        private void Start()
-        {
-            Messages.Publish(this);
+			if(itemToSpawn)
+			{
+				if(itemToSpawn.transform.TryGetComponent(out MeshFilter mr) && mr.sharedMesh)
+				{
+					drawCount++;
+					Gizmos.DrawMesh(mr.sharedMesh, 0, transform.position, transform.rotation, itemToSpawn.transform.lossyScale);
+				}
 
-            if (spawnOnAwake)
-                Instantiate(itemToSpawn, transform, false);
-        }
+				foreach(Transform t in itemToSpawn.transform)
+					if(t.TryGetComponent(out mr) && mr.sharedMesh)
+					{
+						drawCount++;
+						Gizmos.DrawMesh(mr.sharedMesh, 0, transform.position, transform.rotation, t.lossyScale);
+					}
+			}
 
-        void Update()
-        {
-            if (transform.childCount == 0)
-            {
-                timer += Time.deltaTime;
+			if(drawCount == 0)
+				Gizmos.DrawCube(transform.position, Vector3.one * 0.3f);
+		}
 
-                if (timer >= respawnTime)
-                {
-                    GameObject go = Instantiate(itemToSpawn, transform, false);
+		private void Start()
+		{
+			Messages.Publish(this);
 
-                    if (go.TryGetComponent(out InventoryPickup ip))
-                        ip.countDownDestroy = false;
+			if(spawnOnAwake)
+				Instantiate(itemToSpawn, transform, false);
+		}
 
-                    timer = 0;
-                }
-            }
-        }
-    }
+		void Update()
+		{
+			if(transform.childCount == 0)
+			{
+				_timer += Time.deltaTime;
+
+				if(_timer >= respawnTime)
+				{
+					GameObject instance = Instantiate(itemToSpawn, transform, false);
+
+					if(instance.TryGetComponent(out InventoryPickup ip))
+						ip.countDownDestroy = false;
+
+					_timer = 0;
+				}
+			}
+		}
+	}
 }

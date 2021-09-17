@@ -11,7 +11,7 @@ namespace MPCore.AI
         private int id;
         private CharacterAIAnimator ai;
         private CharacterBody body;
-        private InventoryContainer invContainer;
+        private InventoryManager invContainer;
         private WeaponSwitcher weapons;
         private InputManager input;
         private const float angularVelocity = 420;

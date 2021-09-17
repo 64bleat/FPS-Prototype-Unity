@@ -6,14 +6,21 @@ namespace MPCore
     [System.Serializable]
     public class DataValue<T>
     {
-        [SerializeField] private T _value = default;
+        [SerializeField] T _value = default;
 
-        /// <summary>
-        /// Called upon setting Value. <c>Callback(T old, T new)</c>
-        /// </summary>
-        public readonly UnityEvent<DeltaValue<T>> OnSet = new UnityEvent<DeltaValue<T>>();
+        readonly UnityEvent<DeltaValue<T>> OnSet = new();
 
-        public T Value
+        public DataValue()
+        {
+            _value = default;
+        }
+
+        public DataValue(T value)
+        {
+            _value = value;
+        }
+
+        public virtual T Value
         {
             get => _value;
             set
@@ -26,10 +33,17 @@ namespace MPCore
             }
         }
 
-        public void Initialize(UnityAction<DeltaValue<T>> call)
+        public void Subscribe(UnityAction<DeltaValue<T>> listener, bool initialize = true)
         {
-            OnSet.AddListener(call);
-            call.Invoke(new DeltaValue<T>(default, _value));
+            OnSet.AddListener(listener);
+
+            if(initialize)
+                listener.Invoke(new DeltaValue<T>(default, _value));
+        }
+
+        public void Unsubscribe(UnityAction<DeltaValue<T>> listener)
+        {
+            OnSet.RemoveListener(listener);
         }
 
         public static implicit operator T(DataValue<T> vt) => vt._value;

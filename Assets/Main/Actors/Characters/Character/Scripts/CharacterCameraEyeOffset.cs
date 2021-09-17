@@ -6,17 +6,16 @@ namespace MPCore
     {
         public float eyeOffset = 0.15f;
 
-        private CapsuleCollider cap;
+        CapsuleCollider _cap;
 
-        private void Awake()
+        void Awake()
         {
-            cap = GetComponentInParent<CapsuleCollider>();
+            _cap = GetComponentInParent<CapsuleCollider>();
         }
 
         void FixedUpdate()
         {
-            // TODO: Add OnHeightChanged(float height) to CharacterBody 
-            transform.localPosition = Vector3.up * (cap.height / 2f - eyeOffset);
+            transform.localPosition = Vector3.up * (_cap.height / 2f - eyeOffset);
         }
     }
 }

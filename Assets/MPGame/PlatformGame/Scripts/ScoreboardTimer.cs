@@ -13,12 +13,12 @@ public class ScoreboardTimer : MonoBehaviour
         _text = GetComponent<TextMeshProUGUI>();
         _gameModel = Models.GetModel<PlatformGameModel>();
 
-        _gameModel.elapsedTime.OnSet.AddListener(SetText);
+        _gameModel.elapsedTime.Subscribe(SetText);
     }
 
     private void OnDisable()
     {
-        _gameModel.elapsedTime.OnSet.RemoveListener(SetText);
+        _gameModel.elapsedTime.Unsubscribe(SetText);
     }
 
     private void SetText(DeltaValue<float> seconds)

@@ -5,93 +5,95 @@ using UnityEngine;
 
 namespace MPCore
 {
-    public class ScoreboardViewModel : MonoBehaviour
-    {
-        [SerializeField] private GameObject _scoreboardPanel;
-        [SerializeField] private TextMeshProUGUI _rowPrefab;
+	public class ScoreboardViewModel : MonoBehaviour
+	{
+		[SerializeField] GameObject _scoreboardPanel;
+		[SerializeField] TextMeshProUGUI _rowPrefab;
 
-        private Scoreboard _scoreboard;
-        private InputManager _input;
+		Scoreboard _scoreboard;
+		InputManager _input;
+		GameModel _gameModel;
 
-        private static readonly SortedList<float, DataRow> _sortedRows = new SortedList<float, DataRow>();
+		readonly SortedList<float, DataRow> _sortedRows = new SortedList<float, DataRow>();
 
-        private void Awake()
-        {
-            _scoreboard = Models.GetModel<Scoreboard>();
-            _input = GetComponentInParent<InputManager>();
-            _input.Bind("Scoreboard", Enable, this, KeyPressType.Down);
-            _input.Bind("Scoreboard", Disable, this, KeyPressType.Up);
-        }
+		void Awake()
+		{
+			_gameModel = Models.GetModel<GameModel>();
+			_scoreboard = Models.GetModel<Scoreboard>();
 
-        private void OnEnable()
-        {
-            Refresh();
+			_input = GetComponentInParent<InputManager>();
+			_input.Bind("Scoreboard", Enable, this, KeyPressType.Down);
+			_input.Bind("Scoreboard", Disable, this, KeyPressType.Up);
 
-            _scoreboard.OnTableChanged.AddListener(Refresh);
-        }
+			_gameModel.GameReset.AddListener(_scoreboard.Reset);
+			_gameModel.OnPlayerConnected.AddListener(_scoreboard.AddCharacter);
+			_gameModel.CharacterDied.AddListener(_scoreboard.AddKill);
 
-        private void OnDisable()
-        {
-            _scoreboard.OnTableChanged.RemoveListener(Refresh);
-        }
+			_scoreboard.Reset();
+		}
 
-        private void OnDestroy()
-        {
-            _input.Unbind(this);
-        }
+		void OnEnable()
+		{
+			Refresh();
+			_scoreboard.OnTableChanged.AddListener(Refresh);
+		}
 
-        private void Enable()
-        {
-            _scoreboardPanel.SetActive(true);
-        }
+		void OnDisable()
+		{ 
+			_scoreboard.OnTableChanged.RemoveListener(Refresh);
+		}
 
-        private void Disable()
-        {
-            _scoreboardPanel.SetActive(false);
-        }
+		void OnDestroy()
+		{
+			_input.Unbind(this);
+			_gameModel.CharacterDied.RemoveListener(_scoreboard.AddKill);
+			_gameModel.OnPlayerConnected.RemoveListener(_scoreboard.AddCharacter);
+			_gameModel.GameReset.RemoveListener(_scoreboard.Reset);
+		}
 
-        private void Refresh()
-        {
-            // Destroy Old
-            int childCount = _scoreboardPanel.transform.childCount;
+		void Enable()
+		{
+			_scoreboardPanel.SetActive(true);
+		}
 
-            _sortedRows.Clear();
+		void Disable()
+		{
+			_scoreboardPanel.SetActive(false);
+		}
 
-            for (int i = 0; i < childCount; i++)
-            {
-                GameObject child = _scoreboardPanel.transform.GetChild(i).gameObject;
+		void Refresh()
+		{
+			// Destroy Old
+			_sortedRows.Clear();
 
-                if(child != _rowPrefab.gameObject)
-                    Destroy(child);
-            }
+			foreach (Transform child in _scoreboardPanel.transform)
+				if (child != _rowPrefab.transform)
+					Destroy(child.gameObject);
 
-            // Get Sorted
-            //foreach (DataRow row in _scoreboard.scoreTable.Rows)
-            foreach (DataRow row in _scoreboard.GetRows())
-            {
-                int killCount = _scoreboard.GetValue<int>(row, Scoreboard.Columns.KillCount);
-                float timeVal = _scoreboard.GetValue<float>(row, Scoreboard.Columns.LastKillTime);
-                float sortVal = -killCount - timeVal;
+			// Get Sorted
+			foreach (DataRow row in _scoreboard.GetRows())
+			{
+				int killCount = _scoreboard.GetValue<int>(row, Scoreboard.Columns.KillCount);
+				float timeVal = _scoreboard.GetValue<float>(row, Scoreboard.Columns.LastKillTime);
+				float sortVal = -killCount - timeVal;
 
-                while (_sortedRows.ContainsKey(sortVal))
-                    sortVal += Random.value * 0.0001f;
+				while (_sortedRows.ContainsKey(sortVal))
+					sortVal += Random.value * 0.0001f;
 
-                _sortedRows.Add(sortVal, row);
-            }
+				_sortedRows.Add(sortVal, row);
+			}
 
-            // Instantiate new
-            foreach(DataRow row in _sortedRows.Values)
-            {
-                GameObject entry = Instantiate(_rowPrefab.gameObject, _scoreboardPanel.transform);
-                string name = _scoreboard.GetValue<string>(row, Scoreboard.Columns.Name);
-                int kills = _scoreboard.GetValue<int>(row, Scoreboard.Columns.KillCount);
-                int deaths = _scoreboard.GetValue<int>(row, Scoreboard.Columns.DeathCount);
+			// Instantiate new
+			foreach (DataRow row in _sortedRows.Values)
+			{
+				TMP_Text entry = Instantiate(_rowPrefab, _scoreboardPanel.transform);
+				string name = _scoreboard.GetValue<string>(row, Scoreboard.Columns.Name);
+				int kills = _scoreboard.GetValue<int>(row, Scoreboard.Columns.KillCount);
+				int deaths = _scoreboard.GetValue<int>(row, Scoreboard.Columns.DeathCount);
 
-                if (entry.TryGetComponent(out TextMeshProUGUI text))
-                    text.SetText($"{name, 20} :{kills, 4}K :{deaths, 4}D");
-
-                entry.SetActive(true);
-            }
-        }
-    }
+				entry.SetText($"{name,20} :{kills,4}K :{deaths,4}D");
+				entry.gameObject.SetActive(true);
+			}
+		}
+	}
 }

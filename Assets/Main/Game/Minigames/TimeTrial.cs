@@ -9,8 +9,6 @@ namespace MPCore
 {
     public class TimeTrial : MonoBehaviour
     {
-        public MessageEvent messageChannel;
-        public StringEvent timerChannel;
         public Transform goals;
         public RewardEvent[] rewards;
 
@@ -19,6 +17,7 @@ namespace MPCore
         [NonSerialized] public bool gameOn = false;
         [NonSerialized] public float bestTime = float.MaxValue;
 
+        GUIModel _guiModel;
         private Spawner rewardSpawner;
         private ButtonSet rewardDisplay;
 
@@ -39,8 +38,9 @@ namespace MPCore
             public int count;
         }
 
-        private void Awake()
+        void Awake()
         {
+            _guiModel = Models.GetModel<GUIModel>();
             rewardDisplay = GetComponentInChildren<ButtonSet>();
             rewardSpawner = GetComponentInChildren<Spawner>();
 
@@ -56,9 +56,7 @@ namespace MPCore
             if (gameOn)
             {
                 timer += Time.deltaTime;
-
-                if (timerChannel)
-                    timerChannel.Invoke("" + timer);
+                _guiModel.timer.Value = timer;
             }
         }
 
@@ -88,8 +86,9 @@ namespace MPCore
             gameOn = true;
             timer = 0;
 
-            if (messageChannel)
-                messageChannel.Invoke("Time Trial Start!");
+            //if (messageChannel)
+            //    messageChannel.Invoke("Time Trial Start!");
+            _guiModel.largeMessage.Value = "Time Trial Start!";
 
             // Reset Goals
             foreach (Transform goal in goals)
@@ -105,11 +104,12 @@ namespace MPCore
                 bestTime = Mathf.Min(timer, bestTime);
 
                 // Messages
-                if (messageChannel)
-                {
-                    messageChannel.Invoke("Time Trial End! " + timer);
-                    messageChannel.Invoke("BestTime: " + bestTime);
-                }
+                //if (messageChannel)
+                //{
+                //    messageChannel.Invoke("Time Trial End! " + timer);
+                //    messageChannel.Invoke("BestTime: " + bestTime);
+                //}
+                _guiModel.largeMessage.Value = $"Best: {bestTime}          You: {timer}";
 
                 // Goals
                 int goalCount = 0;
@@ -125,10 +125,8 @@ namespace MPCore
             }
             else
             {
-                if (messageChannel)
-                    messageChannel.Invoke("Time Trial Cancelled");
-                if (timerChannel)
-                    timerChannel.Invoke("");
+                _guiModel.largeMessage.Value = "Time Trial Cancelled";
+                _guiModel.timer.Value = 0f;
             }
         }
     }

@@ -4,48 +4,39 @@ namespace MPCore
 {
     public class CameraManager : MonoBehaviour
     {
-        public static GameObject target;
+        [SerializeField] Camera _mainCamera;
+        [SerializeField] Camera _farCamera;
+        [SerializeField] Camera _guiCamera;
 
-        private static GameObject skycam;
-        public static Camera main;
+        GameModel _gameModel;
+        Transform _view;
+        GameObject _skycam;
 
-        [SerializeField] private Camera mainCamera;
-        [SerializeField] private Camera farCamera;
-        [SerializeField] private Camera firstPersonCamera;
-
-        private void OnEnable()
+        void Awake()
         {
-            skycam = GameObject.FindGameObjectWithTag("SkyCam");
-            main = mainCamera;
+            _gameModel = Models.GetModel<GameModel>();
+            _gameModel.currentView.Subscribe(SetView);
+            _skycam = GameObject.FindGameObjectWithTag("SkyCam");
         }
 
-        public static void ManualUpdateRot()
+        void OnDestroy()
         {
-            if (target && main)
-            {
-                main.transform.rotation = target.transform.rotation;
-
-                if(skycam)
-                    skycam.transform.rotation = target.transform.rotation;
-            }
+            _gameModel.currentView.Unsubscribe(SetView);
         }
 
-        public static void ManualUpdatePos()
+        void LateUpdate()
         {
-            if (target && main)
-                main.transform.position = target.transform.position;
+            transform.position = _view.position;
+            transform.rotation = _view.rotation;
+
+            if(_skycam)
+                _skycam.transform.rotation = _view.transform.rotation;
         }
 
-        public void LateUpdate()
+        void SetView(DeltaValue<Transform> view)
         {
-            if (target)
-            {
-                transform.position = target.transform.position;
-                transform.rotation = target.transform.rotation;
-
-                if(skycam)
-                    skycam.transform.rotation = target.transform.rotation;
-            }
+            _view = view.newValue;
+            enabled = _view != null;
         }
     }
 }

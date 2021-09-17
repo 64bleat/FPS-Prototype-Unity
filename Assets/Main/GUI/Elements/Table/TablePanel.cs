@@ -25,11 +25,11 @@ namespace MPGUI
     {
         public readonly List<ContextMethod> universalMethods = new List<ContextMethod>();
 
-        [SerializeField] private TableStyle style;
-        [SerializeField] private RectTransform tablePanel;
-        [SerializeField] private RectTransform rowsPanel;
-        [SerializeField] private RectTransform legendPanel;
-        [SerializeField] private ColumnInfo[] columns = null;
+        [SerializeField] TableStyle style;
+        [SerializeField] RectTransform tablePanel;
+        [SerializeField] RectTransform rowsPanel;
+        [SerializeField] RectTransform legendPanel;
+        [SerializeField] ColumnInfo[] columns = null;
 
         public struct ContextMethod
         {
@@ -38,8 +38,8 @@ namespace MPGUI
             public Type type;
         }
 
-        private readonly Dictionary<GameObject, object> rows = new Dictionary<GameObject, object>();
-        private readonly HashSet<GameObject> selection = new HashSet<GameObject>();
+        readonly Dictionary<GameObject, object> _rows = new Dictionary<GameObject, object>();
+        readonly HashSet<GameObject> _selection = new HashSet<GameObject>();
 
         [Serializable]
         public struct ColumnInfo
@@ -54,8 +54,8 @@ namespace MPGUI
             float tableHeight = 0;
 
             // Clear Data
-            rows.Clear();
-            selection.Clear();
+            _rows.Clear();
+            _selection.Clear();
 
             // Clear Panel
             for (int i = 0, count = legendPanel.childCount; i < count; i++)
@@ -135,7 +135,7 @@ namespace MPGUI
                     rowSize.x = tableWidth;
                     rowRect.sizeDelta = rowSize;
                     tableHeight += rowSize.y;
-                    rows.Add(row, entry);
+                    _rows.Add(row, entry);
                     row.SetActive(true);
                     rowValues.Clear();
                 }
@@ -148,7 +148,7 @@ namespace MPGUI
 
         private void SetSelection(GameObject item, bool selected)
         {
-            if (item && (selected ^ selection.Contains(item)))
+            if (item && (selected ^ _selection.Contains(item)))
             {
                 foreach (TextMeshProUGUI text in item.GetComponentsInChildren<TextMeshProUGUI>())
                     text.color = selected ? style.selectedTextColor : style.textColor;
@@ -157,9 +157,9 @@ namespace MPGUI
                     image.color = selected ? style.selectedColor : style.backgroundColor;
 
                 if (selected)
-                    selection.Add(item);
+                    _selection.Add(item);
                 else
-                    selection.Remove(item);
+                    _selection.Remove(item);
             }
         }
 
@@ -167,7 +167,7 @@ namespace MPGUI
         {
             GameObject item = mouse.downInfo.gameObject;
 
-            if (rows.ContainsKey(item))
+            if (_rows.ContainsKey(item))
                 if (mouse.Contains(KeyCode.Mouse0))
                 {
                     // Add
@@ -175,16 +175,16 @@ namespace MPGUI
                         SetSelection(item, true);
                     // Invert
                     else if (mouse.Contains(KeyCode.LeftControl) || mouse.Contains(KeyCode.RightControl))
-                        SetSelection(item, !selection.Contains(item));
+                        SetSelection(item, !_selection.Contains(item));
                     // Remove
                     else if (mouse.Contains(KeyCode.LeftAlt) || mouse.Contains(KeyCode.RightAlt))
                         SetSelection(item, false);
                     // Single
                     else
                     {
-                        bool select = selection.Count > 1 || !selection.Contains(item);
+                        bool select = _selection.Count > 1 || !_selection.Contains(item);
 
-                        foreach (GameObject go in selection.ToArray())
+                        foreach (GameObject go in _selection.ToArray())
                             SetSelection(go, false);
 
                         SetSelection(item, select);
@@ -205,7 +205,7 @@ namespace MPGUI
         {
             List<(string name, MethodInfo method, object instance)> contextMenuEntries = new List<(string, MethodInfo, object)>();
 
-            if (rows.TryGetValue(clicked, out object item))
+            if (_rows.TryGetValue(clicked, out object item))
             {
                 Window window = GetComponentInParent<Window>();
                 GameObject contextMenu = Instantiate(style.contextMenuTemplate, screenPosition, transform.rotation, window.transform.parent);

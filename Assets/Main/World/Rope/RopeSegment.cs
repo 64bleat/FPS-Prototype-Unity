@@ -71,7 +71,7 @@ namespace MPWorld
         {
             if (!holder && other)
             {
-                other = other.GetComponentInChildren<CharacterCamera>().gameObject;
+                other = other.GetComponentInChildren<CharacterView>().gameObject;
 
                 if (other)
                 {
