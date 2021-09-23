@@ -9,5 +9,6 @@ namespace MPCore
         public List<Inventory> randomSpawnInventory;
         public CharacterInfo playerInfo;
         public DamageType respawnDamageType;
+        [SerializeField] protected bool disableBots = false;
     }
 }

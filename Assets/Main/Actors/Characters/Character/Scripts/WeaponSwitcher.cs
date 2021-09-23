@@ -81,12 +81,12 @@ namespace MPCore
 
 		void SelectActivatable(bool forward)
 		{
-			int count = _inventory.inventory.Count;
+			int count = _inventory.Inventory.Count;
 			int start;
 			Inventory next = null;
 
 			if (_currentPassive)
-				start = _inventory.inventory.IndexOf(_currentPassive) + (forward ? 1 : -1);
+				start = _inventory.Inventory.IndexOf(_currentPassive) + (forward ? 1 : -1);
 			else
 				start = 0;
 
@@ -95,9 +95,9 @@ namespace MPCore
 				Inventory item;
 
 				if (forward)
-					item = _inventory.inventory[(start + i) % count];
+					item = _inventory.Inventory[(start + i) % count];
 				else
-					item = _inventory.inventory[(start + count - i) % count];
+					item = _inventory.Inventory[(start + count - i) % count];
 
 				if (item.activatable)
 				{
@@ -128,12 +128,12 @@ namespace MPCore
 
 		void DrawScroll(float scroll)
 		{
-			int count = _inventory.inventory.Count;
+			int count = _inventory.Inventory.Count;
 			Weapon next = null;
 			Weapon loop = null;
 
 			for (int i = 0; i < count; i++)
-				if (_inventory.inventory[i] is Weapon w)
+				if (_inventory.Inventory[i] is Weapon w)
 					if (scroll > 0)
 					{
 						if (w.weaponSlot > currentWeapon.weaponSlot && (!next || w.weaponSlot < next.weaponSlot))
@@ -161,7 +161,7 @@ namespace MPCore
 		{
 			(Weapon weapon, float priority) next = (null, float.NegativeInfinity);
 
-			foreach (Inventory item in _inventory.inventory)
+			foreach (Inventory item in _inventory.Inventory)
 				if (item is Weapon weapon)
 					if (weapon.weaponSlot > next.priority)
 						next = (weapon, weapon.weaponSlot);
@@ -174,7 +174,7 @@ namespace MPCore
 		{
 			(Weapon weapon, float priority) next = (null, -1);
 
-			foreach (Inventory item in _inventory.inventory)
+			foreach (Inventory item in _inventory.Inventory)
 				if (item is Weapon weapon && weapon != currentWeapon)
 					if (weapon.weaponSlot > next.priority)
 						next = (weapon, weapon.weaponSlot);
@@ -185,7 +185,7 @@ namespace MPCore
 		/// <summary> Draw the previously drawn weapon if it exists </summary>
 		public void DrawLastWeapon()
 		{
-			if(lastWeapon && _inventory.inventory.Contains(lastWeapon))
+			if(lastWeapon && _inventory.Inventory.Contains(lastWeapon))
 				DrawWeapon(lastWeapon);
 		}
 
@@ -196,7 +196,7 @@ namespace MPCore
 			{
 				Weapon nextWeapon = null;
 
-				foreach (Inventory item in _inventory.inventory)
+				foreach (Inventory item in _inventory.Inventory)
 					if (item is Weapon weapon && weapon.weaponSlot == slot)
 						nextWeapon = weapon;
 

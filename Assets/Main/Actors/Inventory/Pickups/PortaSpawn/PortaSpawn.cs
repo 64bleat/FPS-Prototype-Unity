@@ -4,41 +4,41 @@ using UnityEngine;
 
 namespace MPCore
 {
-    [RequireComponent(typeof(Rigidbody))]
-    public class PortaSpawn : InventoryPickup
-    {
-        public static Stack<GameObject> stack = new Stack<GameObject>();
+	[RequireComponent(typeof(Rigidbody))]
+	public class PortaSpawn : InventoryPickup
+	{
+		public static Stack<GameObject> stack = new Stack<GameObject>();
 
-        public Transform spawnPoint;
+		public Transform spawnPoint;
 
-        private readonly List<Inventory> savedStuff = new List<Inventory>();
+		private readonly List<Inventory> savedStuff = new List<Inventory>();
 
-        private void OnDestroy()
-        {
-            stack = new Stack<GameObject>(from go in stack.ToArray()
-                                          where !go.Equals(spawnPoint.gameObject)
-                                          select go);
-        }
+		private void OnDestroy()
+		{
+			stack = new Stack<GameObject>(from go in stack.ToArray()
+										  where !go.Equals(spawnPoint.gameObject)
+										  select go);
+		}
 
-        public void TransferStuff(InventoryManager container)
-        {
-            foreach (Inventory i in savedStuff)
-                container.TryPickup(i, out _);
-                //i.TryPickup(container, out _);
-        }
+		public void TransferStuff(InventoryManager container)
+		{
+			foreach (Inventory i in savedStuff)
+				container.TryPickup(i, out _);
+				//i.TryPickup(container, out _);
+		}
 
-        public override void OnDropped(GameObject dropper)
-        {
-            savedStuff.Clear();
+		public override void OnDropped(GameObject dropper)
+		{
+			savedStuff.Clear();
 
-            if (dropper)
-            {
-                if (dropper.TryGetComponent(out InventoryManager container))
-                    foreach (Inventory i in container.inventory)
-                        savedStuff.Add(Instantiate(i));
+			if (dropper)
+			{
+				if (dropper.TryGetComponent(out InventoryManager container))
+					foreach (Inventory i in container.Inventory)
+						savedStuff.Add(Instantiate(i));
 
-                stack.Push(spawnPoint.gameObject);
-            }
-        }
-    }
+				stack.Push(spawnPoint.gameObject);
+			}
+		}
+	}
 }

@@ -5,208 +5,221 @@ using UnityEngine;
 
 namespace MPCore
 {
-    [ContainsConsoleCommands]
-    public class InventoryManager : MonoBehaviour
-    {
-        public List<Inventory> inventory;
+	[ContainsConsoleCommands]
+	public class InventoryManager : MonoBehaviour
+	{
+		[SerializeField] List<Inventory> _inventory;
 
-        GUIModel _guiModel;
-        Character _character;
-        IGravityUser _physics;
-        Rigidbody _rigidbody;
+		GUIModel _guiModel;
+		Character _character;
+		IGravityUser _physics;
+		Rigidbody _rigidbody;
 
-        private void Awake()
-        {
-            _rigidbody = GetComponent<Rigidbody>();
-            _physics = GetComponent<IGravityUser>();
-            _guiModel = Models.GetModel<GUIModel>();
-            _character = GetComponent<Character>();
+		public IList<Inventory> Inventory => _inventory;
 
-            // Don't store direct references to Inventory resources 
-            for (int i = 0; i < inventory.Count; i++)
-                if (!inventory[i].staticReference)
-                    inventory[i] = Instantiate(inventory[i]);
+		void Awake()
+		{
+			_rigidbody = GetComponent<Rigidbody>();
+			_physics = GetComponent<IGravityUser>();
+			_guiModel = Models.GetModel<GUIModel>();
+			_character = GetComponent<Character>();
 
-            Console.AddInstance(this);
-        }
+			// Don't store direct references to Inventory resources 
+			for (int i = 0; i < _inventory.Count; i++)
+				if (!_inventory[i].staticReference)
+					_inventory[i] = Instantiate(_inventory[i]);
 
-        private void OnDestroy()
-        {
-            Console.RemoveInstance(this);
-        }
+			Console.AddInstance(this);
+		}
 
-        public bool TryPickup(Inventory reference, out Inventory instance)
-        {
-            // Set instance
-            if (reference.destroyOnPickup || reference.staticReference || reference.isCopy)
-                instance = reference;
-            else
-            {
-                instance = Instantiate(reference);
-                instance.asset = reference.asset;
-                instance.isCopy = true;
-            }
+		void OnDestroy()
+		{
+			Console.RemoveInstance(this);
+		}
 
-            // Pickup DestroyOnPickup
-            if (reference.destroyOnPickup)
-                return Pickup(instance);
+		public bool TryPickup(Inventory reference, out Inventory instance)
+		{
+			// Set instance
+			if (reference.destroyOnPickup || reference.staticReference || reference.isCopy)
+				instance = reference;
+			else
+			{
+				instance = Instantiate(reference);
+				instance.asset = reference.asset;
+				instance.isCopy = true;
+			}
 
-            // Pickup Duplicate
-            foreach (Inventory item in inventory)
-                if(item.resourcePath == reference.resourcePath)
-                    if (item.count >= item.maxCount)
-                        return false;
-                    else if (Pickup(instance))
-                    {
-                        item.count = Mathf.Min(item.maxCount, item.count + reference.count);
-                        return true;
-                    }
-                    else
-                        return false;
+			// Pickup DestroyOnPickup
+			if (reference.destroyOnPickup)
+				return Pickup(instance);
 
-            if (Pickup(instance))
-            {
-                inventory.Add(instance);
+			// Pickup Duplicate
+			foreach (Inventory item in _inventory)
+				if(item.resourcePath == reference.resourcePath)
+					if (item.count >= item.maxCount)
+						return false;
+					else if (Pickup(instance))
+					{
+						item.count = Mathf.Min(item.maxCount, item.count + reference.count);
+						return true;
+					}
+					else
+						return false;
 
-                return true;
-            }
-            else if (instance != this)
-                Destroy(instance);
+			if (Pickup(instance))
+			{
+				_inventory.Add(instance);
 
-            return false;
-        }
+				return true;
+			}
+			else if (instance != this)
+				Destroy(instance);
 
-        private bool Pickup(Inventory instance)
-        {
-            bool passed = instance.TryPickup(gameObject);
+			return false;
+		}
 
-            // Activatables
-            if (instance.activatable)
-            {
-                instance.active = false;
-                instance.SetActive(gameObject, true);
-            }
+		bool Pickup(Inventory instance)
+		{
+			bool passed = instance.TryPickup(gameObject);
 
-            // Display Pickup Message
-            if (passed && _character && _character.IsPlayer)
-            {
-                _guiModel.shortMessage.Value = $"Acquired {instance.displayName}";
+			// Activatables
+			if (instance.activatable)
+			{
+				instance.active = false;
+				instance.SetActive(gameObject, true);
+			}
 
-                if (instance.activatable)
-                    _guiModel.PassivePickup?.Invoke(instance);
-            }
+			// Display Pickup Message
+			if (passed && _character && _character.IsPlayer)
+			{
+				_guiModel.shortMessage.Value = $"Acquired {instance.displayName}";
 
-            return passed;
-        }
+				if (instance.activatable)
+					_guiModel.PassivePickup?.Invoke(instance);
+			}
 
-        /// <summary> Players pick up an item using the console </summary>
-        /// <param name="resourcePath"></param>
-        /// <returns></returns>
-        [ConsoleCommand("pickup")]
-        public string ConsolePickup(string resourcePath)
-        {
-            if (_character ? _character.IsPlayer : false)
-            {
-                Inventory resource = Resources.Load<Inventory>(resourcePath);
+			return passed;
+		}
 
-                if (resource)
-                    if(TryPickup(resource, out _))
-                        return $"Picked up {resource.name}";
-                    else
-                        return $"Could not pick up {resource.name}";
-                else
-                    return $"Could not find resource {resourcePath}";
-            }
-            else
-                return null;
-        }
+		/// <summary> Players pick up an item using the console </summary>
+		/// <param name="resourcePath"></param>
+		/// <returns></returns>
+		[ConsoleCommand("pickup")]
+		public string ConsolePickup(string resourcePath)
+		{
+			if (_character ? _character.IsPlayer : false)
+			{
+				Inventory resource = Resources.Load<Inventory>(resourcePath);
 
-        public bool TryDrop(Inventory item, Vector3 position, Quaternion rotation, RaycastHit dropPoint, out InventoryPickup pickup)
-        {
-            pickup = null;
+				if (resource)
+					if(TryPickup(resource, out _))
+						return $"Picked up {resource.name}";
+					else
+						return $"Could not pick up {resource.name}";
+				else
+					return $"Could not find resource {resourcePath}";
+			}
+			else
+				return null;
+		}
 
-            if (item.TryDrop(gameObject, position, rotation) 
-                && !item.destroyOnDrop 
-                && item.dropPrefab)
-            {
-                // Get Velocity
-                Vector3 ownVel;
+		public bool TryDrop(Inventory item, Vector3 position, Quaternion rotation, RaycastHit dropPoint, out InventoryPickup pickup)
+		{
+			pickup = null;
 
-                if (_physics != null)
-                    ownVel = _physics.Velocity;
-                else if (_rigidbody)
-                    ownVel = _rigidbody.velocity;
-                else
-                    ownVel = Vector3.zero;
+			if (item.TryDrop(gameObject, position, rotation) 
+				&& !item.destroyOnDrop 
+				&& item.dropPrefab)
+			{
+				// Get Velocity
+				Vector3 ownVel;
 
-                // Deactivate if Active
-                item.SetActive(gameObject, false);
+				if (_physics != null)
+					ownVel = _physics.Velocity;
+				else if (_rigidbody)
+					ownVel = _rigidbody.velocity;
+				else
+					ownVel = Vector3.zero;
 
-                // Remove In HUD
-                if (item.activatable && (_character ? _character.IsPlayer : false))
-                    _guiModel.PassiveDrop?.Invoke(item);
+				// Deactivate if Active
+				item.SetActive(gameObject, false);
 
-                for (int i = 0, count = item.count; i < count; i++)
-                {
-                    // Make Pickup
-                    pickup = Instantiate(item.dropPrefab, position, rotation);
+				// Remove In HUD
+				if (item.activatable && (_character ? _character.IsPlayer : false))
+					_guiModel.PassiveDrop?.Invoke(item);
 
-                    pickup.inventory =  i > 0 ? Instantiate(item) : item;
-                    pickup.inventory.count = 1;
-                    pickup.countDownDestroy = item.droppedLifeTime > 0;
-                    pickup.lifeTime = item.droppedLifeTime;
+				for (int i = 0, count = item.count; i < count; i++)
+				{
+					// Make Pickup
+					pickup = Instantiate(item.dropPrefab, position, rotation);
 
-                    // Set Velocity
-                    if (pickup.TryGetComponent(out Rigidbody newRB))
-                        newRB.velocity += ownVel;
-                    else if (pickup.TryGetComponent(out IGravityUser newGU))
-                        newGU.Velocity += ownVel;
+					pickup.inventory =  i > 0 ? Instantiate(item) : item;
+					pickup.inventory.count = 1;
+					pickup.countDownDestroy = item.droppedLifeTime > 0;
+					pickup.lifeTime = item.droppedLifeTime;
 
-                    // Clipping prevention
-                    if (pickup.TryGetComponent(out Collider collider))
-                        pickup.transform.position += collider.transform.position - collider.ClosestPoint(collider.transform.position - dropPoint.normal * 100);
-                }
-            }
-            else
-                pickup = null;
+					// Set Velocity
+					if (pickup.TryGetComponent(out Rigidbody newRB))
+						newRB.velocity += ownVel;
+					else if (pickup.TryGetComponent(out IGravityUser newGU))
+						newGU.Velocity += ownVel;
 
-            return !item || !item.dropPrefab || item.destroyOnDrop || pickup;
-        }
+					// Clipping prevention
+					if (pickup.TryGetComponent(out Collider collider))
+						pickup.transform.position += collider.transform.position - collider.ClosestPoint(collider.transform.position - dropPoint.normal * 100);
+				}
+			}
+			else
+				pickup = null;
 
-        public InventoryPickup Drop(int index, Vector3 position, Quaternion rotation, RaycastHit hit)
-        {
-            if(TryDrop(inventory[index], position, rotation, hit, out InventoryPickup pickup))
-            {
-                inventory.RemoveAt(index);
-                pickup.OnDropped(gameObject);
-            }
+			return !item || !item.dropPrefab || item.destroyOnDrop || pickup;
+		}
 
-            return pickup;
-        }
+		public InventoryPickup Drop(Inventory item, Vector3 position, Quaternion rotation, RaycastHit hit)
+		{
+			if (TryDrop(item, position, rotation, hit, out InventoryPickup pickup))
+			{
+				_inventory.Remove(item);
+				pickup.OnDropped(gameObject);
+			}
 
-        /// <summary> Find an instance of an item within this container </summary>
-        /// <param name="reference"></param>
-        /// <param name="instance"></param>
-        /// <returns> true if a clone was found </returns>
-        public bool TryFind(Inventory reference, out Inventory instance)
-        {
-            try
-            {
-                instance = inventory.Find((i) => i.asset == reference.asset);
-                return true;
-            }
-            catch
-            {
-                instance = null;
-                return false;
-            }
-        }
+			return pickup;
+		}
 
-        public void Remove(Inventory reference, int count = 1)
-        {
-            if (TryFind(reference, out Inventory item))
-                if ((item.count -= count) <= 0)
-                    inventory.Remove(item);
-        }
-    }
+		public InventoryPickup Drop(int index, Vector3 position, Quaternion rotation, RaycastHit hit)
+		{
+			if(TryDrop(_inventory[index], position, rotation, hit, out InventoryPickup pickup))
+			{
+				_inventory.RemoveAt(index);
+				pickup.OnDropped(gameObject);
+			}
+
+			return pickup;
+		}
+
+		/// <summary> Find an instance of an item within this container </summary>
+		/// <param name="reference"></param>
+		/// <param name="instance"></param>
+		/// <returns> true if a clone was found </returns>
+		public bool TryFind(Inventory reference, out Inventory instance)
+		{
+			try
+			{
+				instance = _inventory.Find(i => i.asset == reference.asset);
+				return instance;
+			}
+			catch
+			{
+				instance = null;
+				return false;
+			}
+		}
+
+		public void Remove(Inventory reference, int count = 1)
+		{
+			if (TryFind(reference, out Inventory item))
+				if ((item.count -= count) <= 0)
+					_inventory.Remove(item);
+		}
+	}
 }

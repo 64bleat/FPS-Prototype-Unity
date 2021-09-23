@@ -3,13 +3,13 @@ using UnityEngine;
 
 namespace MPGUI
 {
-    public class SettingsSaver : MonoBehaviour
-    {
-        private void OnDisable()
-        {
-            SettingsModel model = Models.GetModel<SettingsModel>();
+	public class SettingsSaver : MonoBehaviour
+	{
+		private void OnDisable()
+		{
+			SettingsModel model = Models.GetModel<SettingsModel>();
 
-            model.Save?.Invoke();
-        }
-    }
+			model.Save?.Invoke();
+		}
+	}
 }

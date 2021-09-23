@@ -65,20 +65,18 @@ namespace MPCore
 
 		private void Update()
 		{
-			if (_playSettingsModel)
+			// Bot count may change at any time
+			while (!disableBots && _loadedPlayers.Count < _playSettingsModel.botCount)
 			{
-				// Bot count may change at any time
-				while (_loadedPlayers.Count < _playSettingsModel.botCount)
-				{
-					int index = _loadedPlayers.Count % _botList.Length;
-					CharacterJoin(_botList[index], false);
-				}
-
-				// Attempt to spawn one bot per frame
-				if (_deadBots.Count > 0 && _liveBots.Count < _playSettingsModel.botCount)
-					if (SpawnCharacter(_deadBots.Peek()))
-						_deadBots.Dequeue();
+				int index = _loadedPlayers.Count % _botList.Length;
+				CharacterJoin(_botList[index], false);
 			}
+
+			// Attempt to spawn one bot per frame
+			if (!disableBots && _deadBots.Count > 0 
+				&& _liveBots.Count < _playSettingsModel.botCount)
+				if (SpawnCharacter(_deadBots.Peek()))
+					_deadBots.Dequeue();
 		}
 
 		void OnChatacterSpawned(Character character)
@@ -100,7 +98,7 @@ namespace MPCore
 		{
 			CharacterJoin(playerInfo, true);
 
-			if (_playSettingsModel)
+			if (!disableBots)
 				for (int i = 0; i < _playSettingsModel.botCount; i++)
 				{
 					int index = _loadedPlayers.Count % _botList.Length;
@@ -145,7 +143,7 @@ namespace MPCore
 		{
 			// Bot Died
 			if (death.victim == _gameModel.currentPlayer.Value)
-				OnPlayerDeath();
+				_input.Bind("Fire", OnPlayerSpawned, this);
 			else if (_playSettingsModel)
 			{
 				_liveBots.Remove(death.victim);
@@ -196,12 +194,6 @@ namespace MPCore
 			}
 		}
 
-		/// <summary> Called when the player dies </summary>
-		private void OnPlayerDeath()
-		{ 
-			_input.Bind("Fire", OnPlayerSpawned, this);
-		}
-
 		/// <summary> Called when the player is ready to spawn </summary>
 		private void OnPlayerSpawned()
 		{
@@ -233,8 +225,7 @@ namespace MPCore
 			Character instance = spawnPoint.Spawn(reference);
 
 			SetTeam(characterInfo);
-			instance.name = characterInfo.displayName;
-			//instance.Info = characterInfo;
+			instance.name = $"Character '{characterInfo.displayName}'";
 			instance.Initialize(characterInfo, isPlayer);
 
 			foreach (Inventory inv in spawnInventory)
@@ -245,8 +236,6 @@ namespace MPCore
 
 			if (spawnPoint.TryGetComponentInParent(out PortaSpawn spawnPs))
 				spawnPs.TransferStuff(instance.Inventory);
-
-			spawnPoint.lastSpawnTime = Time.time;
 
 			return true;
 		}

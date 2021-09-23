@@ -97,7 +97,7 @@ namespace MPCore.AI
                 }
                 else
                 {
-                    foreach (Inventory i in invContainer.inventory)
+                    foreach (Inventory i in invContainer.Inventory)
                         if (i is Weapon w)
                         {
                             float dist = Mathf.Abs(w.preferredCombatDistance - targetDistance);

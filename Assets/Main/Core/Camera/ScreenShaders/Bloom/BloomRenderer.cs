@@ -8,7 +8,7 @@ namespace MPGUI
     [ExecuteInEditMode, ImageEffectAllowedInSceneView]
     public class BloomRenderer : MonoBehaviour
     {
-        private BloomModel _bloomModel;
+        private GraphicsModel _graphicsModel;
         public Material bloomMat;
         public Material filmGrain;
         public bool enableShader = true;
@@ -28,70 +28,71 @@ namespace MPGUI
 
         private void Awake()
         {
-            _bloomModel = Models.GetModel<BloomModel>();
+            _graphicsModel = Models.GetModel<GraphicsModel>();
             downblendPrefilter = bloomMat.FindPass("DownblendPrefilter");
             downblendPass = bloomMat.FindPass("Downblend");
             upblendPass = bloomMat.FindPass("Upblend");
             addPass = bloomMat.FindPass("ApplyBloom");
 
             Console.AddInstance(this);
+
+            _graphicsModel.bloomEnabled.Subscribe(SetEnabled);
         }
+
         private void OnDestroy()
         {
             Console.RemoveInstance(this);
+            _graphicsModel.bloomEnabled.Unsubscribe(SetEnabled);
         }
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
-            if (_bloomModel.enableShader)
-            {
-                {// SetBloomMatValues
-                    float knee = threshold * softThreshold;
-                    Vector4 filter = new Vector4(
-                        threshold,
-                        threshold - knee,
-                        2f * knee,
-                        0.25f / (knee + float.Epsilon));
+            {// SetBloomMatValues
+                float knee = threshold * softThreshold;
+                Vector4 filter = new Vector4(
+                    threshold,
+                    threshold - knee,
+                    2f * knee,
+                    0.25f / (knee + float.Epsilon));
 
-                    bloomMat.SetVector("_Filter", filter);
-                    bloomMat.SetFloat("_Intensity", Mathf.GammaToLinearSpace(intensity));
-                    bloomMat.SetFloat("_Scale", scale);
-                }
-
-                // Iteration Check
-                int iterations = Mathf.Min(_bloomModel.iterations, (int)Mathf.Log(source.height, 2));
-                RenderTexture predest = RenderTexture.GetTemporary(source.width, source.height, 24, RenderTextureFormat.ARGBFloat);
-
-                // Instantiate Mipmaps
-                for (int i = 0; i < iterations; i++)
-                    mipmaps[i] = RenderTexture.GetTemporary(source.width / (1 << i), source.height / (1 << i), 0, RenderTextureFormat.ARGBFloat);
-
-                Graphics.Blit(source, mipmaps[0], bloomMat, downblendPrefilter);
-                for (int i = 1; i < iterations; i++)
-                    Graphics.Blit(mipmaps[i - 1], mipmaps[i], bloomMat, downblendPass);
-
-                for (int i = iterations - 2; i >= 0; i--)
-                    Graphics.Blit(mipmaps[i + 1], mipmaps[i], bloomMat, upblendPass);
-
-                bloomMat.SetTexture("_SourceTex", source);
-
-                Graphics.Blit(mipmaps[0], predest, bloomMat, addPass);
-
-                filmGrain.SetFloat("_Grain", _bloomModel.filmGrainScale / 64f);
-                filmGrain.SetVector("_Seed", _bloomModel.grainSeed);
-                Graphics.Blit(destination, filmGrain);
-
-                Graphics.Blit(predest, destination);
-
-                //Release
-                for (int i = 0; i < iterations; i++)
-                    RenderTexture.ReleaseTemporary(mipmaps[i]);
-
-                RenderTexture.ReleaseTemporary(predest);
+                bloomMat.SetVector("_Filter", filter);
+                bloomMat.SetFloat("_Intensity", Mathf.GammaToLinearSpace(intensity));
+                bloomMat.SetFloat("_Scale", scale);
             }
-            else
-                Graphics.Blit(source, destination);
+
+            // Iteration Check
+            int iterations = Mathf.Min(_graphicsModel.iterations, (int)Mathf.Log(source.height, 2));
+            RenderTexture predest = RenderTexture.GetTemporary(source.width, source.height, 24, RenderTextureFormat.ARGBFloat);
+
+            // Instantiate Mipmaps
+            for (int i = 0; i < iterations; i++)
+                mipmaps[i] = RenderTexture.GetTemporary(source.width / (1 << i), source.height / (1 << i), 0, RenderTextureFormat.ARGBFloat);
+
+            Graphics.Blit(source, mipmaps[0], bloomMat, downblendPrefilter);
+            for (int i = 1; i < iterations; i++)
+                Graphics.Blit(mipmaps[i - 1], mipmaps[i], bloomMat, downblendPass);
+
+            for (int i = iterations - 2; i >= 0; i--)
+                Graphics.Blit(mipmaps[i + 1], mipmaps[i], bloomMat, upblendPass);
+
+            bloomMat.SetTexture("_SourceTex", source);
+
+            Graphics.Blit(mipmaps[0], predest, bloomMat, addPass);
+
+            filmGrain.SetFloat("_Grain", _graphicsModel.filmGrainScale / 64f);
+            filmGrain.SetVector("_Seed", GraphicsModel.GRAIN_SEED);
+            Graphics.Blit(destination, filmGrain);
+
+            Graphics.Blit(predest, destination);
+
+            //Release
+            for (int i = 0; i < iterations; i++)
+                RenderTexture.ReleaseTemporary(mipmaps[i]);
+
+            RenderTexture.ReleaseTemporary(predest);
         }
+
+        void SetEnabled(DeltaValue<bool> value) => enabled = value.newValue;
 
         [ConsoleCommand("bloomy")]
         public string DebugBloomTexture()

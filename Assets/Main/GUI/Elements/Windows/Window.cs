@@ -13,7 +13,6 @@ namespace MPGUI
 	{
 		static readonly List<Window> _tryGetWindows = new();
 
-		[SerializeField] WindowStyle style;
 		[SerializeField] RectTransform panel;
 		[SerializeField] RectTransform title;
 		[SerializeField] TMP_Text _titleText;
@@ -22,6 +21,7 @@ namespace MPGUI
 		public DataValue<bool> active = new(true);
 
 		GameModel _gameModel;
+		GUIModel _guiModel;
 
 		public string Title
 		{
@@ -32,6 +32,7 @@ namespace MPGUI
 		void Awake()
 		{
 			_gameModel = Models.GetModel<GameModel>();
+			_guiModel = Models.GetModel<GUIModel>();
 
 			active.Subscribe(SetWindowActive);
 		}
@@ -81,6 +82,7 @@ namespace MPGUI
 
 		void SetWindowActive(DeltaValue<bool> isActive)
 		{
+			WindowStyle style = _guiModel.style.Value;
 			bool value = isActive.newValue;
 
 			if (isActive.newValue != isActive.oldValue)

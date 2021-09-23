@@ -1,4 +1,5 @@
 ﻿using MPCore;
+using System.Linq;
 using UnityEngine;
 
 namespace MPGUI
@@ -36,7 +37,7 @@ namespace MPGUI
                         name = "Drop"
                     });
 
-                    _table.GenerateTable(_items.inventory.ToArray());
+                    _table.GenerateTable(_items.Inventory.ToArray());
                 }
                 else
                     _window.CloseWindow();
@@ -49,12 +50,12 @@ namespace MPGUI
         {
             if (o is Inventory item)
                 _items.Drop(
-                    _items.inventory.IndexOf(item),
+                    _items.Inventory.IndexOf(item),
                     _items.transform.TransformPoint(Vector3.forward * 2),
                     _items.transform.rotation,
                     default);
 
-            _table.GenerateTable(_items.inventory.ToArray());
+            _table.GenerateTable(_items.Inventory.ToArray());
         }
     }
 }

@@ -1,85 +1,105 @@
 ﻿using MPWorld;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace MPCore
 {
-    public class SpawnPoint : MonoBehaviour
-    {
-        private const float cooldown = 1f;
-        private static readonly List<SpawnPoint> points = new List<SpawnPoint>();
+	[RequireComponent(typeof(CapsuleCollider))]
+	public class SpawnPoint : MonoBehaviour
+	{
+		const float WAIT_TIME = 1f;
+		static readonly List<SpawnPoint> _instances = new List<SpawnPoint>();
 
-        [NonSerialized] public float lastSpawnTime = -cooldown * 2f;
-        private readonly HashSet<Collider> overlaps = new HashSet<Collider>();
+		float _lastSpawnTime = -WAIT_TIME * 2f;
+		readonly HashSet<Collider> _overlapBuffer = new HashSet<Collider>();
+		CapsuleCollider _cap;
 
-        private void Awake()
-        {
-            points.Add(this);
-        }
+		void Awake()
+		{
+			_cap = GetComponent<CapsuleCollider>();
+			_instances.Add(this);
+		}
 
-        private void Start()
-        {
-            Messages.Publish(this);
-        }
+		void Start()
+		{
+			Messages.Publish(this);
+		}
 
-        void OnDestroy()
-        {
-            points.Remove(this);
-        }
+		void OnDestroy()
+		{
+			_instances.Remove(this);
+		}
 
-        public static SpawnPoint GetRandomSpawnPoint()
-        {
-            if (points.Count != 0)
-            {
-                float time = Time.time;
-                int count = points.Count;
-                int index = Random.Range(0, count);
+		public static SpawnPoint GetRandomSpawnPoint()
+		{
+			if (_instances.Count != 0)
+			{
+				float time = Time.time;
+				int count = _instances.Count;
+				int index = Random.Range(0, count);
 
-                for (int i = 0; i < count; i++)
-                {
-                    int pick = (index + i) % count;
-                    SpawnPoint spawn = points[pick];
+				for (int i = 0; i < count; i++)
+				{
+					int pick = (index + i) % count;
+					SpawnPoint spawn = _instances[pick];
 
-                    if (spawn.gameObject.activeInHierarchy 
-                        && spawn.overlaps.Count == 0 
-                        && time - spawn.lastSpawnTime >= cooldown)
-                        return points[pick];
-                }
-            }
+					if (spawn.gameObject.activeInHierarchy 
+						&& spawn._overlapBuffer.Count == 0 
+						&& time - spawn._lastSpawnTime >= WAIT_TIME)
+						return _instances[pick];
+				}
+			}
 
-            return null;
-        }
+			return null;
+		}
 
-        /// <summary>
-        /// Instantiate a Prefab at this spawn point
-        /// </summary>
-        public T Spawn<T>(T reference) where T: Component
-        {
-            T instance = Instantiate(reference, transform.position, transform.rotation);
+		/// <summary>
+		/// Instantiate a Prefab at this spawn point
+		/// </summary>
+		public T Spawn<T>(T reference) where T: Component
+		{
+			Vector3 position = transform.TransformPoint(_cap.center);
+			T instance = Instantiate(reference, position, transform.rotation);
 
-            if (instance.TryGetComponent(out Collider c))
-                instance.transform.position += transform.up * c.bounds.extents.y;
+			// Match SpawnPoint Velocity
+			if (instance.TryGetComponentInChildren(out IGravityUser playerGU))
+				if (gameObject.TryGetComponentInParent(out Rigidbody spawnRb))
+					playerGU.Velocity = spawnRb.GetPointVelocity(instance.transform.position);
+				else if (gameObject.TryGetComponentInParent(out IGravityUser spawnGu))
+					playerGU.Velocity = spawnGu.Velocity;
 
-            // Match SpawnPoint Velocity
-            if (instance.TryGetComponentInChildren(out IGravityUser playerGU))
-                if (gameObject.TryGetComponentInParent(out Rigidbody spawnRb))
-                    playerGU.Velocity = spawnRb.GetPointVelocity(instance.transform.position);
-                else if (gameObject.TryGetComponentInParent(out IGravityUser spawnGu))
-                    playerGU.Velocity = spawnGu.Velocity;
+			if (instance)
+				_lastSpawnTime = Time.time;
 
-            return instance;
-        }
+			return instance;
+		}
 
-        private void OnTriggerEnter(Collider other)
-        {
-            overlaps.Add(other);
-        }
+		void OnTriggerEnter(Collider other)
+		{
+			_overlapBuffer.Add(other);
+		}
 
-        private void OnTriggerExit(Collider other)
-        {
-            overlaps.Remove(other);
-        }
-    }
+		void OnTriggerExit(Collider other)
+		{
+			_overlapBuffer.Remove(other);
+		}
+
+		void OnDrawGizmos()
+		{
+			CapsuleCollider cap = GetComponent<CapsuleCollider>();
+
+			Vector3 center = transform.TransformPoint(cap.center);
+			Vector3 offset = transform.up * (cap.height / 2 - cap.radius);
+			Vector3 forward = transform.forward * cap.radius;
+
+			Color color = Color.green;
+			color.a = 0.25f;
+			Gizmos.color = color;
+			Gizmos.DrawSphere(center - offset, cap.radius);
+			Gizmos.DrawSphere(center, cap.radius);
+			Gizmos.DrawSphere(center + offset, cap.radius);
+			Gizmos.DrawSphere(center + offset + forward, cap.radius / 2);
+		}
+	}
 }

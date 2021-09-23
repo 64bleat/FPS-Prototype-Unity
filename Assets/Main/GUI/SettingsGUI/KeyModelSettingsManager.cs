@@ -24,7 +24,8 @@ namespace MPGUI
 
             // Bools
             BoolField bf = Instantiate(_boolField, _panel);
-            bf.SetReference(_keyModel.alwaysRun, VALUE, "Always Run");
+            bf.Initialize(_keyModel.alwaysRun.Value, "Always Run");
+            bf.value.Subscribe(b => _keyModel.alwaysRun.Value = b.newValue);
 
             // Floats
             FloatField ff = Instantiate(_floatField, _panel);
@@ -39,7 +40,6 @@ namespace MPGUI
             ff.SetReference(_keyModel.crouchToggleTime, VALUE);
 
             // Keys
-            KeyBindField kbf;
             foreach(KeyBindLayer l in _keyModel.keyOrder)
             {
                 GameObject d = Instantiate(_divider, _panel);
@@ -49,7 +49,7 @@ namespace MPGUI
 
                 foreach (KeyBind k in l.binds)
                 {
-                    kbf = Instantiate(_keyField, _panel);
+                    KeyBindField kbf = Instantiate(_keyField, _panel);
                     kbf.SetKey(k);
                 }
             }

@@ -36,7 +36,7 @@ namespace MPCore.AI
             TargetInfo moveTarget = default;
 
             storedInventoryTEMP.Clear();
-            foreach (Inventory i in container.inventory)
+            foreach (Inventory i in container.Inventory)
                 storedInventoryTEMP.Add(i.resourcePath);
 
             // temp

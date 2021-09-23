@@ -113,7 +113,7 @@ namespace MPCore
             _body.cap.enabled = false;
 
             // Drop Inventory
-            foreach (Inventory i in _inventory.inventory)
+            foreach (Inventory i in _inventory.Inventory)
                 if (i.dropOnDeath)
                     _inventory.TryDrop(i, transform.position, transform.rotation, default, out _);
 

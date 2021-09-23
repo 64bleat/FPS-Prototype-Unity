@@ -9,6 +9,7 @@ namespace MPCore
     public class GUIModel : Models
     {
         public Dropdown dropdown;
+        public DataValue<WindowStyle> style = new();
         public DataValue<RectTransform> crosshair = new();
         public DataValue<string> shortMessage = new();
         public DataValue<string> largeMessage = new();

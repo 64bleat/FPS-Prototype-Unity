@@ -231,7 +231,7 @@ namespace MPCore.AI
             (Component bestTarget, float bestPriority) omniTarget = default;
 
             storedInventoryTEMP.Clear();
-            foreach (Inventory i in container.inventory)
+            foreach (Inventory i in container.Inventory)
                 storedInventoryTEMP.Add(i.resourcePath);
 
             foreach (Component candidate in AIBlackboard.visualTargets)
@@ -354,7 +354,7 @@ namespace MPCore.AI
             {
                 (Weapon weapon, float priority) switchWeapon = (null, float.MaxValue);
 
-                foreach (Inventory i in container.inventory)
+                foreach (Inventory i in container.Inventory)
                     if (i is Weapon w)
                     {
                         float dist = Mathf.Abs(w.preferredCombatDistance - targetDistance);
