@@ -6,6 +6,8 @@ namespace MPCore
     {
         [SerializeField] int _restoreAmount = 25;
 
+        public int RestoreAmount => _restoreAmount;
+
         public override bool TryPickup(GameObject pickedBy)
         {
             if (pickedBy && pickedBy.TryGetComponent(out Character character))

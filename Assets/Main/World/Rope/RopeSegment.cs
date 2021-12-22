@@ -9,7 +9,7 @@ namespace MPWorld
         public float gravityScale = 1;
 
         public List<GravityZone> GravityZones { get; set; } = new List<GravityZone>();
-        public Vector3 Gravity { get; set; }
+        public Vector3 LocalGravity { get; set; }
         public Vector3 Velocity { get; set; }
         public float Mass { get; } = 1000;
         public bool grab = true;
@@ -33,8 +33,8 @@ namespace MPWorld
         {
             Vector3 oldPos = transform.position;
 
-            Gravity = GravityZone.GetVolumeGravity(sphere, GravityZones, out _);
-            Velocity += Gravity * Time.fixedDeltaTime * gravityScale;
+            LocalGravity = GravityZone.SampleGravity(sphere, GravityZones, out _);
+            Velocity += LocalGravity * Time.fixedDeltaTime * gravityScale;
 
             // Interact Follow
             if (holder && !grab)

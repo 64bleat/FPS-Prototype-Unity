@@ -3,13 +3,13 @@ using UnityEngine.Events;
 
 namespace MPCore
 {
-    public class StartEvents : MonoBehaviour
-    {
-        public UnityEvent events;
+	public class StartEvents : MonoBehaviour
+	{
+		public UnityEvent events;
 
-        void Start()
-        {
-            events?.Invoke();
-        }
-    }
+		void Start()
+		{
+			events?.Invoke();
+		}
+	}
 }

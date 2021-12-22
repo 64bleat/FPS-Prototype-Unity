@@ -12,10 +12,10 @@ namespace MPWorld
         public FloatLever speedLever;
         public FloatLever rollLever;
         public Vector2Lever turnLever;
-        public BoolLever antiGravityButton;
-        public BoolLever autoCorrectButton;
-        public BoolLever reverseButton;
-        public BoolLever panLever;
+        public PushButton antiGravityButton;
+        public PushButton autoCorrectButton;
+        public PushButton reverseButton;
+        public PushButton panLever;
 
         public float maxSpeed = 10f;
         public float maxAcceleration = 500f;

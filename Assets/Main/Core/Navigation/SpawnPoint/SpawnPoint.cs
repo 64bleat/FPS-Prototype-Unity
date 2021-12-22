@@ -9,45 +9,57 @@ namespace MPCore
 	public class SpawnPoint : MonoBehaviour
 	{
 		const float WAIT_TIME = 1f;
-		static readonly List<SpawnPoint> _instances = new List<SpawnPoint>();
 
+		NavModel _navModel;
 		float _lastSpawnTime = -WAIT_TIME * 2f;
 		readonly HashSet<Collider> _overlapBuffer = new HashSet<Collider>();
 		CapsuleCollider _cap;
 
+		void OnValidate()
+		{
+			gameObject.name = "PlayerSpawn";
+		}
+
 		void Awake()
 		{
+			_navModel = Models.GetModel<NavModel>();
 			_cap = GetComponent<CapsuleCollider>();
-			_instances.Add(this);
 		}
 
 		void Start()
 		{
-			Messages.Publish(this);
+			MessageBus.Publish(this);
 		}
 
-		void OnDestroy()
+		void OnEnable()
 		{
-			_instances.Remove(this);
+			_navModel.spawnPoints.Add(this);
+		}
+
+		void OnDisable()
+		{
+			_navModel.spawnPoints.Remove(this);
 		}
 
 		public static SpawnPoint GetRandomSpawnPoint()
 		{
-			if (_instances.Count != 0)
+			NavModel navModel = Models.GetModel<NavModel>();
+
+			if (navModel.spawnPoints.Count != 0)
 			{
 				float time = Time.time;
-				int count = _instances.Count;
+				int count = navModel.spawnPoints.Count;
 				int index = Random.Range(0, count);
 
 				for (int i = 0; i < count; i++)
 				{
 					int pick = (index + i) % count;
-					SpawnPoint spawn = _instances[pick];
+					SpawnPoint spawn = navModel.spawnPoints[pick];
 
 					if (spawn.gameObject.activeInHierarchy 
 						&& spawn._overlapBuffer.Count == 0 
 						&& time - spawn._lastSpawnTime >= WAIT_TIME)
-						return _instances[pick];
+						return navModel.spawnPoints[pick];
 				}
 			}
 

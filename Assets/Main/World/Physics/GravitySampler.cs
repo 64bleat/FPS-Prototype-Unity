@@ -4,28 +4,27 @@ using UnityEngine;
 
 namespace MPWorld
 {
-    public class GravitySampler : MonoBehaviour, IGravityUser
-    {
-        public List<GravityZone> GravityZones { get;  set; } = new List<GravityZone>();
-        public Vector3 Gravity { get; set; } = Physics.gravity;
-        public Vector3 Velocity { get; set; } = Vector3.zero;
-        public Vector3 ZoneVelocity { get; private set; } = Vector3.zero;
+	public class GravitySampler : MonoBehaviour, IGravityUser
+	{
+		Collider _collider;
+		Rigidbody _rigidbody;
 
-        public float Mass => body.mass;
+		public List<GravityZone> GravityZones { get; set; } = new List<GravityZone>();
+		public Vector3 LocalGravity { get; set; } = Physics.gravity;
+		public Vector3 Velocity { get; set; } = Vector3.zero;
+		public Vector3 ZoneVelocity { get; private set; } = Vector3.zero;
+		public float Mass => _rigidbody.mass;
 
-        private Collider collider;
-        private Rigidbody body;
+		void Awake()
+		{
+			_collider = GetComponent<Collider>();
+			_rigidbody = _collider.attachedRigidbody;
+		}
 
-        private void Awake()
-        {
-            TryGetComponent(out collider);
-            TryGetComponent(out body);
-        }
-
-        void FixedUpdate()
-        {
-            Gravity = GravityZone.GetVolumeGravity(collider, GravityZones, out Vector3 zoneVelocity);
-            ZoneVelocity = zoneVelocity;
-        }
-    }
+		void FixedUpdate()
+		{
+			LocalGravity = GravityZone.SampleGravity(_collider, GravityZones, out Vector3 zoneVelocity);
+			ZoneVelocity = zoneVelocity;
+		}
+	}
 }

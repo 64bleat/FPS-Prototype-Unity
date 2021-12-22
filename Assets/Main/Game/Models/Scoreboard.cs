@@ -54,15 +54,15 @@ namespace MPCore
 		/// <summary>
 		/// Adds a new row to the table representing character.
 		/// </summary>
-		public void AddCharacter(CharacterInfo character, bool isPlayer)
+		public void AddCharacter(GameModel.CharacterJoined join)
 		{
 			DataRow row = _scoreTable.NewRow();
-			row[_characterId] = character.id;
-			row[_displayName] = character.displayName;
+			row[_characterId] = join.character.id;
+			row[_displayName] = join.character.displayName;
 			row[_killCount] = 0;
 			row[_deathCount] = 0;
 			row[_lastKillTime] = 1f;
-			_characterMap.Add(character.id, _scoreTable.Rows.Count);
+			_characterMap.Add(join.character.id, _scoreTable.Rows.Count);
 			_scoreTable.Rows.Add(row);
 			_scoreTable.AcceptChanges();
 			OnTableChanged?.Invoke();
@@ -71,7 +71,7 @@ namespace MPCore
 		/// <summary>
 		/// Record a kill to the table
 		/// </summary>
-		public void AddKill(DeathInfo death)
+		public void AddKill(GameModel.CharacterDied death)
 		{
 			CharacterInfo killer = death.instigator;
 			CharacterInfo victim = death.victim;

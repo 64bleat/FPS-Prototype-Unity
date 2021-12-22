@@ -16,7 +16,7 @@ public class PhysicalBody : MonoBehaviour, IGravityUser
     public float mass = 10;
 
     public List<GravityZone> GravityZones { get; set; } = new List<GravityZone>();
-    public Vector3 Gravity { get; set; }
+    public Vector3 LocalGravity { get; set; }
     public Vector3 Velocity { get; set; }
     public float Mass => mass;
 
@@ -43,9 +43,9 @@ public class PhysicalBody : MonoBehaviour, IGravityUser
 
                 //foreach (GravityZone gz in GravityZones)
                 //    Gravity = gz.Calc(Gravity, transform);
-                Gravity = GravityZone.GetVolumeGravity(GetComponent<Collider>(), GravityZones, out _);
+                LocalGravity = GravityZone.SampleGravity(GetComponent<Collider>(), GravityZones, out _);
 
-                Velocity += Gravity * Time.fixedDeltaTime * gravityScale;
+                Velocity += LocalGravity * Time.fixedDeltaTime * gravityScale;
             }
 
             Velocity = Move(Velocity, Time.fixedDeltaTime, cb) * 0.99f;

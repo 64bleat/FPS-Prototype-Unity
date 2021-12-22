@@ -30,7 +30,7 @@ namespace MPCore
 
 		[NonSerialized] public Inventory asset;
 
-		public Inventory()
+		void Awake()
 		{
 			asset = this;
 		}

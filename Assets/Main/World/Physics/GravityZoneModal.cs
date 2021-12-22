@@ -11,7 +11,7 @@ namespace MPWorld
         private Rigidbody rb;
 
         public List<GravityZone> GravityZones { get; set; } = new List<GravityZone>();
-        public Vector3 Gravity { get; set; }
+        public Vector3 LocalGravity { get; set; }
         public Vector3 Velocity { 
             get => rb.velocity; 
             set => rb.velocity = value; }
@@ -30,8 +30,8 @@ namespace MPWorld
 
         void FixedUpdate()
         {
-            Gravity = GravityZone.GetPointGravity(transform.position, GravityZones);
-            rb.AddForce(Gravity, ForceMode.Acceleration);
+            LocalGravity = GravityZone.GetPointGravity(transform.position, GravityZones);
+            rb.AddForce(LocalGravity, ForceMode.Acceleration);
         }
     }
 }

@@ -25,9 +25,9 @@ namespace MPCore
 			_input.Bind("Scoreboard", Enable, this, KeyPressType.Down);
 			_input.Bind("Scoreboard", Disable, this, KeyPressType.Up);
 
-			_gameModel.GameReset.AddListener(_scoreboard.Reset);
-			_gameModel.OnPlayerConnected.AddListener(_scoreboard.AddCharacter);
-			_gameModel.CharacterDied.AddListener(_scoreboard.AddKill);
+			MessageBus.Subscribe<GameModel.GameReset>(ResetScoreboard);
+			MessageBus.Subscribe<GameModel.CharacterJoined>(AddCharacter);
+			MessageBus.Subscribe<GameModel.CharacterDied>(ScoreKill);
 
 			_scoreboard.Reset();
 		}
@@ -46,10 +46,14 @@ namespace MPCore
 		void OnDestroy()
 		{
 			_input.Unbind(this);
-			_gameModel.CharacterDied.RemoveListener(_scoreboard.AddKill);
-			_gameModel.OnPlayerConnected.RemoveListener(_scoreboard.AddCharacter);
-			_gameModel.GameReset.RemoveListener(_scoreboard.Reset);
+			MessageBus.Unsubscribe<GameModel.CharacterDied>(ScoreKill);
+			MessageBus.Unsubscribe<GameModel.CharacterJoined>(AddCharacter);
+			MessageBus.Unsubscribe<GameModel.GameReset>(ResetScoreboard);
 		}
+
+		void ResetScoreboard(GameModel.GameReset _) => _scoreboard.Reset();
+		void ScoreKill(GameModel.CharacterDied death) => _scoreboard.AddKill(death);
+		void AddCharacter(GameModel.CharacterJoined join) => _scoreboard.AddCharacter(join);
 
 		void Enable()
 		{

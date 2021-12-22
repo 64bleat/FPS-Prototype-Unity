@@ -10,7 +10,7 @@ namespace MPWorld
     public interface IGravityUser
     {
         List<GravityZone> GravityZones { get; set; }
-        Vector3 Gravity { get; set; }
+        Vector3 LocalGravity { get; set; }
         Vector3 Velocity { get; set; }
         float Mass { get; }
     }

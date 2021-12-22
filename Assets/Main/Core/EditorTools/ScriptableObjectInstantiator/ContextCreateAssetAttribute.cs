@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using System;
 
-    [AttributeUsage(AttributeTargets.Field, Inherited = true)]
-    public class ContextCreateAssetAttribute : PropertyAttribute
-    {
+namespace MPCore
+{
+	[AttributeUsage(AttributeTargets.Field, Inherited = true)]
+	public class ContextCreateAssetAttribute : PropertyAttribute
+	{
 
-    }
+	}
+}
 
 

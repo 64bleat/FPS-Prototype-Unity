@@ -4,18 +4,19 @@ using UnityEngine;
 
 namespace MPCore.Screenshots
 {
-    public class ScreenshotManager : ScriptableObject
-    {
-        public void SaveScreenshotToDesktop()
-        {
-            string desktopPath = $"{Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)}\\";
-            string filename = "screenshot";
-            int counter = 0;
+	public class ScreenshotManager : ScriptableObject
+	{
+		const string FILENAME = "Screenshot";
 
-            while(File.Exists($"{desktopPath + filename + counter}.png"))
-                counter++;
+		public void SaveScreenshotToDesktop()
+		{
+			string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+			int counter = 0;
 
-            ScreenCapture.CaptureScreenshot($"{desktopPath + filename + counter}.png");
-        }
-    }
+			while(File.Exists($"{desktopPath + FILENAME + counter}.png"))
+				counter++;
+
+			ScreenCapture.CaptureScreenshot($"{desktopPath}\\{FILENAME}{counter:000}.png");
+		}
+	}
 }

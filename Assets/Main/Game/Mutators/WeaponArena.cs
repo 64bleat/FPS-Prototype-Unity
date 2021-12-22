@@ -1,36 +1,38 @@
+using MPCore;
 using UnityEngine;
 
-namespace MPCore
+namespace MPGame
 {
-    public class WeaponArena : Mutator
-    {
-        [SerializeField] private InventoryPickup weapon;
+	/// <summary>
+	/// Replace Starting Weapon
+	/// </summary>
+	public class WeaponArena : Mutator
+	{
+		[SerializeField] InventoryPickup weapon;
 
-        public override void Activate()
-        {
-            Messages.Subscribe<Respawner>(ReplaceSpawningWeapons);
-            Messages.Subscribe<GameController>(ReplaceStartWeapons);
-        }
+		public override void Activate()
+		{
+			MessageBus.Subscribe<Respawner>(ReplaceSpawningWeapons);
+			MessageBus.Subscribe<GameManager>(ReplaceStartWeapons);
+		}
 
-        public override void Deactivate()
-        {
-            Messages.Unsubscribe<Respawner>(ReplaceSpawningWeapons);
-            Messages.Unsubscribe<GameController>(ReplaceStartWeapons);
-        }
+		public override void Deactivate()
+		{
+			MessageBus.Unsubscribe<Respawner>(ReplaceSpawningWeapons);
+			MessageBus.Unsubscribe<GameManager>(ReplaceStartWeapons);
+		}
 
-        public void ReplaceSpawningWeapons(Respawner res)
-        {
-            if (res.itemToSpawn.TryGetComponent(out InventoryPickup item)
-                && item.inventory is Weapon)
-                res.itemToSpawn = weapon.gameObject;
-        }
+		public void ReplaceSpawningWeapons(Respawner res)
+		{
+			if (res.itemPrefab.TryGetComponent(out InventoryPickup item)
+				&& item.inventory is Weapon)
+				res.itemPrefab = item;
+		}
 
-        public void ReplaceStartWeapons(GameController game)
-        {
-            game.spawnInventory.RemoveAll(i => i is Weapon);
-            game.randomSpawnInventory.RemoveAll(i => i is Weapon);
-            game.spawnInventory.Add(weapon.inventory);
-
-        }
-    }
+		public void ReplaceStartWeapons(GameManager game)
+		{
+			game.SpawnInventory.RemoveAll(i => i is Weapon);
+			game.SpawnInventory.Add(weapon.inventory);
+		}
+	}
 }

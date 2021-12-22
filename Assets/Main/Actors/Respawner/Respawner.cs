@@ -1,29 +1,39 @@
 ﻿using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace MPCore
 {
 	public class Respawner : MonoBehaviour
 	{
-		public GameObject itemToSpawn;
-		[SerializeField] float respawnTime = 5f;
-		[SerializeField] bool spawnOnAwake = true;
+		public InventoryPickup itemPrefab;
+		[SerializeField] float _respawnTime = 5f;
+		[SerializeField] bool _spawnOnAwake = true;
 
 		float _timer = 0;
+		InventoryPickup _instance;
 
-		private void OnDrawGizmos()
+		void OnValidate()
+		{
+			if (itemPrefab)
+				gameObject.name = $"Respawner '{itemPrefab.inventory.displayName}'";
+			else
+				gameObject.name = "Respawner";
+		}
+
+		void OnDrawGizmos()
 		{
 			Gizmos.color = Color.red;
 			int drawCount = 0;
 
-			if(itemToSpawn)
+			if(itemPrefab)
 			{
-				if(itemToSpawn.transform.TryGetComponent(out MeshFilter mr) && mr.sharedMesh)
+				if(itemPrefab.transform.TryGetComponent(out MeshFilter mr) && mr.sharedMesh)
 				{
 					drawCount++;
-					Gizmos.DrawMesh(mr.sharedMesh, 0, transform.position, transform.rotation, itemToSpawn.transform.lossyScale);
+					Gizmos.DrawMesh(mr.sharedMesh, 0, transform.position, transform.rotation, itemPrefab.transform.lossyScale);
 				}
 
-				foreach(Transform t in itemToSpawn.transform)
+				foreach(Transform t in itemPrefab.transform)
 					if(t.TryGetComponent(out mr) && mr.sharedMesh)
 					{
 						drawCount++;
@@ -35,28 +45,26 @@ namespace MPCore
 				Gizmos.DrawCube(transform.position, Vector3.one * 0.3f);
 		}
 
-		private void Start()
+		void Start()
 		{
-			Messages.Publish(this);
+			MessageBus.Publish(this);
 
-			if(spawnOnAwake)
-				Instantiate(itemToSpawn, transform, false);
+			if(_spawnOnAwake && itemPrefab)
+				_instance = Instantiate(itemPrefab, transform, false);
 		}
 
 		void Update()
 		{
-			if(transform.childCount == 0)
+			if(!_instance && itemPrefab)
 			{
 				_timer += Time.deltaTime;
 
-				if(_timer >= respawnTime)
+				if(_timer >= _respawnTime)
 				{
-					GameObject instance = Instantiate(itemToSpawn, transform, false);
+					_instance = Instantiate(itemPrefab, transform, false);
+					_instance.countDownDestroy = false;
 
-					if(instance.TryGetComponent(out InventoryPickup ip))
-						ip.countDownDestroy = false;
-
-					_timer = 0;
+					_timer = 0f;
 				}
 			}
 		}

@@ -1,54 +1,60 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 
-/// <summary>
-/// Keeps a target close to the scene origin to prevent visual jittering
-/// </summary>
-public class FloatingOriginManager : MonoBehaviour
+namespace MPCore
 {
-    public float boundDistance = 1024;
-    public Vector3 startingDistance = Vector3.zero;
-    public Vector3d reference;
-    public Transform target;
-    public string[] ignoreLayers;
+	/// <summary>
+	/// Keeps a target close to the scene origin to prevent visual jittering
+	/// </summary>
+	public class FloatingOriginManager : MonoBehaviour
+	{
+		const float BOUND = 1024;
+		static readonly string[] IGNORE_LAYERS = new string[] { "UI" };
 
-    private int layermask;
+		Vector3d _doublePosition;
+		int _layermask;
+		GameModel _gameModel;
+		Transform _target;
 
-    private void Awake()
-    {
-        reference = new Vector3d(startingDistance);
+		void Awake()
+		{
+			_layermask = ~LayerMask.GetMask(IGNORE_LAYERS);
+			_gameModel = Models.GetModel<GameModel>();
+			_gameModel.currentView.Subscribe(SetTarget);
+			_doublePosition = new Vector3d(0d, 0d, 0d);
+		}
 
-        if (!target)
-            target = Camera.main.transform;
+		void Update()
+		{
+			if (_target)
+				Rebase(_target.position);
+			else
+				enabled = false;
+		}
 
-        layermask = ~LayerMask.GetMask(ignoreLayers);
-    }
+		void SetTarget(DeltaValue<Transform> target)
+		{
+			_target = target.newValue;
+			enabled = target.newValue;
+		}
 
-    private void Update()
-    {
-        if (target)
-        {
+		void Rebase(Vector3 offset)
+		{
+			offset.x -= offset.x % BOUND;
+			offset.y -= offset.y % BOUND;
+			offset.z -= offset.z % BOUND;
 
-            Rebase(target.position);
-        }
-    }
+			if (offset.magnitude >= BOUND)
+			{
+				GameObject[] roots = SceneManager.GetActiveScene().GetRootGameObjects();
 
-    public void Rebase(Vector3 offset)
-    {
-        offset.x -= offset.x % boundDistance;
-        offset.y -= offset.y % boundDistance;
-        offset.z -= offset.z % boundDistance;
+				foreach (GameObject go in roots)
+					if ((1 << go.layer & _layermask) != 0)
+						go.transform.position -= offset;
 
-        if (offset.magnitude >= boundDistance)
-        {
-            Debug.Log("Debase!");
-            GameObject[] roots = SceneManager.GetActiveScene().GetRootGameObjects();
-
-            foreach (GameObject go in roots)
-                if ((1 << go.layer & layermask) != 0)
-                    go.transform.position -= offset;
-
-            reference += new Vector3d(offset);
-        }
-    }
+				_doublePosition += new Vector3d(offset);
+			}
+		}
+	}
 }

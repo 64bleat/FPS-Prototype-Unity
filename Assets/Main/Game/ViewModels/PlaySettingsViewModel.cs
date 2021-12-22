@@ -1,8 +1,9 @@
-using MPGUI;
+using MPCore;
+using MPGame;
 using System.Linq;
 using UnityEngine;
 
-namespace MPCore
+namespace MPGUI
 {
 	public class PlaySettingsViewModel : MonoBehaviour
 	{

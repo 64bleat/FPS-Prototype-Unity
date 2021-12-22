@@ -2,101 +2,99 @@
 using System.Collections.Generic;
 using Unity.Jobs;
 using UnityEngine;
-using UnityEngine.ProBuilder;
 
 namespace MPCore
 {
-    [RequireComponent(typeof(MeshFilter))]
-    public class PathMesh : MonoBehaviour
-    {
-        public SplayedMesh threadMesh;
+	[RequireComponent(typeof(MeshFilter))]
+	public class PathMesh : MonoBehaviour
+	{
+		readonly Dictionary<Guid, PathJobHandle> _activeJobs = new();
+		readonly Stack<PathMeshNavJob> _inactiveJobs = new();
+		MeshFilter _meshFilter;
+		NavModel _navModel;
+		SplayedMesh _splayedMesh;
 
-        public static readonly List<PathMesh> activeMeshes = new List<PathMesh>();
+		struct PathJobHandle
+		{
+			public JobHandle jobHandle;
+			public List<Vector3> path;
+		}
 
-        private readonly Dictionary<Guid, (JobHandle handle, List<Vector3> path)> openJobs = new Dictionary<Guid, (JobHandle handle, List<Vector3> path)>();
-        private readonly Stack<PathRequest> availableJobs = new Stack<PathRequest>();
+		public SplayedMesh SplayedMesh => _splayedMesh;
 
-        private void Awake()
-        {
-            threadMesh = new SplayedMesh(GetComponent<MeshFilter>().mesh, transform);
+		void Awake()
+		{
+			_navModel = Models.GetModel<NavModel>();
+			_meshFilter = GetComponent<MeshFilter>();
+			_splayedMesh = new SplayedMesh(_meshFilter.mesh, transform);
 
-            if (TryGetComponent(out MeshRenderer render))
-                render.enabled = false;
-        }
+			if (TryGetComponent(out MeshRenderer render))
+				render.enabled = false;
+		}
 
-        private void OnEnable()
-        {
-            activeMeshes.Add(this);
-        }
+		void OnEnable()
+		{
+			_navModel.activeMeshes.Add(this);
+		}
 
-        private void OnDisable()
-        {
-            activeMeshes.Remove(this);
-        }
+		void OnDisable()
+		{
+			_navModel.activeMeshes.Remove(this);
+		}
 
-        private void OnDestroy()
-        {
-            foreach (var kvp in openJobs)
-                kvp.Value.handle.Complete();
+		void OnDestroy()
+		{
+			foreach (PathJobHandle pathJobHandle in _activeJobs.Values)
+				pathJobHandle.jobHandle.Complete();
 
-            threadMesh.vertices.Dispose();
-            threadMesh.triangles.Dispose();
-            threadMesh.normals.Dispose();
-            threadMesh.neighbors.Dispose();
-            threadMesh.centers.Dispose();
+			_splayedMesh.vertices.Dispose();
+			_splayedMesh.triangles.Dispose();
+			_splayedMesh.normals.Dispose();
+			_splayedMesh.neighbors.Dispose();
+			_splayedMesh.centers.Dispose();
 
-            foreach (PathRequest job in availableJobs)
-                job.Dispose();
-        }
+			foreach (PathMeshNavJob job in _inactiveJobs)
+				job.Dispose();
+		}
 
-        public JobHandle RequestPath(Vector3 startPosition, Vector3 endPosition, List<Vector3> fillPath, float height = 0)
-        {
-            PathRequest startJob;
+		public JobHandle StartPathJob(Vector3 startPosition, Vector3 endPosition, List<Vector3> fillPath, float height = 0)
+		{
+			PathMeshNavJob startJob = _inactiveJobs.Count > 0 ? _inactiveJobs.Pop() : new PathMeshNavJob(_splayedMesh);
+			PathJobHandle pathJobHandle = new PathJobHandle()
+			{
+				jobHandle = startJob.StartPathJob(startPosition, endPosition, height, PathJobResult),
+				path = fillPath
+			};
 
-            if (availableJobs.Count != 0)
-            {
-                startJob = availableJobs.Pop();
-            }
-            else
-            {
-                startJob = new PathRequest();
-                startJob.mesh = threadMesh;
-                startJob.Allocate();
-            }
+			_activeJobs.Add(startJob.guid, pathJobHandle);
 
-            startJob.guid = Guid.NewGuid();
-            startJob.startPosition = startPosition;
-            startJob.endPosition = endPosition;
-            startJob.height = height;
+			return pathJobHandle.jobHandle;
+		}
 
-            JobHandle handle = JobManager.Schedule(startJob, PathRequestCallback);
-            openJobs.Add(startJob.guid, (handle, fillPath));
+		void PathJobResult(IJob iResult)
+		{
+			PathMeshNavJob result = (PathMeshNavJob)iResult;
 
-            return handle;
-        }
+			if (result.nativePath.IsCreated && _activeJobs.TryGetValue(result.guid, out var jobInfo))
+			{
+				jobInfo.path.Clear();
 
-        private void PathRequestCallback(IJob ijob)
-        {
-            PathRequest job = (PathRequest)ijob;
+				if (jobInfo.path.Capacity < result.nativePath.Length)
+					jobInfo.path.Capacity = result.nativePath.Length;
 
-            if (job.path.IsCreated && openJobs.TryGetValue(job.guid, out var jobInfo))
-            {
-                jobInfo.path.Clear();
+				for(int i = 0; i < result.nativePath.Length; i++)
+					jobInfo.path.Add(result.nativePath[i]);
+			}
 
-                for (int i = 0; i < job.path.Length; i++)
-                    jobInfo.path.Add(job.path[i]);
-            }
+			_activeJobs.Remove(result.guid);
+			_inactiveJobs.Push(result);
+		}
 
-            openJobs.Remove(job.guid);
-            availableJobs.Push(job);
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            Gizmos.color = Color.blue;
-            if (TryGetComponent(out MeshFilter mf))
-                Gizmos.DrawWireMesh(mf.sharedMesh, transform.position, transform.rotation, transform.lossyScale);
-            Gizmos.color = Color.white;
-        }
-    }
+		void OnDrawGizmosSelected()
+		{
+			Gizmos.color = Color.blue;
+			Gizmos.DrawWireMesh(_meshFilter.sharedMesh, transform.position, transform.rotation, transform.lossyScale);
+			Gizmos.color = Color.white;
+		}
+	}
 }

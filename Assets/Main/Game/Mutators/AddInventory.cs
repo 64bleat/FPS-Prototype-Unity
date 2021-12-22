@@ -1,24 +1,28 @@
+using MPCore;
 using UnityEngine;
 
-namespace MPCore
+namespace MPGame
 {
-    public class AddInventory : Mutator
-    {
-        [SerializeField] private Inventory item;
+	/// <summary>
+	/// Affect game's starting inventory
+	/// </summary>
+	public class AddInventory : Mutator
+	{
+		[SerializeField] Inventory item;
 
-        public override void Activate()
-        {
-            Messages.Subscribe<GameController>(GiveInventory);
-        }
+		public override void Activate()
+		{
+			MessageBus.Subscribe<GameManager>(GiveInventory);
+		}
 
-        public override void Deactivate()
-        {
-            Messages.Unsubscribe<GameController>(GiveInventory);
-        }
+		public override void Deactivate()
+		{
+			MessageBus.Unsubscribe<GameManager>(GiveInventory);
+		}
 
-        void GiveInventory(GameController game)
-        {
-            game.spawnInventory.Add(item);
-        }
-    }
+		void GiveInventory(GameManager game)
+		{
+			game.SpawnInventory.Add(item);
+		}
+	}
 }

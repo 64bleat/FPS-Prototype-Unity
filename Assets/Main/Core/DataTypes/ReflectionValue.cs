@@ -15,6 +15,34 @@ namespace MPCore
 		private readonly string _displayName;
 
 		/// <summary>
+		/// Get and Sets the ReflectionValue
+		/// </summary>
+		public T Value
+		{
+			get
+			{
+				if (_instance == default)
+					return default;
+				else if (_field != null)
+					return (T)_field.GetValue(_instance);
+				else if (_property != null)
+					return (T)_property.GetValue(_instance);
+				else
+					return default;
+			}
+			set
+			{
+				_field?.SetValue(_instance, value);
+				_property?.SetValue(_instance, value);
+			}
+		}
+
+		/// <summary>
+		/// String description of the value
+		/// </summary>
+		public string DisplayName => _displayName;
+
+		/// <summary>
 		/// Pass an instance along with the name of a field or property that is part of that class
 		/// </summary>
 		public ReflectionValue(object instance, string fieldName, string displayName = null)
@@ -33,28 +61,6 @@ namespace MPCore
 
 			_displayName = displayName ?? fieldName;
 		}
-
-		/// <summary>
-		/// Get and Sets the ReflectionValue
-		/// </summary>
-		public T Value
-		{
-			get
-			{
-				return (T)(_field?.GetValue(_instance) 
-					?? _property.GetValue(_instance));
-			}
-			set
-			{
-				_field?.SetValue(_instance, value);
-				_property?.SetValue(_instance, value);
-			}
-		}
-
-		/// <summary>
-		/// String description of the value
-		/// </summary>
-		public string DisplayName => _displayName;
 
 		/// <summary>
 		/// Implicit cast to the correct value

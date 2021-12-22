@@ -3,68 +3,75 @@ using MPCore;
 
 namespace MPWorld
 { 
-    public class FloatLever : MonoBehaviour, IInteractable, IFloatValue
-    {
-        public Transform lever;
-        public Transform leverMin;
-        public Transform leverMax;
-        public float restingValue = 0f;
-        public float decayDelay = 0f;
-        public float rateOfDecay = 0f; 
+	public class FloatLever : MonoBehaviour, IInteractable
+	{
+		public Transform lever;
+		public Transform leverMin;
+		public Transform leverMax;
+		public float restingValue = 0f;
+		public float decayDelay = 0f;
+		public float rateOfDecay = 0f;
+		public DataValue<float> dataValue = new();
 
-        private float lastInteractTime = 0;
-        private float value;
-        private float maxMag;
+		float _lastInteractTime = 0;
+		float _maxMag;
 
-        public float Value
-        {
-            get => value;
+		public float Value
+		{
+			get => dataValue.Value;
 
-            set
-            {
-                value = Mathf.Clamp01(value);
-                lever.position = Vector3.Lerp(leverMin.position, leverMax.position, value);
-                this.value = value;
-            }
-        }
+			set
+			{
+				value = Mathf.Clamp01(value);
+				dataValue.Value = value;
+			}
+		}
 
-        public void Start()
-        {
-            maxMag = (leverMax.position - leverMin.position).magnitude;
-            PositionToValue(lever.position);
-        }
+		void Awake()
+		{
+			_maxMag = (leverMax.position - leverMin.position).magnitude;
 
-        public void Update()
-        {
-            if (rateOfDecay > 0 && Time.time - lastInteractTime > decayDelay)
-                Value = Mathf.Lerp(Value, restingValue + (Value - restingValue) * 0.5f, Time.deltaTime / rateOfDecay);
-        }
+			dataValue.Subscribe(value =>
+				lever.position = Vector3.Lerp(leverMin.position, leverMax.position, value.newValue));
+		}
 
-        public void OnInteractEnd(GameObject other, RaycastHit hit) { }
-        public void OnInteractStart(GameObject other, RaycastHit hit) { }
-        public void OnInteractHold(GameObject other, RaycastHit hit)
-        {
-            {   // Project on the lever plane
-                Interactor interactor = other.GetComponentInChildren<Interactor>();
-                Vector3 interactDirection = (hit.point - interactor.gameObject.transform.position).normalized;
-                float a = Vector3.Dot(leverMin.position - interactor.gameObject.transform.position, leverMin.transform.up);
-                float b = Vector3.Dot(interactDirection, leverMin.transform.up);
+		void Start()
+		{
 
-                if (b != 0 && a != 0)
-                    hit.point = interactor.gameObject.transform.position + interactDirection * a / b;
-            }
+			PositionToValue(lever.position);
+		}
 
-            PositionToValue(hit.point);
+		void Update()
+		{
+			if (rateOfDecay > 0 && Time.time - _lastInteractTime > decayDelay)
+				Value = Mathf.Lerp(Value, restingValue + (Value - restingValue) * 0.5f, Time.deltaTime / rateOfDecay);
+		}
 
-            lastInteractTime = Time.time;
-        }
+		void PositionToValue(Vector3 point)
+		{
+			Vector3 direction = leverMax.position - leverMin.position;
+			Vector3 offset = point - leverMin.position;
 
-        private void PositionToValue(Vector3 point)
-        {
-            Vector3 direction = leverMax.position - leverMin.position;
-            Vector3 offset = point - leverMin.position;
+			Value = Vector3.Project(offset, direction).magnitude / _maxMag * Mathf.Sign(Vector3.Dot(offset, direction));
+		}
 
-            Value = Vector3.Project(offset, direction).magnitude / maxMag * Mathf.Sign(Vector3.Dot(offset, direction));
-        }
-    }
+		public void OnInteractEnd(GameObject other, RaycastHit hit) { }
+		public void OnInteractStart(GameObject other, RaycastHit hit) { }
+		public void OnInteractHold(GameObject other, RaycastHit hit)
+		{
+			{   // Project on the lever plane
+				Interactor interactor = other.GetComponentInChildren<Interactor>();
+				Vector3 interactDirection = (hit.point - interactor.gameObject.transform.position).normalized;
+				float a = Vector3.Dot(leverMin.position - interactor.gameObject.transform.position, leverMin.transform.up);
+				float b = Vector3.Dot(interactDirection, leverMin.transform.up);
+
+				if (b != 0 && a != 0)
+					hit.point = interactor.gameObject.transform.position + interactDirection * a / b;
+			}
+
+			PositionToValue(hit.point);
+
+			_lastInteractTime = Time.time;
+		}
+	}
 }

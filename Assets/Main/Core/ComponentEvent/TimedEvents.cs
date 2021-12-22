@@ -1,29 +1,25 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
 namespace MPCore
 {
-    public class TimedEvents : MonoBehaviour
-    {
-        public float duration = 1f;
-        public UnityEvent events;
+	public class TimedEvents : MonoBehaviour
+	{
+		public float duration = 1f;
+		public UnityEvent events;
 
-        private float enableTime;
+		void OnEnable()
+		{
+			StartCoroutine(TimedInvoke());
+		}
 
-        private void OnEnable()
-        {
-            enableTime = Time.time;
-        }
+		IEnumerator TimedInvoke()
+		{
+			yield return new WaitForSeconds(duration);
 
-        private void Update()
-        {
-            float time = Time.time - enableTime;
-
-            if (time >= duration)
-            {
-                events?.Invoke();
-                enabled = false;
-            }
-        }
-    }
+			events?.Invoke();
+			enabled = false;
+		}
+	}
 }

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MPWorld
 {
-    public class Vector2Lever : MonoBehaviour , IInteractable, IVector2Value
+    public class Vector2Lever : MonoBehaviour , IInteractable
     {
         public Transform lever;
         public Transform leverCenter;

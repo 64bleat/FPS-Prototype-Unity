@@ -3,78 +3,90 @@ using UnityEngine;
 
 namespace MPCore
 {
-    public class InventoryPickup : MonoBehaviour, IInteractable, ITouchable
-    {
-        [ContextCreateAsset] 
-        public Inventory inventory;
-        public bool countDownDestroy = false;
-        public float lifeTime;
-        public bool destroyOnPickup = true;
+	public class InventoryPickup : MonoBehaviour, IInteractable, ITouchable
+	{
+		[ContextCreateAsset] 
+		public Inventory inventory;
+		public bool countDownDestroy = false;
+		public float lifeTime;
+		public bool destroyOnPickup = true;
+		[SerializeField] bool _aiGlobal = false;
 
-        private void OnEnable()
-        {
-            AIBlackboard.mentalTargets.Add(this);
-        }
+		AIModel _aiModel;
 
-        private void OnDisable()
-        {
-            AIBlackboard.mentalTargets.Remove(this);
-        }
+		public bool IsAIGlobal => _aiGlobal;
 
-        public void Update()
-        {
-            if (countDownDestroy && (lifeTime -= Time.deltaTime) <= 0)
-                Destroy(gameObject);
-        }
+		void Awake()
+		{
+			_aiModel = Models.GetModel<AIModel>();
+		}
 
-        public virtual void OnPickup(GameObject picker)
-        {
-            if (picker && picker.TryGetComponent(out InventoryManager container)
-                && container.TryPickup(inventory, out _))
-            {
-                gameObject.SetActive(false);
+		private void OnEnable()
+		{
+			_aiModel.pickups.Add(this);
+			AIBlackboard.mentalTargets.Add(this);
+		}
 
-                if (inventory.pickupSound && picker.TryGetComponent(out CharacterSound sound))
-                    sound.PlayPickupSound(inventory.pickupSound);
+		private void OnDisable()
+		{
+			_aiModel.pickups.Remove(this);
+			AIBlackboard.mentalTargets.Remove(this);
+		}
 
-                if(destroyOnPickup)
-                    Destroy(gameObject);
-            }
-        }
+		public void Update()
+		{
+			if (countDownDestroy && (lifeTime -= Time.deltaTime) <= 0)
+				Destroy(gameObject);
+		}
 
-        public virtual void OnDropped(GameObject dropper)
-        {
-            //if (inventory.droppedLifeTime > 0)
-            //{
-            //    countDownDestroy = true;
-            //    lifeTime = inventory.droppedLifeTime;
-            //}
-        }
-        
-        public virtual void OnTouch(GameObject instigator, Collision c)
-        {
-            if (inventory && inventory.pickupOnTouch && instigator)
-                OnPickup(instigator);
-        }
+		public virtual void OnPickup(GameObject picker)
+		{
+			if (picker && picker.TryGetComponent(out InventoryManager container)
+				&& container.TryPickup(inventory, out _))
+			{
+				gameObject.SetActive(false);
 
-        private void OnTriggerEnter(Collider other)
-        {
-            if(inventory && inventory.pickupOnTouch && other)
-                OnPickup(other.gameObject);
-        }
+				if (inventory.pickupSound && picker.TryGetComponent(out CharacterSoundManager sound))
+					sound.PlayPickupSound(inventory.pickupSound);
 
-        private void OnCollisionEnter(Collision collision)
-        {
-            if (inventory && inventory.pickupOnTouch && collision != null)
-                OnPickup(collision.gameObject);
-        }
+				if(destroyOnPickup)
+					Destroy(gameObject);
+			}
+		}
 
-        public void OnInteractStart(GameObject other, RaycastHit hit)
-        {
-            if (inventory && inventory.pickupOnInteractStart && other)
-                OnPickup(other);
-        }
-        public void OnInteractEnd(GameObject other, RaycastHit hit) { }
-        public void OnInteractHold(GameObject other, RaycastHit hit) { }
-    }
+		public virtual void OnDropped(GameObject dropper)
+		{
+			//if (inventory.droppedLifeTime > 0)
+			//{
+			//    countDownDestroy = true;
+			//    lifeTime = inventory.droppedLifeTime;
+			//}
+		}
+		
+		public virtual void OnTouch(GameObject instigator, Collision c)
+		{
+			if (inventory && inventory.pickupOnTouch && instigator)
+				OnPickup(instigator);
+		}
+
+		private void OnTriggerEnter(Collider other)
+		{
+			if(inventory && inventory.pickupOnTouch && other)
+				OnPickup(other.gameObject);
+		}
+
+		private void OnCollisionEnter(Collision collision)
+		{
+			if (inventory && inventory.pickupOnTouch && collision != null)
+				OnPickup(collision.gameObject);
+		}
+
+		public void OnInteractStart(GameObject other, RaycastHit hit)
+		{
+			if (inventory && inventory.pickupOnInteractStart && other)
+				OnPickup(other);
+		}
+		public void OnInteractEnd(GameObject other, RaycastHit hit) { }
+		public void OnInteractHold(GameObject other, RaycastHit hit) { }
+	}
 }

@@ -1,11 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MPCore
 {
-    public interface ITouchable
-    {
-        void OnTouch(GameObject instigator, Collision hit);
-    }
+	public interface ITouchable
+	{
+		void OnTouch(GameObject instigator, Collision hit);
+	}
 }

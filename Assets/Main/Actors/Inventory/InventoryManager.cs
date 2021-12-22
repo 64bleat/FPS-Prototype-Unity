@@ -15,7 +15,7 @@ namespace MPCore
 		IGravityUser _physics;
 		Rigidbody _rigidbody;
 
-		public IList<Inventory> Inventory => _inventory;
+		public List<Inventory> Inventory => _inventory;
 
 		void Awake()
 		{
