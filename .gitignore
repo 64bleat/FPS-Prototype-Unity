@@ -1,8 +1,7 @@
-*.blend*
-/Assets/Mountain/
-[Tt]est/
 /MemoryCaptures/
-/Assets/TestAnimation/
+/Assets/Plugins/
+/Packages/
+/UserSettings/
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
